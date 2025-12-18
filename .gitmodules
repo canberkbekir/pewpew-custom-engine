@@ -1,0 +1,3 @@
+[submodule "pewpew-engine/vendor/sdplog"]
+	path = pewpew-engine/vendor/sdplog
+	url = https://github.com/gabime/spdlog.git

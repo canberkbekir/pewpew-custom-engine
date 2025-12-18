@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="PewPew">
+      <UniqueIdentifier>{DD04E2C9-C9A6-0CA0-B261-20F49EA293F0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PewPew\Events">
+      <UniqueIdentifier>{21F63F5F-8DB6-BB95-56F1-0413C2700072}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\PewPew.h" />
+    <ClInclude Include="src\PewPew\Application.h">
+      <Filter>PewPew</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Core.h">
+      <Filter>PewPew</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\EntryPoint.h">
+      <Filter>PewPew</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Events\ApplicationEvent.h">
+      <Filter>PewPew\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Events\Event.h">
+      <Filter>PewPew\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Events\KeyEvent.h">
+      <Filter>PewPew\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Events\MouseEvent.h">
+      <Filter>PewPew\Events</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Log.h">
+      <Filter>PewPew</Filter>
+    </ClInclude>
+    <ClInclude Include="src\pewpch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\PewPew\Application.cpp">
+      <Filter>PewPew</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Log.cpp">
+      <Filter>PewPew</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pewpch.cpp" />
+  </ItemGroup>
+</Project>
