@@ -80,7 +80,7 @@
       <PrecompiledHeaderFile>pewpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>PEW_PLATFORM_WINDOWS;PEW_BUILD_DLL;PEW_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\sdplog\include;;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\sdplog\include;vendor\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -91,6 +91,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImportLibrary>..\bin\Debug-windows-x86_64\PewPew\PewPew.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
@@ -104,7 +105,7 @@ copy /B /Y ..\bin\Debug-windows-x86_64\PewPew\PewPew.dll ..\bin\Debug-windows-x8
       <PrecompiledHeaderFile>pewpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>PEW_PLATFORM_WINDOWS;PEW_BUILD_DLL;PEW_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\sdplog\include;;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\sdplog\include;vendor\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -119,6 +120,7 @@ copy /B /Y ..\bin\Debug-windows-x86_64\PewPew\PewPew.dll ..\bin\Debug-windows-x8
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImportLibrary>..\bin\Release-windows-x86_64\PewPew\PewPew.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
@@ -132,7 +134,7 @@ copy /B /Y ..\bin\Release-windows-x86_64\PewPew\PewPew.dll ..\bin\Release-window
       <PrecompiledHeaderFile>pewpch.h</PrecompiledHeaderFile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>PEW_PLATFORM_WINDOWS;PEW_BUILD_DLL;PEW_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>src;vendor\sdplog\include;;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>src;vendor\sdplog\include;vendor\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -147,6 +149,7 @@ copy /B /Y ..\bin\Release-windows-x86_64\PewPew\PewPew.dll ..\bin\Release-window
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImportLibrary>..\bin\Dist-windows-x86_64\PewPew\PewPew.lib</ImportLibrary>
     </Link>
     <PostBuildEvent>
@@ -164,14 +167,22 @@ copy /B /Y ..\bin\Dist-windows-x86_64\PewPew\PewPew.dll ..\bin\Dist-windows-x86_
     <ClInclude Include="src\PewPew\Events\KeyEvent.h" />
     <ClInclude Include="src\PewPew\Events\MouseEvent.h" />
     <ClInclude Include="src\PewPew\Log.h" />
+    <ClInclude Include="src\PewPew\Window.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\pewpch.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\PewPew\Application.cpp" />
     <ClCompile Include="src\PewPew\Log.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\pewpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="vendor\GLFW\GLFW.vcxproj">
+      <Project>{154B857C-0182-860D-AA6E-6C109684020F}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

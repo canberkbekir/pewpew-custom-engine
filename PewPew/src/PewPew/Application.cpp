@@ -1,27 +1,39 @@
 #include "pewpch.h"
 #include "Application.h"
-#include "Events/ApplicationEvent.h" 
-#include "PewPew/Log.h"
+#include "Events/ApplicationEvent.h"  
 namespace PewPew
 {
+#define BIND_EVENT_FN(fn) std::bind(&Application::fn, this, std::placeholders::_1)
+	
 	Application::Application()
 	{
+		m_Window = std::unique_ptr<Window>(Window::Create());
+		m_Window-> SetEventCallback(BIND_EVENT_FN(OnEvent));
 	}
+	
 	Application::~Application()
 	{
 	}
+	
 	void Application::Run()
 	{
-		WindowCloseEvent e;
-		if (e.IsInCategory(EventCategoryApplication))
+		while (m_Running)
 		{
-			PEW_TRACE(e.ToString());
+			m_Window->OnUpdate();
 		}
-		if (e.IsInCategory(EventCategoryInput))
-		{
-			PEW_TRACE(e.ToString());
-		}
-
-		while (true);
 	}
+
+	void Application::OnEvent(Event& e)
+	{
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+		PEW_CORE_TRACE(e.ToString());
+	}
+
+	bool Application::OnWindowClose(WindowCloseEvent& e)
+	{
+		m_Running = false;
+		return true;
+	}
+ 
 }

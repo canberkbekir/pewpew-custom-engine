@@ -7,6 +7,12 @@
     <Filter Include="PewPew\Events">
       <UniqueIdentifier>{21F63F5F-8DB6-BB95-56F1-0413C2700072}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Platform">
+      <UniqueIdentifier>{2AC788B4-1694-E3BF-3FAD-D1672BD9184E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Platform\Windows">
+      <UniqueIdentifier>{64FBD71A-50F4-F66C-7926-DCF1657ED678}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\PewPew.h" />
@@ -34,6 +40,12 @@
     <ClInclude Include="src\PewPew\Log.h">
       <Filter>PewPew</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Window.h">
+      <Filter>PewPew</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\Windows\WindowsWindow.h">
+      <Filter>Platform\Windows</Filter>
+    </ClInclude>
     <ClInclude Include="src\pewpch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -42,6 +54,9 @@
     </ClCompile>
     <ClCompile Include="src\PewPew\Log.cpp">
       <Filter>PewPew</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp">
+      <Filter>Platform\Windows</Filter>
     </ClCompile>
     <ClCompile Include="src\pewpch.cpp" />
   </ItemGroup>
