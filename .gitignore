@@ -33,4 +33,4 @@
 
 .idea/
 
-!vendor/
+!vendor/**/*.exe
