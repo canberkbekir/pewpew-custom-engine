@@ -37,6 +37,12 @@
     <ClInclude Include="src\PewPew\Events\MouseEvent.h">
       <Filter>PewPew\Events</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Layer.h">
+      <Filter>PewPew</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\LayerStack.h">
+      <Filter>PewPew</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Log.h">
       <Filter>PewPew</Filter>
     </ClInclude>
@@ -50,6 +56,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\PewPew\Application.cpp">
+      <Filter>PewPew</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Layer.cpp">
+      <Filter>PewPew</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\LayerStack.cpp">
       <Filter>PewPew</Filter>
     </ClCompile>
     <ClCompile Include="src\PewPew\Log.cpp">

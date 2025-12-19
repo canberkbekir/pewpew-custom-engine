@@ -21,6 +21,9 @@ namespace PewPew
         while (m_Running)
         {
             m_Window->OnUpdate();
+            
+            for (Layer* layer : m_LayerStack)
+                layer->OnUpdate();
         }
     }
 
@@ -28,7 +31,24 @@ namespace PewPew
     {
         EventDispatcher dispatcher(e);
         dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+
+        for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); )
+        {
+            (*--it)->OnEvent(e);
+            if (e.Handled)
+                break;
+        }
         PEW_CORE_TRACE(e.ToString());
+    }
+
+    void Application::PushLayer(Layer* layer)
+    {
+        m_LayerStack.PushLayer(layer);
+    }
+
+    void Application::PushOverlay(Layer* layer)
+    {
+        m_LayerStack.PushOverlay(layer);
     }
 
     bool Application::OnWindowClose(WindowCloseEvent& e)

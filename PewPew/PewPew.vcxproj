@@ -1,193 +1,194 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <ItemGroup Label="ProjectConfigurations">
-        <ProjectConfiguration Include="Debug|x64">
-            <Configuration>Debug</Configuration>
-            <Platform>x64</Platform>
-        </ProjectConfiguration>
-        <ProjectConfiguration Include="Release|x64">
-            <Configuration>Release</Configuration>
-            <Platform>x64</Platform>
-        </ProjectConfiguration>
-        <ProjectConfiguration Include="Dist|x64">
-            <Configuration>Dist</Configuration>
-            <Platform>x64</Platform>
-        </ProjectConfiguration>
-    </ItemGroup>
-    <PropertyGroup Label="Globals">
-        <ProjectGuid>{DD04E2C9-C9A6-0CA0-B261-20F49EA293F0}</ProjectGuid>
-        <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
-        <Keyword>Win32Proj</Keyword>
-        <RootNamespace>PewPew</RootNamespace>
-        <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    </PropertyGroup>
-    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props"/>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-        <ConfigurationType>DynamicLibrary</ConfigurationType>
-        <UseDebugLibraries>true</UseDebugLibraries>
-        <CharacterSet>Unicode</CharacterSet>
-        <PlatformToolset>v143</PlatformToolset>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-        <ConfigurationType>DynamicLibrary</ConfigurationType>
-        <UseDebugLibraries>false</UseDebugLibraries>
-        <CharacterSet>Unicode</CharacterSet>
-        <PlatformToolset>v143</PlatformToolset>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'" Label="Configuration">
-        <ConfigurationType>DynamicLibrary</ConfigurationType>
-        <UseDebugLibraries>false</UseDebugLibraries>
-        <CharacterSet>Unicode</CharacterSet>
-        <PlatformToolset>v143</PlatformToolset>
-    </PropertyGroup>
-    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props"/>
-    <ImportGroup Label="ExtensionSettings">
-    </ImportGroup>
-    <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
-    </ImportGroup>
-    <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
-    </ImportGroup>
-    <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
-        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform"/>
-    </ImportGroup>
-    <PropertyGroup Label="UserMacros"/>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-        <LinkIncremental>true</LinkIncremental>
-        <OutDir>$(ProjectDir)..\bin\Debug-windows-x86_64\PewPew\</OutDir>
-        <IntDir>$(ProjectDir)..\bin-int\Debug-windows-x86_64\PewPew\</IntDir>
-        <TargetName>PewPew</TargetName>
-        <TargetExt>.dll</TargetExt>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-        <LinkIncremental>false</LinkIncremental>
-        <OutDir>$(ProjectDir)..\bin\Release-windows-x86_64\PewPew\</OutDir>
-        <IntDir>$(ProjectDir)..\bin-int\Release-windows-x86_64\PewPew\</IntDir>
-        <TargetName>PewPew</TargetName>
-        <TargetExt>.dll</TargetExt>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
-        <LinkIncremental>false</LinkIncremental>
-        <OutDir>$(ProjectDir)..\bin\Dist-windows-x86_64\PewPew\</OutDir>
-        <IntDir>$(ProjectDir)..\bin-int\Dist-windows-x86_64\PewPew\</IntDir>
-        <TargetName>PewPew</TargetName>
-        <TargetExt>.dll</TargetExt>
-    </PropertyGroup>
-    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-        <ClCompile>
-            <PrecompiledHeader>Use</PrecompiledHeader>
-            <PrecompiledHeaderFile>pewpch.h</PrecompiledHeaderFile>
-            <WarningLevel>Level3</WarningLevel>
-            <PreprocessorDefinitions>PEW_PLATFORM_WINDOWS;PEW_BUILD_DLL;PEW_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-            <AdditionalIncludeDirectories>src;vendor\sdplog\include;vendor\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-            <Optimization>Disabled</Optimization>
-            <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-            <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-            <LanguageStandard>stdcpp17</LanguageStandard>
-            <ExternalWarningLevel>Level3</ExternalWarningLevel>
-        </ClCompile>
-        <Link>
-            <SubSystem>Windows</SubSystem>
-            <GenerateDebugInformation>true</GenerateDebugInformation>
-            <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <ImportLibrary>..\bin\Debug-windows-x86_64\PewPew\PewPew.lib</ImportLibrary>
-        </Link>
-        <PostBuildEvent>
-            <Command>IF NOT EXIST ..\bin\Debug-windows-x86_64\Sandbox (mkdir ..\bin\Debug-windows-x86_64\Sandbox)
-                copy /B /Y ..\bin\Debug-windows-x86_64\PewPew\PewPew.dll ..\bin\Debug-windows-x86_64\Sandbox
-            </Command>
-        </PostBuildEvent>
-    </ItemDefinitionGroup>
-    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-        <ClCompile>
-            <PrecompiledHeader>Use</PrecompiledHeader>
-            <PrecompiledHeaderFile>pewpch.h</PrecompiledHeaderFile>
-            <WarningLevel>Level3</WarningLevel>
-            <PreprocessorDefinitions>PEW_PLATFORM_WINDOWS;PEW_BUILD_DLL;PEW_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-            <AdditionalIncludeDirectories>src;vendor\sdplog\include;vendor\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <Optimization>Full</Optimization>
-            <FunctionLevelLinking>true</FunctionLevelLinking>
-            <IntrinsicFunctions>true</IntrinsicFunctions>
-            <MinimalRebuild>false</MinimalRebuild>
-            <StringPooling>true</StringPooling>
-            <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-            <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-            <LanguageStandard>stdcpp17</LanguageStandard>
-            <ExternalWarningLevel>Level3</ExternalWarningLevel>
-        </ClCompile>
-        <Link>
-            <SubSystem>Windows</SubSystem>
-            <EnableCOMDATFolding>true</EnableCOMDATFolding>
-            <OptimizeReferences>true</OptimizeReferences>
-            <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <ImportLibrary>..\bin\Release-windows-x86_64\PewPew\PewPew.lib</ImportLibrary>
-        </Link>
-        <PostBuildEvent>
-            <Command>IF NOT EXIST ..\bin\Release-windows-x86_64\Sandbox (mkdir ..\bin\Release-windows-x86_64\Sandbox)
-                copy /B /Y ..\bin\Release-windows-x86_64\PewPew\PewPew.dll ..\bin\Release-windows-x86_64\Sandbox
-            </Command>
-        </PostBuildEvent>
-    </ItemDefinitionGroup>
-    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
-        <ClCompile>
-            <PrecompiledHeader>Use</PrecompiledHeader>
-            <PrecompiledHeaderFile>pewpch.h</PrecompiledHeaderFile>
-            <WarningLevel>Level3</WarningLevel>
-            <PreprocessorDefinitions>PEW_PLATFORM_WINDOWS;PEW_BUILD_DLL;PEW_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-            <AdditionalIncludeDirectories>src;vendor\sdplog\include;vendor\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-            <Optimization>Full</Optimization>
-            <FunctionLevelLinking>true</FunctionLevelLinking>
-            <IntrinsicFunctions>true</IntrinsicFunctions>
-            <MinimalRebuild>false</MinimalRebuild>
-            <StringPooling>true</StringPooling>
-            <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-            <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
-            <LanguageStandard>stdcpp17</LanguageStandard>
-            <ExternalWarningLevel>Level3</ExternalWarningLevel>
-        </ClCompile>
-        <Link>
-            <SubSystem>Windows</SubSystem>
-            <EnableCOMDATFolding>true</EnableCOMDATFolding>
-            <OptimizeReferences>true</OptimizeReferences>
-            <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-            <ImportLibrary>..\bin\Dist-windows-x86_64\PewPew\PewPew.lib</ImportLibrary>
-        </Link>
-        <PostBuildEvent>
-            <Command>IF NOT EXIST ..\bin\Dist-windows-x86_64\Sandbox (mkdir ..\bin\Dist-windows-x86_64\Sandbox)
-                copy /B /Y ..\bin\Dist-windows-x86_64\PewPew\PewPew.dll ..\bin\Dist-windows-x86_64\Sandbox
-            </Command>
-        </PostBuildEvent>
-    </ItemDefinitionGroup>
-    <ItemGroup>
-        <ClInclude Include="src\PewPew.h"/>
-        <ClInclude Include="src\PewPew\Application.h"/>
-        <ClInclude Include="src\PewPew\Core.h"/>
-        <ClInclude Include="src\PewPew\EntryPoint.h"/>
-        <ClInclude Include="src\PewPew\Events\ApplicationEvent.h"/>
-        <ClInclude Include="src\PewPew\Events\Event.h"/>
-        <ClInclude Include="src\PewPew\Events\KeyEvent.h"/>
-        <ClInclude Include="src\PewPew\Events\MouseEvent.h"/>
-        <ClInclude Include="src\PewPew\Log.h"/>
-        <ClInclude Include="src\PewPew\Window.h"/>
-        <ClInclude Include="src\Platform\Windows\WindowsWindow.h"/>
-        <ClInclude Include="src\pewpch.h"/>
-    </ItemGroup>
-    <ItemGroup>
-        <ClCompile Include="src\PewPew\Application.cpp"/>
-        <ClCompile Include="src\PewPew\Log.cpp"/>
-        <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp"/>
-        <ClCompile Include="src\pewpch.cpp">
-            <PrecompiledHeader>Create</PrecompiledHeader>
-        </ClCompile>
-    </ItemGroup>
-    <ItemGroup>
-        <ProjectReference Include="vendor\GLFW\GLFW.vcxproj">
-            <Project>{154B857C-0182-860D-AA6E-6C109684020F}</Project>
-        </ProjectReference>
-    </ItemGroup>
-    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
-    <ImportGroup Label="ExtensionTargets">
-    </ImportGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Dist|x64">
+      <Configuration>Dist</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{DD04E2C9-C9A6-0CA0-B261-20F49EA293F0}</ProjectGuid>
+    <IgnoreWarnCompileDuplicatedFilename>true</IgnoreWarnCompileDuplicatedFilename>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>PewPew</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(ProjectDir)..\bin\Debug-windows-x86_64\PewPew\</OutDir>
+    <IntDir>$(ProjectDir)..\bin-int\Debug-windows-x86_64\PewPew\</IntDir>
+    <TargetName>PewPew</TargetName>
+    <TargetExt>.dll</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(ProjectDir)..\bin\Release-windows-x86_64\PewPew\</OutDir>
+    <IntDir>$(ProjectDir)..\bin-int\Release-windows-x86_64\PewPew\</IntDir>
+    <TargetName>PewPew</TargetName>
+    <TargetExt>.dll</TargetExt>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(ProjectDir)..\bin\Dist-windows-x86_64\PewPew\</OutDir>
+    <IntDir>$(ProjectDir)..\bin-int\Dist-windows-x86_64\PewPew\</IntDir>
+    <TargetName>PewPew</TargetName>
+    <TargetExt>.dll</TargetExt>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pewpch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>PEW_PLATFORM_WINDOWS;PEW_BUILD_DLL;PEW_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;vendor\sdplog\include;vendor\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalOptions>/utf-8 /MDd %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ExternalWarningLevel>Level3</ExternalWarningLevel>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>..\bin\Debug-windows-x86_64\PewPew\PewPew.lib</ImportLibrary>
+    </Link>
+    <PostBuildEvent>
+      <Command>IF NOT EXIST ..\bin\Debug-windows-x86_64\Sandbox (mkdir ..\bin\Debug-windows-x86_64\Sandbox)
+copy /B /Y ..\bin\Debug-windows-x86_64\PewPew\PewPew.dll ..\bin\Debug-windows-x86_64\Sandbox</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pewpch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>PEW_PLATFORM_WINDOWS;PEW_BUILD_DLL;PEW_RELEASE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;vendor\sdplog\include;vendor\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Full</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalOptions>/utf-8 /MD %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ExternalWarningLevel>Level3</ExternalWarningLevel>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>..\bin\Release-windows-x86_64\PewPew\PewPew.lib</ImportLibrary>
+    </Link>
+    <PostBuildEvent>
+      <Command>IF NOT EXIST ..\bin\Release-windows-x86_64\Sandbox (mkdir ..\bin\Release-windows-x86_64\Sandbox)
+copy /B /Y ..\bin\Release-windows-x86_64\PewPew\PewPew.dll ..\bin\Release-windows-x86_64\Sandbox</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Dist|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pewpch.h</PrecompiledHeaderFile>
+      <WarningLevel>Level3</WarningLevel>
+      <PreprocessorDefinitions>PEW_PLATFORM_WINDOWS;PEW_BUILD_DLL;PEW_DIST;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>src;vendor\sdplog\include;vendor\GLFW\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Full</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <MinimalRebuild>false</MinimalRebuild>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <AdditionalOptions>/utf-8 /MD %(AdditionalOptions)</AdditionalOptions>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ExternalWarningLevel>Level3</ExternalWarningLevel>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImportLibrary>..\bin\Dist-windows-x86_64\PewPew\PewPew.lib</ImportLibrary>
+    </Link>
+    <PostBuildEvent>
+      <Command>IF NOT EXIST ..\bin\Dist-windows-x86_64\Sandbox (mkdir ..\bin\Dist-windows-x86_64\Sandbox)
+copy /B /Y ..\bin\Dist-windows-x86_64\PewPew\PewPew.dll ..\bin\Dist-windows-x86_64\Sandbox</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="src\PewPew.h" />
+    <ClInclude Include="src\PewPew\Application.h" />
+    <ClInclude Include="src\PewPew\Core.h" />
+    <ClInclude Include="src\PewPew\EntryPoint.h" />
+    <ClInclude Include="src\PewPew\Events\ApplicationEvent.h" />
+    <ClInclude Include="src\PewPew\Events\Event.h" />
+    <ClInclude Include="src\PewPew\Events\KeyEvent.h" />
+    <ClInclude Include="src\PewPew\Events\MouseEvent.h" />
+    <ClInclude Include="src\PewPew\Layer.h" />
+    <ClInclude Include="src\PewPew\LayerStack.h" />
+    <ClInclude Include="src\PewPew\Log.h" />
+    <ClInclude Include="src\PewPew\Window.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
+    <ClInclude Include="src\pewpch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\PewPew\Application.cpp" />
+    <ClCompile Include="src\PewPew\Layer.cpp" />
+    <ClCompile Include="src\PewPew\LayerStack.cpp" />
+    <ClCompile Include="src\PewPew\Log.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
+    <ClCompile Include="src\pewpch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="vendor\GLFW\GLFW.vcxproj">
+      <Project>{154B857C-0182-860D-AA6E-6C109684020F}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
 </Project>
