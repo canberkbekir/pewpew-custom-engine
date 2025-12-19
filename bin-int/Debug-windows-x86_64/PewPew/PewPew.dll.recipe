@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>C:\Codes\GitKraken\pewpew-engine\bin\Debug-windows-x86_64\PewPew\PewPew.dll</FullPath>
+      <FullPath>C:\Codes\GitKraken\pewpew-custom-engine\bin\Debug-windows-x86_64\PewPew\PewPew.dll</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />
