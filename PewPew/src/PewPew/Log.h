@@ -1,18 +1,20 @@
 #pragma once
 #include "Core.h"
-#include "spdlog/spdlog.h" 
+#include "spdlog/spdlog.h"
+
 namespace PewPew
 {
-	class PEW_API Log
-	{
-	public:
-		static void Init();
-		static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
-		static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
-	private:
-		static std::shared_ptr<spdlog::logger> s_CoreLogger;
-		static std::shared_ptr<spdlog::logger> s_ClientLogger;
-	};
+    class PEW_API Log
+    {
+    public:
+        static void Init();
+        static std::shared_ptr<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
+        static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+
+    private:
+        static std::shared_ptr<spdlog::logger> s_CoreLogger;
+        static std::shared_ptr<spdlog::logger> s_ClientLogger;
+    };
 }
 
 #define PEW_CORE_ERROR(...) ::PewPew::Log::GetCoreLogger()->error(__VA_ARGS__)

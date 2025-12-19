@@ -14,6 +14,5 @@
 #include <PewPew/Log.h>
 
 #ifdef PEW_PLATFORM_WINDOWS
-	#include <Windows.h>
+#include <Windows.h>
 #endif
-

@@ -3,16 +3,16 @@
 class Sandbox : public PewPew::Application
 {
 public:
-	Sandbox()
-	{
+    Sandbox()
+    {
+    }
 
-	}
-	~Sandbox()
-	{
-
-	}
-
+    ~Sandbox() override
+    {
+    }
 };
-PewPew::Application* PewPew::CreateApplication() {
-	return new Sandbox();
+
+PewPew::Application* PewPew::CreateApplication()
+{
+    return new Sandbox();
 }
