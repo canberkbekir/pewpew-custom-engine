@@ -1,9 +1,10 @@
 ﻿#include "pewpch.h"
 #include "WindowsWindow.h"
 
+#include "glad/glad.h"
 #include "PewPew/Events/ApplicationEvent.h"
 #include "PewPew/Events/MouseEvent.h"
-#include "PewPew/Events/KeyEvent.h"
+#include "PewPew/Events/KeyEvent.h" 
 
 namespace PewPew
 {
@@ -50,6 +51,8 @@ namespace PewPew
         m_Window = glfwCreateWindow(static_cast<int>(props.Width), static_cast<int>(props.Height), m_Data.Title.c_str(),
                                     nullptr, nullptr);
         glfwMakeContextCurrent(m_Window);
+        int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+        PEW_CORE_ASSERT(status, "Failed to initialize Glad!");
         glfwSetWindowUserPointer(m_Window, &m_Data);
         SetVSync(true);
 

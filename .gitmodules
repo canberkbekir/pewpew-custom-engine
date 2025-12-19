@@ -4,3 +4,6 @@
 [submodule "PewPew/vendor/GLFW"]
 	path = PewPew/vendor/GLFW
 	url = https://github.com/TheCherno/GLFW
+[submodule "PewPew/vendor/imgui"]
+	path = PewPew/vendor/imgui
+	url = https://github.com/TheCherno/imgui

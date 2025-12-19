@@ -4,6 +4,8 @@
 #include "PewPew/Application.h"
 #include "PewPew/Log.h"
 #include "PewPew/Layer.h"
+
+#include "PewPew/ImGui/ImGuiLayer.h"
 //Entry Point-----------------
 #include "PewPew/EntryPoint.h"
 //---------------------------
