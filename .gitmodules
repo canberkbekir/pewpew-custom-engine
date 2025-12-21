@@ -1,9 +1,6 @@
 [submodule "pewpew-engine/vendor/sdplog"]
 	path = pewpew-engine/vendor/sdplog
 	url = https://github.com/gabime/spdlog.git
-[submodule "PewPew/vendor/GLFW"]
-	path = PewPew/vendor/GLFW
-	url = https://github.com/TheCherno/GLFW
 [submodule "PewPew/vendor/imgui"]
 	path = PewPew/vendor/imgui
 	url = https://github.com/TheCherno/imgui
