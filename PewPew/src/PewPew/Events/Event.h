@@ -9,7 +9,7 @@ namespace PewPew
         None = 0,
         WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,
         AppTick, AppUpdate, AppRender,
-        KeyPressed, KeyReleased, KeyDown, KeyUp,
+        KeyPressed, KeyReleased, KeyTyped,
         MouseButtonPressed, MouseButtonReleased, MouseButtonDown, MouseButtonUp, MouseMoved, MouseScrolled
     };
 
@@ -33,6 +33,7 @@ namespace PewPew
     class PEW_API Event
     {  
     public:
+        virtual ~Event() = default;
         bool Handled = false;
         virtual EventType GetEventType() const = 0;
         virtual const char* GetName() const = 0;
