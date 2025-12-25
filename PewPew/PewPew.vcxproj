@@ -167,11 +167,13 @@ copy /B /Y ..\bin\Dist-windows-x86_64\PewPew\PewPew.dll ..\bin\Dist-windows-x86_
     <ClInclude Include="src\PewPew\Events\KeyEvent.h" />
     <ClInclude Include="src\PewPew\Events\MouseEvent.h" />
     <ClInclude Include="src\PewPew\ImGui\ImGuiLayer.h" />
+    <ClInclude Include="src\PewPew\Input.h" />
     <ClInclude Include="src\PewPew\Layer.h" />
     <ClInclude Include="src\PewPew\LayerStack.h" />
     <ClInclude Include="src\PewPew\Log.h" />
     <ClInclude Include="src\PewPew\Window.h" />
     <ClInclude Include="src\Platform\OpenGL\ImGuiOpenGLRenderer.h" />
+    <ClInclude Include="src\Platform\Windows\WindowsInput.h" />
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\pewpch.h" />
   </ItemGroup>
@@ -182,6 +184,7 @@ copy /B /Y ..\bin\Dist-windows-x86_64\PewPew\PewPew.dll ..\bin\Dist-windows-x86_
     <ClCompile Include="src\PewPew\LayerStack.cpp" />
     <ClCompile Include="src\PewPew\Log.cpp" />
     <ClCompile Include="src\Platform\OpenGL\ImGuiOpenGLRenderer.cpp" />
+    <ClCompile Include="src\Platform\Windows\WindowsInput.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\pewpch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

@@ -4,5 +4,6 @@ C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Layer.cpp;C:\Codes\Git
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\LayerStack.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\LayerStack.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Log.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\Log.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\OpenGL\ImGuiOpenGLRenderer.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\ImGuiOpenGLRenderer.obj
+C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\Windows\WindowsInput.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\WindowsInput.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\Windows\WindowsWindow.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\WindowsWindow.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\pewpch.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\pewpch.obj
