@@ -43,7 +43,7 @@ namespace PewPew
             if (e.Handled)
                 break;
         }
-        PEW_CORE_TRACE(e.ToString());
+        //PEW_CORE_TRACE(e.ToString());
     }
 
     void Application::PushLayer(Layer* layer)

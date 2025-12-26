@@ -7,3 +7,6 @@
 [submodule "PewPew/vendor/GLFW"]
 	path = PewPew/vendor/GLFW
 	url = https://github.com/glfw/glfw
+[submodule "PewPew/vendor/glm"]
+	path = PewPew/vendor/glm
+	url = https://github.com/g-truc/glm

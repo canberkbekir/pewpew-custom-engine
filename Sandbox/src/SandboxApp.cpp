@@ -9,13 +9,18 @@ public:
     }
 
     void OnUpdate() override
-    {
-        PEW_CORE_INFO("ExampleLayer::Update");
+    { 
     }
 
     void OnEvent(PewPew::Event& event) override
     {
-        PEW_CORE_TRACE(event.ToString());
+        if (event.GetEventType() == PewPew::EventType::KeyPressed)
+        {
+            PewPew::KeyPressedEvent& e = dynamic_cast<PewPew::KeyPressedEvent&>(event);
+            if (e.GetKeyCode() == PEW_KEY_TAB)
+                PEW_TRACE("Tab key is pressed (event)!");
+            PEW_TRACE(e.GetKeyCode());
+        }
     }
     
 };
