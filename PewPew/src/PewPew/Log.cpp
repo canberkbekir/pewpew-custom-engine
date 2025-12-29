@@ -1,5 +1,5 @@
-#include "pewpch.h"
-#include "Log.h"
+#include "pewpch.h" 
+#include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 
 namespace PewPew
