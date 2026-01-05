@@ -5,6 +5,7 @@
 #include "Window.h"
 #include "Events/ApplicationEvent.h"
 #include "Events/Event.h"
+#include "ImGui/ImGuiLayer.h"
 
 namespace PewPew
 {
@@ -28,6 +29,7 @@ namespace PewPew
         bool OnWindowClose(WindowCloseEvent& e);
 
         std::unique_ptr<Window> m_Window;
+        ImGuiLayer* m_ImGuiLayer;
         bool m_Running = true;
         LayerStack m_LayerStack;
     private:

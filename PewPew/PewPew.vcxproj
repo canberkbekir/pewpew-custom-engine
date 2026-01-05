@@ -162,7 +162,6 @@
     <ClInclude Include="src\PewPew\Log.h" />
     <ClInclude Include="src\PewPew\MouseButtonCodes.h" />
     <ClInclude Include="src\PewPew\Window.h" />
-    <ClInclude Include="src\Platform\OpenGL\ImGuiOpenGLRenderer.h" />
     <ClInclude Include="src\Platform\Windows\WindowsInput.h" />
     <ClInclude Include="src\Platform\Windows\WindowsWindow.h" />
     <ClInclude Include="src\pewpch.h" />
@@ -588,11 +587,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\PewPew\Application.cpp" />
+    <ClCompile Include="src\PewPew\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\PewPew\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\PewPew\Layer.cpp" />
     <ClCompile Include="src\PewPew\LayerStack.cpp" />
     <ClCompile Include="src\PewPew\Log.cpp" />
-    <ClCompile Include="src\Platform\OpenGL\ImGuiOpenGLRenderer.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsInput.cpp" />
     <ClCompile Include="src\Platform\Windows\WindowsWindow.cpp" />
     <ClCompile Include="src\pewpch.cpp">
@@ -609,6 +608,9 @@
     <ProjectReference Include="vendor\imgui\ImGui.vcxproj">
       <Project>{C0FF640D-2C14-8DBE-F595-301E616989EF}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="src\Platform\OpenGL\" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
