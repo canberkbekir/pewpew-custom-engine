@@ -13,6 +13,9 @@
     <Filter Include="src\PewPew\ImGui">
       <UniqueIdentifier>{3E92840E-2A8B-A360-53BD-88E53F15836C}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\PewPew\Renderer">
+      <UniqueIdentifier>{3A387940-A699-564E-2F07-9D009B678D0D}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Platform">
       <UniqueIdentifier>{21CA02E5-0D2D-9289-B6B2-CA3FA2F45D0C}</UniqueIdentifier>
     </Filter>
@@ -90,10 +93,13 @@
     <ClInclude Include="src\PewPew\MouseButtonCodes.h">
       <Filter>src\PewPew</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\GraphicsContext.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Window.h">
       <Filter>src\PewPew</Filter>
     </ClInclude>
-    <ClInclude Include="src\Platform\OpenGL\ImGuiOpenGLRenderer.h">
+    <ClInclude Include="src\Platform\OpenGL\OpenGLContext.h">
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Windows\WindowsInput.h">
@@ -1367,6 +1373,9 @@
     <ClCompile Include="src\PewPew\Application.cpp">
       <Filter>src\PewPew</Filter>
     </ClCompile>
+    <ClCompile Include="src\PewPew\ImGui\ImGuiBuild.cpp">
+      <Filter>src\PewPew\ImGui</Filter>
+    </ClCompile>
     <ClCompile Include="src\PewPew\ImGui\ImGuiLayer.cpp">
       <Filter>src\PewPew\ImGui</Filter>
     </ClCompile>
@@ -1379,7 +1388,7 @@
     <ClCompile Include="src\PewPew\Log.cpp">
       <Filter>src\PewPew</Filter>
     </ClCompile>
-    <ClCompile Include="src\Platform\OpenGL\ImGuiOpenGLRenderer.cpp">
+    <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Windows\WindowsInput.cpp">

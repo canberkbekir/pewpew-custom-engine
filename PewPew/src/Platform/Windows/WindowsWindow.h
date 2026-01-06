@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "GLFW/glfw3.h"
 #include "PewPew/Window.h"
+#include "PewPew/Renderer/GraphicsContext.h"
 
 namespace PewPew
 {
@@ -26,7 +27,8 @@ namespace PewPew
         virtual void Shutdown();
     private:
         GLFWwindow* m_Window;
-
+        GraphicsContext* m_Context;
+        
         struct WindowData
         {
             std::string Title;

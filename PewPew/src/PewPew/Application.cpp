@@ -28,7 +28,8 @@ namespace PewPew
     {
         while (m_Running)
         {
-            m_Window->OnUpdate();
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+           glClear(GL_COLOR_BUFFER_BIT);
             
             for (Layer* layer : m_LayerStack)
                 layer->OnUpdate();
@@ -37,6 +38,8 @@ namespace PewPew
             for (Layer* layer : m_LayerStack)
                 layer->OnImGuiRender();
             m_ImGuiLayer->End();
+
+            m_Window->OnUpdate();
         }
     }
 

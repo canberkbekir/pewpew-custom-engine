@@ -5,6 +5,7 @@
 #include "PewPew/Events/ApplicationEvent.h"
 #include "PewPew/Events/MouseEvent.h"
 #include "PewPew/Events/KeyEvent.h" 
+#include "Platform/OpenGL/OpenGLContext.h"
 
 namespace PewPew
 {
@@ -50,9 +51,10 @@ namespace PewPew
 
         m_Window = glfwCreateWindow(static_cast<int>(props.Width), static_cast<int>(props.Height), m_Data.Title.c_str(),
                                     nullptr, nullptr);
-        glfwMakeContextCurrent(m_Window);
-        int status = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-        PEW_CORE_ASSERT(status, "Failed to initialize Glad!");
+        
+        m_Context = new OpenGLContext(m_Window);
+        m_Context->Init();
+        
         glfwSetWindowUserPointer(m_Window, &m_Data);
         SetVSync(true);
 
@@ -161,7 +163,7 @@ namespace PewPew
     void WindowsWindow::OnUpdate()
     {
         glfwPollEvents();
-        glfwSwapBuffers(m_Window);
+        m_Context->SwapBuffers();
     }
 
     void WindowsWindow::SetVSync(bool enabled)
