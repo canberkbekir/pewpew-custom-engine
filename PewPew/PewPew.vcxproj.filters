@@ -96,6 +96,9 @@
     <ClInclude Include="src\PewPew\Renderer\GraphicsContext.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\Shader.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Window.h">
       <Filter>src\PewPew</Filter>
     </ClInclude>
@@ -1387,6 +1390,9 @@
     </ClCompile>
     <ClCompile Include="src\PewPew\Log.cpp">
       <Filter>src\PewPew</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\Shader.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp">
       <Filter>src\Platform\OpenGL</Filter>

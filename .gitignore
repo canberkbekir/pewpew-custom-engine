@@ -34,3 +34,6 @@
 .idea/
 
 !vendor/**/*.exe
+
+/bin/
+bin-int/
