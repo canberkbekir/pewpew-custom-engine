@@ -1,7 +1,5 @@
-c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\pewpew.pch
 c:\codes\gitkraken\pewpew-custom-engine\bin\debug-windows-x86_64\pewpew\pewpew.pdb
 c:\codes\gitkraken\pewpew-custom-engine\bin\debug-windows-x86_64\pewpew\pewpew.idb
-c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\pewpch.obj
 c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\windowswindow.obj
 c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\windowsinput.obj
 c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\openglcontext.obj
@@ -11,6 +9,14 @@ c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\laye
 c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\imguilayer.obj
 c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\imguibuild.obj
 c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\application.obj
+c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\shader.obj
+c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\pewpew.pch
+c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\pewpch.obj
+c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\openglbuffer.obj
+c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\renderer.obj
+c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\buffer.obj
+c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\openglvertexarray.obj
+c:\codes\gitkraken\pewpew-custom-engine\bin-int\debug-windows-x86_64\pewpew\vertexarray.obj
 c:\codes\gitkraken\pewpew-custom-engine\bin\debug-windows-x86_64\pewpew\pewpew.lib
 c:\codes\gitkraken\pewpew-custom-engine\pewpew\..\bin\debug-windows-x86_64\pewpew\pewpew.pdb
 c:\codes\gitkraken\pewpew-custom-engine\pewpew\..\bin-int\debug-windows-x86_64\pewpew\pewpew.vcxproj.filelistabsolute.txt
