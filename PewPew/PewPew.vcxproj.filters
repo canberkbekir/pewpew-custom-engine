@@ -93,16 +93,40 @@
     <ClInclude Include="src\PewPew\MouseButtonCodes.h">
       <Filter>src\PewPew</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\Buffer.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\GraphicsContext.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\RenderCommand.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\Renderer.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\RendererAPI.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\Shader.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\VertexArray.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Window.h">
       <Filter>src\PewPew</Filter>
     </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\OpenGLBuffer.h">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClInclude>
     <ClInclude Include="src\Platform\OpenGL\OpenGLContext.h">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\OpenGLRendererAPI.h">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\OpenGLVertexArray.h">
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\Windows\WindowsInput.h">
@@ -1391,10 +1415,34 @@
     <ClCompile Include="src\PewPew\Log.cpp">
       <Filter>src\PewPew</Filter>
     </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\Buffer.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\RenderCommand.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\Renderer.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\RendererAPI.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\Shader.cpp">
       <Filter>src\PewPew\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\VertexArray.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLContext.cpp">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\OpenGL\OpenGLRendererAPI.cpp">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\OpenGL\OpenGLVertexArray.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\Windows\WindowsInput.cpp">

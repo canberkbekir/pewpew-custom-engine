@@ -7,10 +7,6 @@ namespace PewPew {
         : m_DebugName(debugName)
     {
     }
-
-    Layer::~Layer()
-    {
-
-    }
+ 
 
 }

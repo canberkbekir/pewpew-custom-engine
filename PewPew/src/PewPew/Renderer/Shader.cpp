@@ -2,6 +2,8 @@
 #include "Shader.h" 
 #include <glad/glad.h>
 
+#include "glm/gtc/type_ptr.hpp"
+
 PewPew::Shader::Shader(const std::string& vertexSrc,const std::string& fragmentSrc)
 {
 	// Create an empty vertex shader handle
@@ -116,4 +118,10 @@ void PewPew::Shader::Bind()
 void PewPew::Shader::Unbind()
 {
 	glUseProgram(0);
+}
+
+void PewPew::Shader::UploadUniformMat4(const std::string& uniformName, const Mat4& matrix)
+{
+	GLint location = glGetUniformLocation(m_RendererID, uniformName.c_str());
+	glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 }

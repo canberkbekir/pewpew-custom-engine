@@ -1,14 +1,13 @@
 ﻿#pragma once
 #include "RendererAPI.h"
-#include "VertexArray.h"
-#include "glm/vec4.hpp"
+#include "VertexArray.h" 
 
 namespace PewPew
 {
 	class RenderCommand
 	{
 	public:
-		inline static void SetClearColor(const glm::vec4& color)
+		inline static void SetClearColor(const Vector4& color)
 		{
 			s_RendererAPI->SetClearColor(color);
 		}

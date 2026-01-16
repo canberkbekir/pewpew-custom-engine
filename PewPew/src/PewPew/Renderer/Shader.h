@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿#pragma once 
+#include "PewPew/Math/CoreMath.h"
 
 namespace PewPew
 {
@@ -10,6 +11,8 @@ namespace PewPew
 
 		void Bind();
 		void Unbind();
+
+		void UploadUniformMat4(const std::string& uniformName,const Mat4& matrix);
 	private:
 		uint32_t m_RendererID;
 	};
