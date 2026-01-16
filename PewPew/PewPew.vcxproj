@@ -149,6 +149,7 @@
     <ClInclude Include="src\PewPew.h" />
     <ClInclude Include="src\PewPew\Application.h" />
     <ClInclude Include="src\PewPew\Core.h" />
+    <ClInclude Include="src\PewPew\Core\TimeStep.h" />
     <ClInclude Include="src\PewPew\EntryPoint.h" />
     <ClInclude Include="src\PewPew\Events\ApplicationEvent.h" />
     <ClInclude Include="src\PewPew\Events\Event.h" />

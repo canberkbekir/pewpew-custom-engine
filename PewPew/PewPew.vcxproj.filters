@@ -13,6 +13,9 @@
     <Filter Include="src\PewPew\ImGui">
       <UniqueIdentifier>{3E92840E-2A8B-A360-53BD-88E53F15836C}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\PewPew\Math">
+      <UniqueIdentifier>{6D2FA1BA-D9BA-0E7F-E2CB-91734ED66A7F}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\PewPew\Renderer">
       <UniqueIdentifier>{3A387940-A699-564E-2F07-9D009B678D0D}</UniqueIdentifier>
     </Filter>
@@ -90,6 +93,9 @@
     <ClInclude Include="src\PewPew\Log.h">
       <Filter>src\PewPew</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Math\CoreMath.h">
+      <Filter>src\PewPew\Math</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\MouseButtonCodes.h">
       <Filter>src\PewPew</Filter>
     </ClInclude>
@@ -97,6 +103,9 @@
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\GraphicsContext.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\OrthographicCamera.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\RenderCommand.h">
@@ -1416,6 +1425,9 @@
       <Filter>src\PewPew</Filter>
     </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\Buffer.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\OrthographicCamera.cpp">
       <Filter>src\PewPew\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\RenderCommand.cpp">
