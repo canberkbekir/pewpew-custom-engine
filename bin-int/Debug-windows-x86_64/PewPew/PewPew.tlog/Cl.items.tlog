@@ -14,6 +14,7 @@ C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Renderer\VertexArray.c
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\OpenGL\OpenGLBuffer.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\OpenGLBuffer.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\OpenGL\OpenGLContext.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\OpenGLContext.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\OpenGL\OpenGLRendererAPI.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\OpenGLRendererAPI.obj
+C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\OpenGL\OpenGLShader.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\OpenGLShader.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\OpenGL\OpenGLVertexArray.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\OpenGLVertexArray.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\Windows\WindowsInput.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\WindowsInput.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\Windows\WindowsWindow.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\WindowsWindow.obj
