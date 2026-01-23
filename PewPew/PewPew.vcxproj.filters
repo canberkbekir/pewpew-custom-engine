@@ -7,6 +7,9 @@
     <Filter Include="src\PewPew">
       <UniqueIdentifier>{14DE4027-0096-8274-699D-5BD055741D65}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\PewPew\Core">
+      <UniqueIdentifier>{ECEE9BBA-587A-097F-618B-8C73CD95657F}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\PewPew\Events">
       <UniqueIdentifier>{786B75D6-E481-736C-2DF9-FE8D994E44F4}</UniqueIdentifier>
     </Filter>
@@ -49,6 +52,9 @@
     <Filter Include="vendor\glm\glm\gtx">
       <UniqueIdentifier>{B3A6A76B-9F8A-68C1-08EB-6214F4ED5243}</UniqueIdentifier>
     </Filter>
+    <Filter Include="vendor\stb_image">
+      <UniqueIdentifier>{0DA0BA59-F998-D9AB-22CB-BE300E23B9B7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\PewPew.h">
@@ -59,6 +65,12 @@
     </ClInclude>
     <ClInclude Include="src\PewPew\Core.h">
       <Filter>src\PewPew</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Core\String.h">
+      <Filter>src\PewPew\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Core\TimeStep.h">
+      <Filter>src\PewPew\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\PewPew\EntryPoint.h">
       <Filter>src\PewPew</Filter>
@@ -120,6 +132,9 @@
     <ClInclude Include="src\PewPew\Renderer\Shader.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\Texture.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\VertexArray.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
@@ -133,6 +148,12 @@
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\OpenGL\OpenGLRendererAPI.h">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\OpenGLShader.h">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Platform\OpenGL\OpenGLTexture.h">
       <Filter>src\Platform\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="src\Platform\OpenGL\OpenGLVertexArray.h">
@@ -1404,6 +1425,9 @@
     <ClInclude Include="vendor\glm\glm\vector_relational.hpp">
       <Filter>vendor\glm\glm</Filter>
     </ClInclude>
+    <ClInclude Include="vendor\stb_image\stb_image.h">
+      <Filter>vendor\stb_image</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\PewPew\Application.cpp">
@@ -1442,6 +1466,9 @@
     <ClCompile Include="src\PewPew\Renderer\Shader.cpp">
       <Filter>src\PewPew\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\Texture.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\VertexArray.cpp">
       <Filter>src\PewPew\Renderer</Filter>
     </ClCompile>
@@ -1452,6 +1479,12 @@
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLRendererAPI.cpp">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\OpenGL\OpenGLShader.cpp">
+      <Filter>src\Platform\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Platform\OpenGL\OpenGLTexture.cpp">
       <Filter>src\Platform\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLVertexArray.cpp">
@@ -1465,6 +1498,9 @@
     </ClCompile>
     <ClCompile Include="src\pewpch.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="vendor\stb_image\stb_image.cpp">
+      <Filter>vendor\stb_image</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

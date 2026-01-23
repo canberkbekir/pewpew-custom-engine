@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "glm/gtc/type_ptr.hpp"
+#include "PewPew/Core/String.h"
 #include "Platform/OpenGL/OpenGLShader.h"
 
 class ExampleLayer : public PewPew::Layer
@@ -21,7 +22,7 @@ public:
 			 0.0f,  0.5f, 0.0f, 0.8f, 0.8f, 0.2f, 1.0f
 		};
 
-		std::shared_ptr<PewPew::VertexBuffer> vertexBuffer;
+		PewPew::Ref<PewPew::VertexBuffer> vertexBuffer;
 		vertexBuffer.reset(PewPew::VertexBuffer::Create(vertices, sizeof(vertices)));
 		PewPew::BufferLayout layout = {
 			{ PewPew::ShaderDataType::Float3, "a_Position" },
@@ -31,32 +32,33 @@ public:
 		m_VertexArray->AddVertexBuffer(vertexBuffer);
 
 		uint32_t indices[3] = { 0, 1, 2 };
-		std::shared_ptr<PewPew::IndexBuffer> indexBuffer;
+		PewPew::Ref<PewPew::IndexBuffer> indexBuffer;
 		indexBuffer.reset(PewPew::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t)));
 		m_VertexArray->SetIndexBuffer(indexBuffer);
 
 		m_SquareVA.reset(PewPew::VertexArray::Create());
 
-		float squareVertices[3 * 4] = {
-			-0.5f, -0.5f, 0.0f,
-			 0.5f, -0.5f, 0.0f,
-			 0.5f,  0.5f, 0.0f,
-			-0.5f,  0.5f, 0.0f
+		float squareVertices[5 * 4] = {
+			-0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+			 0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+			 0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
+			-0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
 		};
 
-		std::shared_ptr<PewPew::VertexBuffer> squareVB;
+		PewPew::Ref<PewPew::VertexBuffer> squareVB;
 		squareVB.reset(PewPew::VertexBuffer::Create(squareVertices, sizeof(squareVertices)));
 		squareVB->SetLayout({
-			{ PewPew::ShaderDataType::Float3, "a_Position" }
+			{ PewPew::ShaderDataType::Float3, "a_Position" },
+            { PewPew::ShaderDataType::Float2, "a_TexCoord" }
 		});
 		m_SquareVA->AddVertexBuffer(squareVB);
 
 		uint32_t squareIndices[6] = { 0, 1, 2, 2, 3, 0 };
-		std::shared_ptr<PewPew::IndexBuffer> squareIB;
+		PewPew::Ref<PewPew::IndexBuffer> squareIB;
 		squareIB.reset(PewPew::IndexBuffer::Create(squareIndices, sizeof(squareIndices) / sizeof(uint32_t)));
 		m_SquareVA->SetIndexBuffer(squareIB);
 
-		std::string vertexSrc = R"(
+		PewPew::String vertexSrc = R"(
 			#version 330 core
 			
 			layout(location = 0) in vec3 a_Position;
@@ -76,7 +78,7 @@ public:
 			}
 		)";
 
-		std::string fragmentSrc = R"(
+		PewPew::String fragmentSrc = R"(
 			#version 330 core
 			
 			layout(location = 0) out vec4 color;
@@ -93,7 +95,7 @@ public:
 
 		m_Shader.reset(PewPew::Shader::Create(vertexSrc, fragmentSrc));
 		
-		std::string flatColorShaderVertexSrc  = R"(
+		PewPew::String flatColorShaderVertexSrc  = R"(
 			#version 330 core
 			
 			layout(location = 0) in vec3 a_Position;
@@ -110,7 +112,7 @@ public:
 			}
 		)";
 
-		std::string flatColorShaderFragmentSrc  = R"(
+		PewPew::String flatColorShaderFragmentSrc  = R"(
 			#version 330 core
 			
 			layout(location = 0) out vec4 color;
@@ -123,7 +125,17 @@ public:
 			}
 		)";
 
-		m_FlatColorShader.reset(PewPew::Shader::Create(flatColorShaderVertexSrc, flatColorShaderFragmentSrc));	}
+		m_FlatColorShader.reset(PewPew::Shader::Create(flatColorShaderVertexSrc, flatColorShaderFragmentSrc));
+		
+		m_TextureShader.reset(PewPew::Shader::Create("assets/shaders/Texture.glsl"));
+		
+		m_Texture = PewPew::Texture2D::Create("assets/textures/Texture.png");
+		m_IconTexture = PewPew::Texture2D::Create("assets/textures/Icon.png");
+
+		std::dynamic_pointer_cast<PewPew::OpenGLShader>(m_TextureShader)->Bind();
+		std::dynamic_pointer_cast<PewPew::OpenGLShader>(m_TextureShader)->UploadUniformInt("u_Texture", 0);
+
+	}
 
 	void OnUpdate(PewPew::Timestep ts) override
 	{
@@ -163,7 +175,14 @@ public:
 			}
 		}
 
-		PewPew::Renderer::Submit(m_Shader, m_VertexArray);
+		m_Texture->Bind();
+		PewPew::Renderer::Submit(m_TextureShader, m_SquareVA, glm::scale(glm::mat4(1.0f), glm::vec3(1.5f)));
+
+		m_IconTexture->Bind();
+		PewPew::Renderer::Submit(m_TextureShader, m_SquareVA, glm::scale(glm::mat4(1.0f), glm::vec3(1.5f)));
+
+		// Triangle
+		// Hazel::Renderer::Submit(m_Shader, m_VertexArray);
 
 		PewPew::Renderer::EndScene();
 	}
@@ -179,11 +198,13 @@ public:
 	{
 	}
 private:
-	std::shared_ptr<PewPew::Shader> m_Shader;
-	std::shared_ptr<PewPew::VertexArray> m_VertexArray;
+	PewPew::Ref<PewPew::Shader> m_Shader;
+	PewPew::Ref<PewPew::VertexArray> m_VertexArray;
 
-	std::shared_ptr<PewPew::Shader> m_FlatColorShader;
-	std::shared_ptr<PewPew::VertexArray> m_SquareVA;
+	PewPew::Ref<PewPew::Shader> m_FlatColorShader,m_TextureShader;
+	PewPew::Ref<PewPew::VertexArray> m_SquareVA;
+
+	PewPew::Ref<PewPew::Texture2D> m_Texture,m_IconTexture;
 
 	PewPew::OrthographicCamera m_Camera;
 	Vector3 m_CameraPosition;
@@ -192,7 +213,7 @@ private:
 	float m_CameraRotation = 0.0f;
 	float m_CameraRotationSpeed = 180.0f;
 
-	glm::vec3 m_SquareColor = { 0.2f, 0.3f, 0.8f };
+	Vector3 m_SquareColor = { 0.2f, 0.3f, 0.8f };
 };
 
 class Sandbox : public PewPew::Application

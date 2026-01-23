@@ -1,15 +1,16 @@
 ﻿#pragma once
 #include "Events/Event.h"
+#include "Core/String.h"
 
 namespace PewPew
 {
     struct WindowProps
     {
-        std::string Title;
+        String Title;
         unsigned int Width;
         unsigned int Height;
 
-        WindowProps(const std::string& title = "PewPew Engine",
+        WindowProps(const String& title = "PewPew Engine",
                     unsigned int width = 1280,
                     unsigned int height = 720)
             : Title(title), Width(width), Height(height)

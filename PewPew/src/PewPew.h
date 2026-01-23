@@ -17,6 +17,7 @@
 
 #include "PewPew/Renderer/Buffer.h"
 #include "PewPew/Renderer/Shader.h"
+#include "PewPew/Renderer/Texture.h"
 #include "PewPew/Renderer/VertexArray.h"
 
 #include "PewPew/Renderer/OrthographicCamera.h"

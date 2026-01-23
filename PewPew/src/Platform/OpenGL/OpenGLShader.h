@@ -5,9 +5,13 @@
 
 namespace PewPew
 {
+    // TODO: REMOVE!
+    typedef unsigned int GLenum;
+    
     class OpenGLShader : public Shader
     {
     public:
+        OpenGLShader(const String& filePath); 
         OpenGLShader(const String& vertexSrc, const String& fragmentSrc);
         virtual ~OpenGLShader();
 
@@ -23,6 +27,10 @@ namespace PewPew
 
         void UploadUniformMat3(const String& name, const Mat3& matrix);
         void UploadUniformMat4(const String& name, const Mat4& matrix);
+    private:
+        std::string ReadFile(const std::string& filepath);
+        std::unordered_map<GLenum, std::string> PreProcess(const std::string& source);
+        void Compile(const std::unordered_map<GLenum, std::string>& shaderSources);
     private:
         uint32_t m_RendererID;
     };

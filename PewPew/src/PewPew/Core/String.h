@@ -1,3 +1,7 @@
 #pragma once
+# include "pewpch.h"
 
-using String = std::string;
+namespace PewPew
+{
+	using String = std::string; 
+}

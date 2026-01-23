@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Core/String.h"
 #include "Core/TimeStep.h"
 #include "Events/Event.h"
 
@@ -7,7 +8,7 @@ namespace PewPew {
     class PEW_API Layer
     {
     public:
-        Layer(const std::string& name = "Layer");
+        Layer(const String& name = "Layer");
         virtual ~Layer() = default;
 
         virtual void OnAttach() {}
@@ -16,9 +17,9 @@ namespace PewPew {
         virtual void OnImGuiRender() {}
         virtual void OnEvent(Event& event) {}
 
-        inline const std::string& GetName() const { return m_DebugName; }
+        inline const String& GetName() const { return m_DebugName; }
     protected:
-        std::string m_DebugName;
+        String m_DebugName;
     };
 
 }

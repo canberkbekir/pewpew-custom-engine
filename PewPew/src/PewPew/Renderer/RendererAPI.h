@@ -12,6 +12,7 @@ namespace PewPew
 			None=0, OpenGL=1
 		};
 		public:
+		virtual void Init() = 0;
 		virtual void SetClearColor(const Vector4& color) = 0;
 		virtual void Clear() = 0;
 

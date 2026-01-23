@@ -7,6 +7,11 @@ namespace PewPew
 	class RenderCommand
 	{
 	public:
+		inline static void Init()
+		{
+			s_RendererAPI->Init();
+		}
+		
 		inline static void SetClearColor(const Vector4& color)
 		{
 			s_RendererAPI->SetClearColor(color);
