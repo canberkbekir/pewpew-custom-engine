@@ -12,11 +12,13 @@ namespace PewPew
     {
     public:
         OpenGLShader(const String& filePath); 
-        OpenGLShader(const String& vertexSrc, const String& fragmentSrc);
+        OpenGLShader(const String& name,const String& vertexSrc, const String& fragmentSrc);
         virtual ~OpenGLShader();
 
         virtual void Bind() const override;
         virtual void Unbind() const override;
+
+        virtual const String& GetName() const override { return m_Name; }
 
         void UploadUniformInt(const String& name, int value);
 
@@ -28,11 +30,12 @@ namespace PewPew
         void UploadUniformMat3(const String& name, const Mat3& matrix);
         void UploadUniformMat4(const String& name, const Mat4& matrix);
     private:
-        std::string ReadFile(const std::string& filepath);
-        std::unordered_map<GLenum, std::string> PreProcess(const std::string& source);
-        void Compile(const std::unordered_map<GLenum, std::string>& shaderSources);
+        String ReadFile(const String& filepath);
+        std::unordered_map<GLenum, String> PreProcess(const String& source);
+        void Compile(const std::unordered_map<GLenum, String>& shaderSources);
     private:
         uint32_t m_RendererID;
+        String m_Name;
     };
 
 }

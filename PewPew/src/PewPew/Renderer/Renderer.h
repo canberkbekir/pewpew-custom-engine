@@ -19,7 +19,7 @@ namespace PewPew {
 	private:
 		struct SceneData
 		{
-			glm::mat4 ViewProjectionMatrix;
+			Mat4 ViewProjectionMatrix;
 		};
 
 		static SceneData* s_SceneData;

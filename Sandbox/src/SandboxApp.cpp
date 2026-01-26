@@ -93,7 +93,7 @@ public:
 			}
 		)";
 
-		m_Shader.reset(PewPew::Shader::Create(vertexSrc, fragmentSrc));
+		m_Shader = PewPew::Shader::Create("VertexPosColor",vertexSrc, fragmentSrc);
 		
 		PewPew::String flatColorShaderVertexSrc  = R"(
 			#version 330 core
@@ -125,15 +125,15 @@ public:
 			}
 		)";
 
-		m_FlatColorShader.reset(PewPew::Shader::Create(flatColorShaderVertexSrc, flatColorShaderFragmentSrc));
-		
-		m_TextureShader.reset(PewPew::Shader::Create("assets/shaders/Texture.glsl"));
+		m_FlatColorShader = PewPew::Shader::Create("FlatColor",flatColorShaderVertexSrc, flatColorShaderFragmentSrc);
+		 
+		auto textureShader  = m_ShaderLibrary.Load("assets/shaders/Texture.glsl");
 		
 		m_Texture = PewPew::Texture2D::Create("assets/textures/Texture.png");
 		m_IconTexture = PewPew::Texture2D::Create("assets/textures/Icon.png");
 
-		std::dynamic_pointer_cast<PewPew::OpenGLShader>(m_TextureShader)->Bind();
-		std::dynamic_pointer_cast<PewPew::OpenGLShader>(m_TextureShader)->UploadUniformInt("u_Texture", 0);
+		std::dynamic_pointer_cast<PewPew::OpenGLShader>(textureShader)->Bind();
+		std::dynamic_pointer_cast<PewPew::OpenGLShader>(textureShader)->UploadUniformInt("u_Texture", 0);
 
 	}
 
@@ -175,11 +175,13 @@ public:
 			}
 		}
 
+		auto textureShader = m_ShaderLibrary.Get("Texture");
+		
 		m_Texture->Bind();
-		PewPew::Renderer::Submit(m_TextureShader, m_SquareVA, glm::scale(glm::mat4(1.0f), glm::vec3(1.5f)));
+		PewPew::Renderer::Submit(textureShader, m_SquareVA, glm::scale(glm::mat4(1.0f), glm::vec3(1.5f)));
 
 		m_IconTexture->Bind();
-		PewPew::Renderer::Submit(m_TextureShader, m_SquareVA, glm::scale(glm::mat4(1.0f), glm::vec3(1.5f)));
+		PewPew::Renderer::Submit(textureShader, m_SquareVA, glm::scale(glm::mat4(1.0f), glm::vec3(1.5f)));
 
 		// Triangle
 		// Hazel::Renderer::Submit(m_Shader, m_VertexArray);
@@ -200,8 +202,9 @@ public:
 private:
 	PewPew::Ref<PewPew::Shader> m_Shader;
 	PewPew::Ref<PewPew::VertexArray> m_VertexArray;
+	PewPew::ShaderLibrary m_ShaderLibrary;
 
-	PewPew::Ref<PewPew::Shader> m_FlatColorShader,m_TextureShader;
+	PewPew::Ref<PewPew::Shader> m_FlatColorShader;
 	PewPew::Ref<PewPew::VertexArray> m_SquareVA;
 
 	PewPew::Ref<PewPew::Texture2D> m_Texture,m_IconTexture;
