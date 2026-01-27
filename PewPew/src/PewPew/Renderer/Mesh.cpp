@@ -43,6 +43,9 @@ namespace PewPew
 
 	static void ProcessMesh(aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
 	{
+		// Track vertex offset for index adjustment when combining multiple meshes
+		uint32_t vertexOffset = static_cast<uint32_t>(vertices.size());
+
 		// Process vertices
 		for (unsigned int i = 0; i < mesh->mNumVertices; i++)
 		{
@@ -85,13 +88,13 @@ namespace PewPew
 			vertices.push_back(vertex);
 		}
 
-		// Process indices
+		// Process indices - add vertex offset to account for previously added vertices
 		for (unsigned int i = 0; i < mesh->mNumFaces; i++)
 		{
 			aiFace& face = mesh->mFaces[i];
 			for (unsigned int j = 0; j < face.mNumIndices; j++)
 			{
-				indices.push_back(face.mIndices[j]);
+				indices.push_back(vertexOffset + face.mIndices[j]);
 			}
 		}
 	}
