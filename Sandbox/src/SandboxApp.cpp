@@ -6,24 +6,21 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Platform/OpenGL/OpenGLShader.h"
-
-// ============================================================================
-// 3D Layer - Mesh Loading Example
-// ============================================================================
+ 
 class Layer3D : public PewPew::Layer
 {
 public:
 	Layer3D()
-		: Layer("3D Layer"), m_Camera(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f)
+		: Layer("ExampleLayer"), m_Camera(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f)
 	{
 		// Position camera to view the mesh
 		m_CameraPosition = { 0.0f, 1.0f, 4.0f };
 		m_Camera.SetPosition(m_CameraPosition);
  
-		m_Mesh = PewPew::Mesh::Load("assets/models/cube.obj");
+		m_Mesh = PewPew::Mesh::Load("assets/models/Gelatinous_Cube.fbx");
 
 		// Load shader and texture
-		m_Shader.reset(PewPew::Shader::Create("assets/shaders/Basic3D.glsl"));
+		m_Shader = PewPew::Shader::Create("assets/shaders/Basic3D.glsl");
 		m_Texture = PewPew::Texture2D::Create("assets/textures/Texture.png");
 
 		std::dynamic_pointer_cast<PewPew::OpenGLShader>(m_Shader)->Bind();
