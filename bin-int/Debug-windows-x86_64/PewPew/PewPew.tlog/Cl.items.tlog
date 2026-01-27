@@ -5,7 +5,9 @@ C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Layer.cpp;C:\Codes\Git
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\LayerStack.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\LayerStack.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Log.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\Log.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Renderer\Buffer.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\Buffer.obj
+C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Renderer\Mesh.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\Mesh.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Renderer\OrthographicCamera.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\OrthographicCamera.obj
+C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Renderer\PerspectiveCamera.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\PerspectiveCamera.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Renderer\RenderCommand.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\RenderCommand.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Renderer\Renderer.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\Renderer.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\PewPew\Renderer\RendererAPI.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\RendererAPI.obj
@@ -22,3 +24,4 @@ C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\Windows\WindowsInput
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\Platform\Windows\WindowsWindow.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\WindowsWindow.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\src\pewpch.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\pewpch.obj
 C:\Codes\GitKraken\pewpew-custom-engine\PewPew\vendor\stb_image\stb_image.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\stb_image.obj
+C:\Codes\GitKraken\pewpew-custom-engine\PewPew\vendor\tinyobjloader\tinyobjloader.cpp;C:\Codes\GitKraken\pewpew-custom-engine\bin-int\Debug-windows-x86_64\PewPew\tinyobjloader.obj

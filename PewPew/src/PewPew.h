@@ -20,7 +20,11 @@
 #include "PewPew/Renderer/Texture.h"
 #include "PewPew/Renderer/VertexArray.h"
 
+#include "PewPew/Renderer/Camera.h"
 #include "PewPew/Renderer/OrthographicCamera.h"
+#include "PewPew/Renderer/PerspectiveCamera.h"
+
+#include "PewPew/Renderer/Mesh.h"
 // -----------------------------------
 
 #include "PewPew/ImGui/ImGuiLayer.h"

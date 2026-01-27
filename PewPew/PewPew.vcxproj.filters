@@ -114,10 +114,19 @@
     <ClInclude Include="src\PewPew\Renderer\Buffer.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\Camera.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\GraphicsContext.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\Mesh.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\OrthographicCamera.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\PerspectiveCamera.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\RenderCommand.h">
@@ -1451,7 +1460,13 @@
     <ClCompile Include="src\PewPew\Renderer\Buffer.cpp">
       <Filter>src\PewPew\Renderer</Filter>
     </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\Mesh.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\OrthographicCamera.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\PerspectiveCamera.cpp">
       <Filter>src\PewPew\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\RenderCommand.cpp">

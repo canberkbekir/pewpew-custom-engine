@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(git clone:*)",
+      "Bash(ls -la \"C:\\\\Codes\\\\GitKraken\\\\pewpew-custom-engine\\\\PewPew\\\\vendor\\\\assimp\\\\include\"\" 2>/dev/null || echo \"include folder missing \")",
+      "Bash(ls:*)"
+    ]
+  }
+}

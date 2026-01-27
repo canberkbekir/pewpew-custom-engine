@@ -18,6 +18,7 @@ IncludeDir["Glad"] = "PewPew/vendor/Glad/include"
 IncludeDir["ImGui"] = "PewPew/vendor/imgui"
 IncludeDir["glm"] = "PewPew/vendor/glm"
 IncludeDir["stb_image"] = "PewPew/vendor/stb_image"
+IncludeDir["assimp"] = "PewPew/vendor/assimp/include"
 
 include "PewPew/vendor/GLFW"
 include "PewPew/vendor/Glad"
@@ -42,7 +43,7 @@ project "PewPew"
 		"%{prj.name}/src/**.cpp",
 		"%{prj.name}/vendor/stb_image/**.cpp",
 		"%{prj.name}/vendor/stb_image/**.h",
-		"%{prj.name}/vendor/glm/glm/**.hpp", 
+		"%{prj.name}/vendor/glm/glm/**.hpp",
 		"%{prj.name}/vendor/glm/glm/**.inl",
 	}
 
@@ -59,20 +60,27 @@ project "PewPew"
 		"%{IncludeDir.Glad}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.glm}",
-		"%{IncludeDir.stb_image}", 
+		"%{IncludeDir.stb_image}",
+		"%{IncludeDir.assimp}",
 	}
 
-	links 
-	{ 
+	libdirs
+	{
+		"%{prj.name}/vendor/assimp/lib"
+	}
+
+	links
+	{
 		"GLFW",
 		"Glad",
 		"ImGui",
-		"opengl32.lib"
+		"opengl32.lib",
+		"assimp-vc143-mt"
 	}
- 
+
 
     filter "system:windows"
-	    systemversion "latest" 
+	    systemversion "latest"
         buildoptions { "/utf-8" }
 	    defines
 	    {
@@ -109,7 +117,7 @@ project "Sandbox"
     files
     {
         "%{prj.name}/src/**.h",
-        "%{prj.name}/src/**.cpp"    
+        "%{prj.name}/src/**.cpp"
     }
 
     includedirs
@@ -120,15 +128,21 @@ project "Sandbox"
 		"%{IncludeDir.glm}"
     }
 
-    links { "PewPew"}
+    links { "PewPew" }
 
     filter "system:windows"
-	    systemversion "latest" 
+	    systemversion "latest"
         buildoptions { "/utf-8" }
 	    defines
 	    {
 	    	"PEW_PLATFORM_WINDOWS"
 	    }
+
+		-- Copy Assimp DLL to output folder after build
+		postbuildcommands
+		{
+			"{COPYFILE} %{wks.location}PewPew/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}"
+		}
 
 	filter "configurations:Debug"
 		defines "PEW_DEBUG"
