@@ -35,5 +35,6 @@
 
 !vendor/**/*.exe
 
-/bin/
+# Build output folders (root and submodules)
+bin/
 bin-int/
