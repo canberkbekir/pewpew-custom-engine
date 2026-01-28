@@ -1,7 +1,7 @@
 ﻿#include "pewpch.h"
-#include "VertexArray.h"
-
-#include "Renderer.h"
+#include "VertexArray.h" 
+#include "PewPew/Renderer/Core/Renderer.h"
+#include "PewPew/Renderer/Core/RendererAPI.h"
 #include "Platform/OpenGL/OpenGLVertexArray.h"
 
 namespace PewPew {

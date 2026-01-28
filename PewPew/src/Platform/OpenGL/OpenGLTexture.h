@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "PewPew/Renderer/Texture.h"
+#include "PewPew/Renderer/Resources/Texture.h"
 
 namespace PewPew
 {

@@ -2,13 +2,12 @@
 #include "Application.h"
 
 #include "PewPew/Log.h"
-
-#include "PewPew/Renderer/Renderer.h"
+ 
 
 #include "Input.h"
 #include "Core/TimeStep.h"
-#include "GLFW/glfw3.h"
-#include "Renderer/RenderCommand.h"
+#include "GLFW/glfw3.h" 
+#include "Renderer/Core/Renderer.h"
 
 namespace PewPew {
 
@@ -48,6 +47,7 @@ namespace PewPew {
 	{
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(OnWindowClose));
+		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(OnWindowResize));
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); )
 		{
@@ -65,8 +65,11 @@ namespace PewPew {
 			Timestep timestep = time - m_LastFrameTime;
 			m_LastFrameTime = time;
 			
-			for (Layer* layer : m_LayerStack)
-				layer->OnUpdate(timestep);
+			if (!m_Minimized)
+			{
+				for (Layer* layer : m_LayerStack)
+					layer->OnUpdate(timestep);
+			}
 
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)
@@ -83,4 +86,15 @@ namespace PewPew {
 		return true;
 	}
 
+	bool Application::OnWindowResize(WindowResizeEvent& e)
+	{
+		if (e.GetHeight()==0 || e.GetWidth() == 0)
+		{
+			m_Minimized = true;
+			return false;
+		}
+		m_Minimized = false;
+		Renderer::OnWindowResize(e.GetWidth(), e.GetHeight());
+		return false;
+	}
 }

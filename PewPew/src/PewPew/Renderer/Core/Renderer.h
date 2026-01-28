@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "Camera.h"
-#include "RendererAPI.h"
-#include "Shader.h"
-#include "VertexArray.h"
-#include "Material.h"
-#include "Mesh.h"
+#include "PewPew/Renderer/Camera/Camera.h"
+#include "PewPew/Renderer/Core/RendererAPI.h"
+#include "PewPew/Renderer/Resources/Shader.h"
+#include "PewPew/Renderer/Resources/VertexArray.h"
+#include "PewPew/Renderer/Resources/Material.h"
+#include "PewPew/Renderer/Resources/Mesh.h"
 
 namespace PewPew {
 
@@ -12,6 +12,8 @@ namespace PewPew {
 	{
 	public:
 		static void Init();
+		static void OnWindowResize(uint32_t width, uint32_t height);
+		
 		static void BeginScene(const Camera& camera);
 		static void BeginScene(const Camera& camera, const Vector3& cameraPosition);
 		static void EndScene();

@@ -1,5 +1,5 @@
-﻿#pragma once 
-#include "PewPew/Renderer/Buffer.h"
+﻿#pragma once  
+#include "PewPew/Renderer/Resources/Buffer.h"
 
 namespace PewPew {
 

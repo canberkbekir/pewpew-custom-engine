@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "PewPew/Renderer/VertexArray.h"
+#include "PewPew/Renderer/Resources/VertexArray.h"
 
 namespace PewPew
 {

@@ -1,7 +1,7 @@
 ﻿#include "pewpch.h"
-#include "Renderer.h"
+#include "PewPew/Renderer/Core/Renderer.h"
 
-#include "RenderCommand.h"
+#include "PewPew/Renderer/Core/RenderCommand.h"
 #include "Platform/OpenGL/OpenGLShader.h"
 
 namespace PewPew {
@@ -11,6 +11,11 @@ namespace PewPew {
 	void Renderer::Init()
 	{
 		RenderCommand::Init();
+	}
+
+	void Renderer::OnWindowResize(uint32_t width, uint32_t height)
+	{
+		RenderCommand::SetViewport(0, 0, width, height);
 	}
 
 	void Renderer::BeginScene(const Camera& camera)

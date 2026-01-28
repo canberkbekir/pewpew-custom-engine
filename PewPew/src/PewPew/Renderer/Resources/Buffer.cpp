@@ -1,7 +1,8 @@
 ﻿#include "pewpch.h"
 #include "Buffer.h"
 
-#include "Renderer.h"
+#include "PewPew/Renderer/Core/Renderer.h"
+#include "PewPew/Renderer/Core/RendererAPI.h"
 #include "Platform/OpenGL/OpenGLBuffer.h"
 namespace PewPew {
 

@@ -13,6 +13,12 @@ namespace PewPew {
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
 	}
+
+	void OpenGLRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height)
+	{
+		glViewport(x, y, width, height);
+	}
+
 	void OpenGLRendererAPI::SetClearColor(const Vector4& color)
 	{
 		glClearColor(color.r, color.g, color.b, color.a);

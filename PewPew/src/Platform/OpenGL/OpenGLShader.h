@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "PewPew/Core/String.h"
 #include "PewPew/Math/CoreMath.h"
-#include "PewPew/Renderer/Shader.h"
+#include "PewPew/Renderer/Resources/Shader.h"
 
 namespace PewPew
 {

@@ -22,6 +22,15 @@
     <Filter Include="src\PewPew\Renderer">
       <UniqueIdentifier>{3A387940-A699-564E-2F07-9D009B678D0D}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\PewPew\Renderer\Camera">
+      <UniqueIdentifier>{72072891-5E17-D461-C7D0-3880B3FFC2FA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\PewPew\Renderer\Core">
+      <UniqueIdentifier>{D290C09F-BEB5-0F20-E700-F5AFD3840E3E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\PewPew\Renderer\Resources">
+      <UniqueIdentifier>{246E014E-9086-E877-5933-7811C50A7D11}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\Platform">
       <UniqueIdentifier>{21CA02E5-0D2D-9289-B6B2-CA3FA2F45D0C}</UniqueIdentifier>
     </Filter>
@@ -111,50 +120,50 @@
     <ClInclude Include="src\PewPew\MouseButtonCodes.h">
       <Filter>src\PewPew</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\Buffer.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Camera\Camera.h">
+      <Filter>src\PewPew\Renderer\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\Camera.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Camera\CameraController.h">
+      <Filter>src\PewPew\Renderer\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\CameraController.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Camera\OrthographicCamera.h">
+      <Filter>src\PewPew\Renderer\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\GraphicsContext.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Camera\PerspectiveCamera.h">
+      <Filter>src\PewPew\Renderer\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\Material.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Camera\PerspectiveCameraController.h">
+      <Filter>src\PewPew\Renderer\Camera</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\Mesh.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Core\GraphicsContext.h">
+      <Filter>src\PewPew\Renderer\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\OrthographicCamera.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Core\RenderCommand.h">
+      <Filter>src\PewPew\Renderer\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\PerspectiveCamera.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Core\Renderer.h">
+      <Filter>src\PewPew\Renderer\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\PerspectiveCameraController.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Core\RendererAPI.h">
+      <Filter>src\PewPew\Renderer\Core</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\RenderCommand.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Resources\Buffer.h">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\Renderer.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Resources\Material.h">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\RendererAPI.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Resources\Mesh.h">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\Shader.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Resources\Shader.h">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\Texture.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Resources\Texture.h">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClInclude>
-    <ClInclude Include="src\PewPew\Renderer\VertexArray.h">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClInclude Include="src\PewPew\Renderer\Resources\VertexArray.h">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClInclude>
     <ClInclude Include="src\PewPew\Window.h">
       <Filter>src\PewPew</Filter>
@@ -1466,41 +1475,41 @@
     <ClCompile Include="src\PewPew\Log.cpp">
       <Filter>src\PewPew</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\Buffer.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Camera\OrthographicCamera.cpp">
+      <Filter>src\PewPew\Renderer\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\Material.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Camera\PerspectiveCamera.cpp">
+      <Filter>src\PewPew\Renderer\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\Mesh.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Camera\PerspectiveCameraController.cpp">
+      <Filter>src\PewPew\Renderer\Camera</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\OrthographicCamera.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Core\RenderCommand.cpp">
+      <Filter>src\PewPew\Renderer\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\PerspectiveCamera.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Core\Renderer.cpp">
+      <Filter>src\PewPew\Renderer\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\PerspectiveCameraController.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Core\RendererAPI.cpp">
+      <Filter>src\PewPew\Renderer\Core</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\RenderCommand.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Resources\Buffer.cpp">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\Renderer.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Resources\Material.cpp">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\RendererAPI.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Resources\Mesh.cpp">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\Shader.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Resources\Shader.cpp">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\Texture.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Resources\Texture.cpp">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClCompile>
-    <ClCompile Include="src\PewPew\Renderer\VertexArray.cpp">
-      <Filter>src\PewPew\Renderer</Filter>
+    <ClCompile Include="src\PewPew\Renderer\Resources\VertexArray.cpp">
+      <Filter>src\PewPew\Renderer\Resources</Filter>
     </ClCompile>
     <ClCompile Include="src\Platform\OpenGL\OpenGLBuffer.cpp">
       <Filter>src\Platform\OpenGL</Filter>

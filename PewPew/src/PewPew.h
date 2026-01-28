@@ -12,21 +12,21 @@
 #include "PewPew/MouseButtonCodes.h" 
 
 // ---Renderer------------------------
-#include "PewPew/Renderer/Renderer.h"
-#include "PewPew/Renderer/RenderCommand.h"
+#include "PewPew/Renderer/Core/Renderer.h"
+#include "PewPew/Renderer/Core/RenderCommand.h"
 
-#include "PewPew/Renderer/Buffer.h"
-#include "PewPew/Renderer/Shader.h"
-#include "PewPew/Renderer/Texture.h"
-#include "PewPew/Renderer/VertexArray.h"
+#include "PewPew/Renderer/Resources/Buffer.h"
+#include "PewPew/Renderer/Resources/Shader.h"
+#include "PewPew/Renderer/Resources/Texture.h"
+#include "PewPew/Renderer/Resources/VertexArray.h"
 
-#include "PewPew/Renderer/Camera.h"
-#include "PewPew/Renderer/OrthographicCamera.h"
-#include "PewPew/Renderer/PerspectiveCamera.h"
-#include "PewPew/Renderer/PerspectiveCameraController.h"
+#include "PewPew/Renderer/Camera/Camera.h"
+#include "PewPew/Renderer/Camera/OrthographicCamera.h"
+#include "PewPew/Renderer/Camera/PerspectiveCamera.h"
+#include "PewPew/Renderer/Camera/PerspectiveCameraController.h"
 
-#include "PewPew/Renderer/Mesh.h"
-#include "PewPew/Renderer/Material.h"
+#include "PewPew/Renderer/Resources/Mesh.h"
+#include "PewPew/Renderer/Resources/Material.h"
 // -----------------------------------
 
 #include "PewPew/ImGui/ImGuiLayer.h"

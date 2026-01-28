@@ -12,17 +12,17 @@ public:
 		: Layer("PBRLayer"), m_CameraController(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f)
 	{
 		// Load mesh (now includes tangent/bitangent for normal mapping)
-		m_Mesh = PewPew::Mesh::Load("assets/models/Matilda.fbx");
+		m_Mesh = PewPew::Mesh::Load("assets/models/Hand.fbx");
 
 		// Load PBR shader
 		m_Shader = PewPew::Shader::Create("assets/shaders/PBR.glsl");
 
 		// Create and configure material
 		m_Material = PewPew::Material::Create();
-		m_Material->SetAlbedoMap(PewPew::Texture2D::Create("assets/textures/MatildaTexture.png"));
-		/*m_Material->SetNormalMap(PewPew::Texture2D::Create("assets/textures/HAND_N.jpg"));
+		m_Material->SetAlbedoMap(PewPew::Texture2D::Create("assets/textures/HAND_C.jpg"));
+		m_Material->SetNormalMap(PewPew::Texture2D::Create("assets/textures/HAND_N.jpg"));
 		// Note: Using HAND_S.jpg as roughness map (green channel will be used)
-		m_Material->SetRoughnessMap(PewPew::Texture2D::Create("assets/textures/HAND_S.jpg"));*/
+		m_Material->SetRoughnessMap(PewPew::Texture2D::Create("assets/textures/HAND_S.jpg"));
 		m_Material->SetRoughness(0.5f);
 		m_Material->SetMetallic(0.0f);
 

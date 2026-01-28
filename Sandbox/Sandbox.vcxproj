@@ -151,6 +151,7 @@
   <ItemGroup>
     <None Include="assets\models\Gelatinous_Cube.fbx" />
     <None Include="assets\models\Hand.fbx" />
+    <None Include="assets\models\Matilda.fbx" />
     <None Include="assets\shaders\Basic3D.glsl" />
     <None Include="assets\shaders\PBR.glsl" />
     <None Include="assets\shaders\Texture.glsl" />
@@ -160,6 +161,7 @@
     <Image Include="assets\textures\HAND_N.jpg" />
     <Image Include="assets\textures\HAND_S.jpg" />
     <Image Include="assets\textures\Icon.png" />
+    <Image Include="assets\textures\MatildaTexture.png" />
     <Image Include="assets\textures\Texture.png" />
   </ItemGroup>
   <ItemGroup>

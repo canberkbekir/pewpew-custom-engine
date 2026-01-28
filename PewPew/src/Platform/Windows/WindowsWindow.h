@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "GLFW/glfw3.h"
 #include "PewPew/Window.h"
-#include "PewPew/Renderer/GraphicsContext.h"
+#include "PewPew/Renderer/Core/GraphicsContext.h"
 
 namespace PewPew
 {
