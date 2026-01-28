@@ -14,7 +14,7 @@ namespace PewPew
 		m_Width = width;
 		m_Height = height;
 
-		GLenum internalFormat=0, dataFormat=0;
+		GLenum internalFormat = 0, dataFormat = 0;
 		if (channels == 4)
 		{
 			internalFormat = GL_RGBA8;
@@ -25,6 +25,16 @@ namespace PewPew
 			internalFormat = GL_RGB8;
 			dataFormat = GL_RGB;
 		}
+		else if (channels == 2)
+		{
+			internalFormat = GL_RG8;
+			dataFormat = GL_RG;
+		}
+		else if (channels == 1)
+		{
+			internalFormat = GL_R8;
+			dataFormat = GL_RED;
+		}
 
 		PEW_CORE_ASSERT(internalFormat & dataFormat, "Format not supported")
 
@@ -32,7 +42,9 @@ namespace PewPew
 		glTextureStorage2D(m_RendererID, 1, internalFormat, m_Width, m_Height);
 
 		glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, dataFormat, GL_UNSIGNED_BYTE, data);
 	}

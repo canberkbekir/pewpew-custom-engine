@@ -171,6 +171,7 @@
     <ClInclude Include="src\PewPew\Renderer\Camera.h" />
     <ClInclude Include="src\PewPew\Renderer\CameraController.h" />
     <ClInclude Include="src\PewPew\Renderer\GraphicsContext.h" />
+    <ClInclude Include="src\PewPew\Renderer\Material.h" />
     <ClInclude Include="src\PewPew\Renderer\Mesh.h" />
     <ClInclude Include="src\PewPew\Renderer\OrthographicCamera.h" />
     <ClInclude Include="src\PewPew\Renderer\PerspectiveCamera.h" />
@@ -620,6 +621,7 @@
     <ClCompile Include="src\PewPew\LayerStack.cpp" />
     <ClCompile Include="src\PewPew\Log.cpp" />
     <ClCompile Include="src\PewPew\Renderer\Buffer.cpp" />
+    <ClCompile Include="src\PewPew\Renderer\Material.cpp" />
     <ClCompile Include="src\PewPew\Renderer\Mesh.cpp" />
     <ClCompile Include="src\PewPew\Renderer\OrthographicCamera.cpp" />
     <ClCompile Include="src\PewPew\Renderer\PerspectiveCamera.cpp" />

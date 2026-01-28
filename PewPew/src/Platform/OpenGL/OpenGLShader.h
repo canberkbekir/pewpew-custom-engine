@@ -20,13 +20,21 @@ namespace PewPew
 
         virtual const String& GetName() const override { return m_Name; }
 
-        void UploadUniformInt(const String& name, int value);
+        // Virtual uniform setters (from Shader base class)
+        virtual void SetInt(const String& name, int value) override;
+        virtual void SetFloat(const String& name, float value) override;
+        virtual void SetFloat2(const String& name, const Vector2& value) override;
+        virtual void SetFloat3(const String& name, const Vector3& value) override;
+        virtual void SetFloat4(const String& name, const Vector4& value) override;
+        virtual void SetMat3(const String& name, const Mat3& matrix) override;
+        virtual void SetMat4(const String& name, const Mat4& matrix) override;
 
+        // OpenGL-specific upload methods (kept for backwards compatibility)
+        void UploadUniformInt(const String& name, int value);
         void UploadUniformFloat(const String& name, float value);
         void UploadUniformFloat2(const String& name, const Vector2& value);
         void UploadUniformFloat3(const String& name, const Vector3& value);
         void UploadUniformFloat4(const String& name, const Vector4& value);
-
         void UploadUniformMat3(const String& name, const Mat3& matrix);
         void UploadUniformMat4(const String& name, const Mat4& matrix);
     private:

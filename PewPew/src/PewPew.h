@@ -23,8 +23,10 @@
 #include "PewPew/Renderer/Camera.h"
 #include "PewPew/Renderer/OrthographicCamera.h"
 #include "PewPew/Renderer/PerspectiveCamera.h"
+#include "PewPew/Renderer/PerspectiveCameraController.h"
 
 #include "PewPew/Renderer/Mesh.h"
+#include "PewPew/Renderer/Material.h"
 // -----------------------------------
 
 #include "PewPew/ImGui/ImGuiLayer.h"

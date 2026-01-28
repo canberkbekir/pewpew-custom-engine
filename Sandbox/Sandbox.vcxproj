@@ -149,6 +149,20 @@
     <ClCompile Include="src\SandboxApp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\models\Gelatinous_Cube.fbx" />
+    <None Include="assets\models\Hand.fbx" />
+    <None Include="assets\shaders\Basic3D.glsl" />
+    <None Include="assets\shaders\PBR.glsl" />
+    <None Include="assets\shaders\Texture.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\textures\HAND_C.jpg" />
+    <Image Include="assets\textures\HAND_N.jpg" />
+    <Image Include="assets\textures\HAND_S.jpg" />
+    <Image Include="assets\textures\Icon.png" />
+    <Image Include="assets\textures\Texture.png" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\PewPew\PewPew.vcxproj">
       <Project>{DD04E2C9-C9A6-0CA0-B261-20F49EA293F0}</Project>
     </ProjectReference>

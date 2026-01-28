@@ -123,6 +123,9 @@
     <ClInclude Include="src\PewPew\Renderer\GraphicsContext.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\Material.h">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\Mesh.h">
       <Filter>src\PewPew\Renderer</Filter>
     </ClInclude>
@@ -1464,6 +1467,9 @@
       <Filter>src\PewPew</Filter>
     </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\Buffer.cpp">
+      <Filter>src\PewPew\Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\Material.cpp">
       <Filter>src\PewPew\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\Mesh.cpp">

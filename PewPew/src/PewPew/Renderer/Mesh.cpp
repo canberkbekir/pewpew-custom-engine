@@ -26,7 +26,9 @@ namespace PewPew
 		vertexBuffer->SetLayout({
 			{ ShaderDataType::Float3, "a_Position" },
 			{ ShaderDataType::Float3, "a_Normal" },
-			{ ShaderDataType::Float2, "a_TexCoord" }
+			{ ShaderDataType::Float2, "a_TexCoord" },
+			{ ShaderDataType::Float3, "a_Tangent" },
+			{ ShaderDataType::Float3, "a_Bitangent" }
 		});
 
 		m_VertexArray->AddVertexBuffer(vertexBuffer);
@@ -85,6 +87,26 @@ namespace PewPew
 				vertex.TexCoords = { 0.0f, 0.0f };
 			}
 
+			// Tangent and Bitangent (for normal mapping)
+			if (mesh->HasTangentsAndBitangents())
+			{
+				vertex.Tangent = {
+					mesh->mTangents[i].x,
+					mesh->mTangents[i].y,
+					mesh->mTangents[i].z
+				};
+				vertex.Bitangent = {
+					mesh->mBitangents[i].x,
+					mesh->mBitangents[i].y,
+					mesh->mBitangents[i].z
+				};
+			}
+			else
+			{
+				vertex.Tangent = { 1.0f, 0.0f, 0.0f };
+				vertex.Bitangent = { 0.0f, 1.0f, 0.0f };
+			}
+
 			vertices.push_back(vertex);
 		}
 
@@ -122,9 +144,10 @@ namespace PewPew
 		const aiScene* scene = importer.ReadFile(filePath,
 			aiProcess_Triangulate |           // Triangulate all faces
 			aiProcess_GenSmoothNormals |      // Generate normals if missing
-			aiProcess_FlipUVs |               // Flip UVs for OpenGL
 			aiProcess_CalcTangentSpace |      // Calculate tangents (for normal mapping later)
-			aiProcess_JoinIdenticalVertices   // Optimize vertex count
+			aiProcess_JoinIdenticalVertices | // Optimize vertex count
+			aiProcess_PreTransformVertices    // Bake node transforms into vertices
+			// Note: NOT using aiProcess_FlipUVs - stb_image already flips textures
 		);
 
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)

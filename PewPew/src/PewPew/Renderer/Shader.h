@@ -1,5 +1,6 @@
-﻿#pragma once 
-#include "PewPew/Core/String.h" 
+﻿#pragma once
+#include "PewPew/Core/String.h"
+#include "PewPew/Math/CoreMath.h"
 
 namespace PewPew
 {
@@ -12,8 +13,17 @@ namespace PewPew
 		virtual void Unbind() const = 0;
 
 		virtual const String& GetName() const = 0;
-		
-		static Ref<Shader> Create(const String& filePath); 
+
+		// Uniform setters
+		virtual void SetInt(const String& name, int value) = 0;
+		virtual void SetFloat(const String& name, float value) = 0;
+		virtual void SetFloat2(const String& name, const Vector2& value) = 0;
+		virtual void SetFloat3(const String& name, const Vector3& value) = 0;
+		virtual void SetFloat4(const String& name, const Vector4& value) = 0;
+		virtual void SetMat3(const String& name, const Mat3& matrix) = 0;
+		virtual void SetMat4(const String& name, const Mat4& matrix) = 0;
+
+		static Ref<Shader> Create(const String& filePath);
 		static Ref<Shader> Create(const String& name, const String& vertexSrc, const String& fragmentSrc);
 	};
 

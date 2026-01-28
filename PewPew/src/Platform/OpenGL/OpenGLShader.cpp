@@ -213,4 +213,40 @@ namespace PewPew {
 		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 	}
 
+	// Virtual uniform setters (call the Upload* methods)
+	void OpenGLShader::SetInt(const String& name, int value)
+	{
+		UploadUniformInt(name, value);
+	}
+
+	void OpenGLShader::SetFloat(const String& name, float value)
+	{
+		UploadUniformFloat(name, value);
+	}
+
+	void OpenGLShader::SetFloat2(const String& name, const Vector2& value)
+	{
+		UploadUniformFloat2(name, value);
+	}
+
+	void OpenGLShader::SetFloat3(const String& name, const Vector3& value)
+	{
+		UploadUniformFloat3(name, value);
+	}
+
+	void OpenGLShader::SetFloat4(const String& name, const Vector4& value)
+	{
+		UploadUniformFloat4(name, value);
+	}
+
+	void OpenGLShader::SetMat3(const String& name, const Mat3& matrix)
+	{
+		UploadUniformMat3(name, matrix);
+	}
+
+	void OpenGLShader::SetMat4(const String& name, const Mat4& matrix)
+	{
+		UploadUniformMat4(name, matrix);
+	}
+
 }
