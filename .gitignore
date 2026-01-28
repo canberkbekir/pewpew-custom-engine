@@ -38,3 +38,12 @@
 # Build output folders (root and submodules)
 bin/
 bin-int/
+
+# Include assimp vendor binaries
+!PewPew/vendor/assimp/bin/
+!PewPew/vendor/assimp/bin/**
+!PewPew/vendor/assimp/lib/
+!PewPew/vendor/assimp/lib/**
+!**/vendor/assimp/**/*.dll
+!**/vendor/assimp/**/*.lib
+!**/vendor/assimp/**/*.pdb
