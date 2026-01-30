@@ -10,6 +10,9 @@
     <Filter Include="src\PewPew\Core">
       <UniqueIdentifier>{ECEE9BBA-587A-097F-618B-8C73CD95657F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\PewPew\Debug">
+      <UniqueIdentifier>{8A27260E-7620-4560-9F52-2AE58BAA246C}</UniqueIdentifier>
+    </Filter>
     <Filter Include="src\PewPew\Events">
       <UniqueIdentifier>{786B75D6-E481-736C-2DF9-FE8D994E44F4}</UniqueIdentifier>
     </Filter>
@@ -80,6 +83,12 @@
     </ClInclude>
     <ClInclude Include="src\PewPew\Core\TimeStep.h">
       <Filter>src\PewPew\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Debug\Instrumentor.h">
+      <Filter>src\PewPew\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Debug\ProfilerPanel.h">
+      <Filter>src\PewPew\Debug</Filter>
     </ClInclude>
     <ClInclude Include="src\PewPew\EntryPoint.h">
       <Filter>src\PewPew</Filter>
@@ -1466,6 +1475,9 @@
     <ClCompile Include="src\PewPew\Application.cpp">
       <Filter>src\PewPew</Filter>
     </ClCompile>
+    <ClCompile Include="src\PewPew\Debug\ProfilerPanel.cpp">
+      <Filter>src\PewPew\Debug</Filter>
+    </ClCompile>
     <ClCompile Include="src\PewPew\ImGui\ImGuiBuild.cpp">
       <Filter>src\PewPew\ImGui</Filter>
     </ClCompile>
@@ -1489,6 +1501,9 @@
     </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\Camera\PerspectiveCameraController.cpp">
       <Filter>src\PewPew\Renderer\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\Core\GraphicsContext.cpp">
+      <Filter>src\PewPew\Renderer\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\Core\RenderCommand.cpp">
       <Filter>src\PewPew\Renderer\Core</Filter>

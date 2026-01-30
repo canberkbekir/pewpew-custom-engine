@@ -2,7 +2,7 @@
 #include "Application.h"
 
 #include "PewPew/Log.h"
-
+#include "Debug/Instrumentor.h"
 
 #include "Input.h"
 #include "Core/TimeStep.h"
@@ -16,6 +16,8 @@ namespace PewPew
 
     Application::Application()
     {
+        PEW_PROFILE_FUNCTION();
+
         PEW_CORE_ASSERT(!s_Instance, "Application already exists!")
         s_Instance = this;
 
@@ -31,6 +33,7 @@ namespace PewPew
 
     Application::~Application()
     {
+        PEW_PROFILE_FUNCTION();
         Renderer::Shutdown();
     }
 
@@ -46,6 +49,8 @@ namespace PewPew
 
     void Application::OnEvent(Event& e)
     {
+        PEW_PROFILE_FUNCTION();
+
         EventDispatcher dispatcher(e);
         dispatcher.Dispatch<WindowCloseEvent>(PEW_BIND_EVENT_FN(OnWindowClose));
         dispatcher.Dispatch<WindowResizeEvent>(PEW_BIND_EVENT_FN(OnWindowResize));
@@ -62,22 +67,32 @@ namespace PewPew
     {
         while (m_Running)
         {
+            PEW_PROFILE_BEGIN_FRAME();
+            PEW_PROFILE_SCOPE("RunLoop");
+
             float time = static_cast<float>(glfwGetTime());
             Timestep timestep = time - m_LastFrameTime;
             m_LastFrameTime = time;
 
             if (!m_Minimized)
             {
-                for (Layer* layer : m_LayerStack)
-                    layer->OnUpdate(timestep);
+                {
+                    PEW_PROFILE_SCOPE("LayerStack OnUpdate");
+                    for (Layer* layer : m_LayerStack)
+                        layer->OnUpdate(timestep);
+                }
             }
 
-            m_ImGuiLayer->Begin();
-            for (Layer* layer : m_LayerStack)
-                layer->OnImGuiRender();
-            m_ImGuiLayer->End();
+            {
+                PEW_PROFILE_SCOPE("LayerStack OnImGuiRender");
+                m_ImGuiLayer->Begin();
+                for (Layer* layer : m_LayerStack)
+                    layer->OnImGuiRender();
+                m_ImGuiLayer->End();
+            }
 
             m_Window->OnUpdate();
+            PEW_PROFILE_END_FRAME();
         }
     }
 

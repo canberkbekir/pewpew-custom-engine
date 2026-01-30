@@ -12,6 +12,11 @@
 #include "PewPew/KeyCodes.h"
 #include "PewPew/MouseButtonCodes.h"
 
+// ---Debug---------------------------
+#include "PewPew/Debug/Instrumentor.h"
+#include "PewPew/Debug/ProfilerPanel.h"
+// -----------------------------------
+
 // ---Renderer------------------------
 #include "PewPew/Renderer/Core/Renderer.h"
 #include "PewPew/Renderer/Core/Renderer3D.h"

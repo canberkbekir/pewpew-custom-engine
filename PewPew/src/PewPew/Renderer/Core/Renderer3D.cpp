@@ -2,6 +2,7 @@
 #include "PewPew/Renderer/Core/Renderer3D.h"
 #include "PewPew/Renderer/Core/RenderCommand.h"
 #include "PewPew/Renderer/Core/ShaderUniforms.h"
+#include "PewPew/Debug/Instrumentor.h"
 
 namespace PewPew
 {
@@ -9,20 +10,24 @@ namespace PewPew
 
     void Renderer3D::Init()
     {
+        PEW_PROFILE_FUNCTION();
     }
 
     void Renderer3D::Shutdown()
     {
+        PEW_PROFILE_FUNCTION();
     }
 
     void Renderer3D::BeginScene(const Camera& camera, const Vector3& cameraPosition)
     {
+        PEW_PROFILE_FUNCTION();
         s_SceneData->ViewProjectionMatrix = camera.GetViewProjectionMatrix();
         s_SceneData->CameraPosition = cameraPosition;
     }
 
     void Renderer3D::EndScene()
     {
+        PEW_PROFILE_FUNCTION();
     }
 
     void Renderer3D::SetDirectionalLight(const Vector3& direction, const Vector3& color, float intensity)
@@ -40,6 +45,7 @@ namespace PewPew
     void Renderer3D::Submit(const Ref<Shader>& shader, const Ref<Material>& material, const Ref<Mesh>& mesh,
                             const Mat4& transform)
     {
+        PEW_PROFILE_FUNCTION();
         using namespace ShaderUniforms;
 
         shader->Bind();

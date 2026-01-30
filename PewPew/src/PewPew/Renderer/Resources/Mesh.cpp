@@ -3,6 +3,7 @@
 
 #include "Buffer.h"
 #include "PewPew/Log.h"
+#include "PewPew/Debug/Instrumentor.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -12,6 +13,8 @@ namespace PewPew
 {
     Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
     {
+        PEW_PROFILE_FUNCTION();
+
         m_IndexCount = static_cast<uint32_t>(indices.size());
 
         m_VertexArray =VertexArray::Create();
@@ -132,17 +135,23 @@ namespace PewPew
 
     Ref<Mesh> Mesh::Load(const String& filePath)
     {
+        PEW_PROFILE_FUNCTION();
+
         Assimp::Importer importer;
 
-        const aiScene* scene = importer.ReadFile(filePath,
-                                                 aiProcess_Triangulate | // Triangulate all faces
-                                                 aiProcess_GenSmoothNormals | // Generate normals if missing
-                                                 aiProcess_CalcTangentSpace |
-                                                 // Calculate tangents (for normal mapping later)
-                                                 aiProcess_JoinIdenticalVertices | // Optimize vertex count
-                                                 aiProcess_PreTransformVertices // Bake node transforms into vertices
-                                                 // Note: NOT using aiProcess_FlipUVs - stb_image already flips textures
-        );
+        const aiScene* scene = nullptr;
+        {
+            PEW_PROFILE_SCOPE("Mesh::Assimp::ReadFile");
+            scene = importer.ReadFile(filePath,
+                                      aiProcess_Triangulate | // Triangulate all faces
+                                      aiProcess_GenSmoothNormals | // Generate normals if missing
+                                      aiProcess_CalcTangentSpace |
+                                      // Calculate tangents (for normal mapping later)
+                                      aiProcess_JoinIdenticalVertices | // Optimize vertex count
+                                      aiProcess_PreTransformVertices // Bake node transforms into vertices
+                                      // Note: NOT using aiProcess_FlipUVs - stb_image already flips textures
+            );
+        }
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
         {
@@ -154,7 +163,10 @@ namespace PewPew
         std::vector<uint32_t> indices;
 
         // Process all nodes recursively
-        ProcessNode(scene->mRootNode, scene, vertices, indices);
+        {
+            PEW_PROFILE_SCOPE("Mesh::ProcessNode");
+            ProcessNode(scene->mRootNode, scene, vertices, indices);
+        }
 
         PEW_CORE_INFO("Loaded mesh: {0} ({1} vertices, {2} triangles)",
                       filePath, vertices.size(), indices.size() / 3);

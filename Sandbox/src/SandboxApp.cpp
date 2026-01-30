@@ -9,22 +9,33 @@ class Layer3D : public PewPew::Layer
 {
 public:
 	Layer3D()
-		: Layer("PBRLayer"), m_CameraController(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f)
+		: Layer("PBRLayer"), m_CameraController(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f), m_ProfilerPanel()
 	{
+		PEW_PROFILE_FUNCTION();
+
 		// Load mesh (now includes tangent/bitangent for normal mapping)
-		m_Mesh = PewPew::Mesh::Load("assets/models/Hand.fbx");
+		{
+			PEW_PROFILE_SCOPE("Layer3D::LoadMesh");
+			m_Mesh = PewPew::Mesh::Load("assets/models/Hand.fbx");
+		}
 
 		// Load PBR shader
-		m_Shader = PewPew::Shader::Create("assets/shaders/PBR.glsl");
+		{
+			PEW_PROFILE_SCOPE("Layer3D::LoadShader");
+			m_Shader = PewPew::Shader::Create("assets/shaders/PBR.glsl");
+		}
 
 		// Create and configure material
-		m_Material = PewPew::Material::Create();
-		m_Material->SetAlbedoMap(PewPew::Texture2D::Create("assets/textures/HAND_C.jpg"));
-		m_Material->SetNormalMap(PewPew::Texture2D::Create("assets/textures/HAND_N.jpg"));
-		// Note: Using HAND_S.jpg as roughness map (green channel will be used)
-		m_Material->SetRoughnessMap(PewPew::Texture2D::Create("assets/textures/HAND_S.jpg"));
-		m_Material->SetRoughness(0.5f);
-		m_Material->SetMetallic(0.0f);
+		{
+			PEW_PROFILE_SCOPE("Layer3D::CreateMaterial");
+			m_Material = PewPew::Material::Create();
+			m_Material->SetAlbedoMap(PewPew::Texture2D::Create("assets/textures/HAND_C.jpg"));
+			m_Material->SetNormalMap(PewPew::Texture2D::Create("assets/textures/HAND_N.jpg"));
+			// Note: Using HAND_S.jpg as roughness map (green channel will be used)
+			m_Material->SetRoughnessMap(PewPew::Texture2D::Create("assets/textures/HAND_S.jpg"));
+			m_Material->SetRoughness(0.5f);
+			m_Material->SetMetallic(0.0f);
+		}
 
 		// Set default light
 		PewPew::Renderer3D::SetDirectionalLight(
@@ -37,31 +48,52 @@ public:
 
 	void OnUpdate(PewPew::Timestep ts) override
 	{
-		m_CameraController.OnUpdate(ts);
+		PEW_PROFILE_FUNCTION();
+
+		// Update
+		{
+			PEW_PROFILE_SCOPE("Layer3D::CameraUpdate");
+			m_CameraController.OnUpdate(ts);
+		}
 		m_MeshRotation += m_RotationSpeed * ts;
 
-		// Render
-		PewPew::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.15f, 1.0f });
-		PewPew::RenderCommand::Clear();
-
-		// Begin scene with camera position for specular calculations
-		PewPew::Renderer3D::BeginScene(m_CameraController.GetCamera(), m_CameraController.GetCamera().GetPosition());
-
-		if (m_Mesh)
+		// Render Prep
 		{
-			// Apply scale and rotation to mesh
-			Mat4 transform = glm::scale(Mat4(1.0f), Vector3(m_MeshScale));
-			transform = glm::rotate(transform, glm::radians(m_MeshRotation), Vector3(0.0f, 1.0f, 0.0f));
-
-			// Submit with PBR material
-			PewPew::Renderer3D::Submit(m_Shader, m_Material, m_Mesh, transform);
+			PEW_PROFILE_SCOPE("Layer3D::RenderPrep");
+			PewPew::RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.15f, 1.0f });
+			PewPew::RenderCommand::Clear();
 		}
 
-		PewPew::Renderer3D::EndScene();
+		// Render Draw
+		{
+			PEW_PROFILE_SCOPE("Layer3D::RenderDraw");
+
+			// Begin scene with camera position for specular calculations
+			PewPew::Renderer3D::BeginScene(m_CameraController.GetCamera(), m_CameraController.GetCamera().GetPosition());
+
+			if (m_Mesh)
+			{
+				PEW_PROFILE_SCOPE("Layer3D::MeshSubmit");
+
+				// Apply scale and rotation to mesh
+				Mat4 transform = glm::scale(Mat4(1.0f), Vector3(m_MeshScale));
+				transform = glm::rotate(transform, glm::radians(m_MeshRotation), Vector3(0.0f, 1.0f, 0.0f));
+
+				// Submit with PBR material
+				PewPew::Renderer3D::Submit(m_Shader, m_Material, m_Mesh, transform);
+			}
+
+			PewPew::Renderer3D::EndScene();
+		}
 	}
 
 	void OnImGuiRender() override
 	{
+		PEW_PROFILE_FUNCTION();
+
+		// Render profiler panel (F3 to toggle)
+		m_ProfilerPanel.OnImGuiRender();
+
 		ImGui::Begin("PBR Controls");
 
 		if (m_Mesh)
@@ -114,11 +146,14 @@ public:
 
 	void OnEvent(PewPew::Event& event) override
 	{
+		PEW_PROFILE_FUNCTION();
+		m_ProfilerPanel.OnEvent(event);
 		m_CameraController.OnEvent(event);
 	}
 
 private:
 	PewPew::PerspectiveCameraController m_CameraController;
+	PewPew::ProfilerPanel m_ProfilerPanel;
 
 	PewPew::Ref<PewPew::Mesh> m_Mesh;
 	PewPew::Ref<PewPew::Shader> m_Shader;
@@ -143,6 +178,7 @@ class Sandbox : public PewPew::Application
 public:
 	Sandbox()
 	{
+		PEW_PROFILE_FUNCTION();
 		PushLayer(new Layer3D());
 	}
 
@@ -151,5 +187,6 @@ public:
 
 PewPew::Application* PewPew::CreateApplication()
 {
+	PEW_PROFILE_FUNCTION();
 	return new Sandbox();
 }

@@ -5,6 +5,7 @@
 #include <glad/glad.h>
 
 #include <glm/gtc/type_ptr.hpp>
+#include "PewPew/Debug/Instrumentor.h"
 
 namespace PewPew
 {
@@ -21,6 +22,8 @@ namespace PewPew
 
     OpenGLShader::OpenGLShader(const String& filepath)
     {
+        PEW_PROFILE_FUNCTION();
+
         String source = ReadFile(filepath);
         auto shaderSources = PreProcess(source);
         Compile(shaderSources);
@@ -49,6 +52,8 @@ namespace PewPew
 
     String OpenGLShader::ReadFile(const String& filepath)
     {
+        PEW_PROFILE_FUNCTION();
+
         String result;
         std::ifstream in(filepath, std::ios::in | std::ios::binary);
         if (in)
@@ -105,6 +110,8 @@ namespace PewPew
 
     void OpenGLShader::Compile(const std::unordered_map<GLenum, String>& shaderSources)
     {
+        PEW_PROFILE_FUNCTION();
+
         GLuint program = glCreateProgram();
         PEW_CORE_ASSERT(shaderSources.size() <= 2, "We only support 2 shaders for now")
         std::array<GLenum, 2> glShaderIDs;
@@ -180,6 +187,7 @@ namespace PewPew
 
     void OpenGLShader::Bind() const
     {
+        PEW_PROFILE_FUNCTION();
         glUseProgram(m_RendererID);
     }
 

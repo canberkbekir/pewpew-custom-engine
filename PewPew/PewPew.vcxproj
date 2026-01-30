@@ -154,6 +154,8 @@
     <ClInclude Include="src\PewPew\Core.h" />
     <ClInclude Include="src\PewPew\Core\String.h" />
     <ClInclude Include="src\PewPew\Core\TimeStep.h" />
+    <ClInclude Include="src\PewPew\Debug\Instrumentor.h" />
+    <ClInclude Include="src\PewPew\Debug\ProfilerPanel.h" />
     <ClInclude Include="src\PewPew\EntryPoint.h" />
     <ClInclude Include="src\PewPew\Events\ApplicationEvent.h" />
     <ClInclude Include="src\PewPew\Events\Event.h" />
@@ -617,6 +619,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\PewPew\Application.cpp" />
+    <ClCompile Include="src\PewPew\Debug\ProfilerPanel.cpp" />
     <ClCompile Include="src\PewPew\ImGui\ImGuiBuild.cpp" />
     <ClCompile Include="src\PewPew\ImGui\ImGuiLayer.cpp" />
     <ClCompile Include="src\PewPew\Layer.cpp" />

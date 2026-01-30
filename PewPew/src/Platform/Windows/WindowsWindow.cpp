@@ -6,6 +6,7 @@
 #include "PewPew/Events/MouseEvent.h"
 #include "PewPew/Events/KeyEvent.h"
 #include "Platform/OpenGL/OpenGLContext.h"
+#include "PewPew/Debug/Instrumentor.h"
 
 namespace PewPew
 {
@@ -33,6 +34,8 @@ namespace PewPew
 
     void WindowsWindow::Init(const WindowProps& props)
     {
+        PEW_PROFILE_FUNCTION();
+
         m_Data.Title = props.Title;
         m_Data.Width = props.Width;
         m_Data.Height = props.Height;
@@ -157,13 +160,22 @@ namespace PewPew
 
     void WindowsWindow::Shutdown()
     {
+        PEW_PROFILE_FUNCTION();
         glfwDestroyWindow(m_Window);
     }
 
     void WindowsWindow::OnUpdate()
     {
-        glfwPollEvents();
-        m_Context->SwapBuffers();
+        PEW_PROFILE_FUNCTION();
+
+        {
+            PEW_PROFILE_SCOPE("WindowsWindow::PollEvents");
+            glfwPollEvents();
+        }
+        {
+            PEW_PROFILE_SCOPE("WindowsWindow::SwapBuffers");
+            m_Context->SwapBuffers();
+        }
     }
 
     void WindowsWindow::SetVSync(bool enabled)
