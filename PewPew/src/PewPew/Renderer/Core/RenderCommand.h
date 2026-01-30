@@ -32,7 +32,7 @@ namespace PewPew
 		}
 
 	private:
-		static RendererAPI* s_RendererAPI;
+		static Scope<RendererAPI> s_RendererAPI;
 	
 	};
 

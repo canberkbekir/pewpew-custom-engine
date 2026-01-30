@@ -42,7 +42,7 @@ namespace PewPew {
 			Vector3 AmbientColor = { 0.03f, 0.03f, 0.03f };
 		};
 
-		static SceneData* s_SceneData;
+		static Scope<SceneData> s_SceneData;
 	};
 
 
