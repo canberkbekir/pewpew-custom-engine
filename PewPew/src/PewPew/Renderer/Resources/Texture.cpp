@@ -1,7 +1,8 @@
 ﻿#include "pewpch.h"
 #include "Texture.h"
 
-#include "Renderer.h"
+#include "PewPew/Renderer/Core/Renderer.h"
+#include "PewPew/Renderer/Core/RendererAPI.h"
 #include "Platform/OpenGL/OpenGLTexture.h"
 
 namespace PewPew

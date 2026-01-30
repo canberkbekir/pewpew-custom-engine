@@ -32,6 +32,9 @@
     <None Include="assets\models\Matilda.fbx">
       <Filter>assets\models</Filter>
     </None>
+    <None Include="assets\models\cube.obj">
+      <Filter>assets\models</Filter>
+    </None>
     <None Include="assets\shaders\Basic3D.glsl">
       <Filter>assets\shaders</Filter>
     </None>
