@@ -15,6 +15,7 @@ namespace PewPew
         Vector2 TexCoords;
         Vector3 Tangent;
         Vector3 Bitangent;
+        Vector3 Color = Vector3(1.0f);  // Vertex color (default white)
     };
 
     class Mesh

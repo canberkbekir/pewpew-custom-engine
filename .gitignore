@@ -39,6 +39,18 @@
 bin/
 bin-int/
 
+# Visual Studio generated files (Premake generates these)
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# Profiler output
+**/PewPewProfile*.json
+
+# ImGui settings
+**/imgui.ini
+
 # Include assimp vendor binaries
 !PewPew/vendor/assimp/bin/
 !PewPew/vendor/assimp/bin/**

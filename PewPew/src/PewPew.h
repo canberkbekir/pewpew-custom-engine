@@ -34,6 +34,8 @@
 
 #include "PewPew/Renderer/Resources/Mesh.h"
 #include "PewPew/Renderer/Resources/Material.h"
+
+#include "PewPew/Renderer/VoxelizerAPI.h"
 // -----------------------------------
 
 #include "PewPew/ImGui/ImGuiLayer.h"

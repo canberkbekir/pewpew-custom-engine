@@ -6,6 +6,7 @@ layout(location = 1) in vec3 a_Normal;
 layout(location = 2) in vec2 a_TexCoord;
 layout(location = 3) in vec3 a_Tangent;
 layout(location = 4) in vec3 a_Bitangent;
+layout(location = 5) in vec3 a_Color;
 
 uniform mat4 u_ViewProjection;
 uniform mat4 u_Transform;
@@ -17,6 +18,7 @@ uniform float u_VoxelSize;
 out vec3 v_WorldPos;
 out vec3 v_LocalPos;
 out vec2 v_TexCoord;
+out vec3 v_Color;
 out mat3 v_TBN;
 
 void main()
@@ -34,6 +36,7 @@ void main()
     v_WorldPos = worldPos.xyz;
     v_LocalPos = localPos;
     v_TexCoord = a_TexCoord;
+    v_Color = a_Color;
 
     // TBN matrix for normal mapping
     mat3 normalMatrix = transpose(inverse(mat3(u_Transform)));
@@ -54,6 +57,7 @@ const float PI = 3.14159265359;
 in vec3 v_WorldPos;
 in vec3 v_LocalPos;
 in vec2 v_TexCoord;
+in vec3 v_Color;
 in mat3 v_TBN;
 
 // Textures
@@ -156,6 +160,7 @@ void main()
 
     // --- Material sampling ---
     vec3 albedo = (u_UseAlbedoMap == 1) ? texture(u_AlbedoMap, uv).rgb : u_Albedo;
+    albedo *= v_Color;  // Apply vertex color
     float metallic = (u_UseMetallicMap == 1) ? texture(u_MetallicMap, uv).r : u_Metallic;
     float roughness = (u_UseRoughnessMap == 1) ? texture(u_RoughnessMap, uv).r : u_Roughness;
 

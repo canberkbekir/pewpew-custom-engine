@@ -24,6 +24,7 @@ IncludeDir["ImGui"] = "PewPew/vendor/imgui"
 IncludeDir["glm"] = "PewPew/vendor/glm"
 IncludeDir["stb_image"] = "PewPew/vendor/stb_image"
 IncludeDir["assimp"] = "PewPew/vendor/assimp/include"
+IncludeDir["voxelizer"] = "PewPew/vendor/voxelizer"
 
 include "PewPew/vendor/GLFW"
 include "PewPew/vendor/Glad"
@@ -50,7 +51,14 @@ project "PewPew"
 		"%{prj.name}/vendor/stb_image/**.h",
 		"%{prj.name}/vendor/glm/glm/**.hpp",
 		"%{prj.name}/vendor/glm/glm/**.inl",
+		"%{prj.name}/vendor/voxelizer/**.h",
+		"%{prj.name}/vendor/voxelizer/**.cpp",
 	}
+
+	-- Exclude vendor files from precompiled header
+	filter "files:PewPew/vendor/**"
+		flags { "NoPCH" }
+	filter {}
 
 	defines
 	{
@@ -67,6 +75,7 @@ project "PewPew"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.assimp}",
+		"%{IncludeDir.voxelizer}",
 	}
 
 	libdirs
@@ -150,7 +159,8 @@ project "Sandbox"
         "PewPew/vendor/spdlog/include",
         "PewPew/src",
 		"PewPew/vendor",
-		"%{IncludeDir.glm}"
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.voxelizer}"
     }
 
     links { "PewPew" }
