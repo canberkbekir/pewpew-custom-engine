@@ -1,8 +1,8 @@
 ﻿#include "pewpch.h"
 #include "LayerStack.h"
 
-namespace PewPew {
-
+namespace PewPew
+{
     LayerStack::LayerStack()
     {
     }
@@ -14,7 +14,6 @@ namespace PewPew {
             layer->OnDetach();
             delete layer;
         }
-            
     }
 
     void LayerStack::PushLayer(Layer* layer)
@@ -50,5 +49,4 @@ namespace PewPew {
             m_Layers.erase(it);
         }
     }
-
 }

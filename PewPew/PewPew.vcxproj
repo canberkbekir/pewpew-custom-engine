@@ -175,7 +175,9 @@
     <ClInclude Include="src\PewPew\Renderer\Core\GraphicsContext.h" />
     <ClInclude Include="src\PewPew\Renderer\Core\RenderCommand.h" />
     <ClInclude Include="src\PewPew\Renderer\Core\Renderer.h" />
+    <ClInclude Include="src\PewPew\Renderer\Core\Renderer3D.h" />
     <ClInclude Include="src\PewPew\Renderer\Core\RendererAPI.h" />
+    <ClInclude Include="src\PewPew\Renderer\Core\ShaderUniforms.h" />
     <ClInclude Include="src\PewPew\Renderer\Resources\Buffer.h" />
     <ClInclude Include="src\PewPew\Renderer\Resources\Material.h" />
     <ClInclude Include="src\PewPew\Renderer\Resources\Mesh.h" />
@@ -623,8 +625,10 @@
     <ClCompile Include="src\PewPew\Renderer\Camera\OrthographicCamera.cpp" />
     <ClCompile Include="src\PewPew\Renderer\Camera\PerspectiveCamera.cpp" />
     <ClCompile Include="src\PewPew\Renderer\Camera\PerspectiveCameraController.cpp" />
+    <ClCompile Include="src\PewPew\Renderer\Core\GraphicsContext.cpp" />
     <ClCompile Include="src\PewPew\Renderer\Core\RenderCommand.cpp" />
     <ClCompile Include="src\PewPew\Renderer\Core\Renderer.cpp" />
+    <ClCompile Include="src\PewPew\Renderer\Core\Renderer3D.cpp" />
     <ClCompile Include="src\PewPew\Renderer\Core\RendererAPI.cpp" />
     <ClCompile Include="src\PewPew\Renderer\Resources\Buffer.cpp" />
     <ClCompile Include="src\PewPew\Renderer\Resources\Material.cpp" />

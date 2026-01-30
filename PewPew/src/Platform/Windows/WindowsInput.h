@@ -3,15 +3,17 @@
 
 namespace PewPew
 {
-	class WindowsInput : public Input
-	{
-	protected:
-		~WindowsInput() = default;
-		virtual bool IsKeyPressedImpl(int keycode) override;
+    class WindowsInput : public Input
+    {
+    public:
+        ~WindowsInput() override = default;
 
-		virtual bool IsMouseButtonPressedImpl(int button) override;
-		virtual std::pair<float, float> GetMousePositionImpl() override;
-		virtual float GetMouseXImpl() override;
-		virtual float GetMouseYImpl() override;
-	};
+    protected:
+        bool IsKeyPressedImpl(int keycode) override;
+
+        bool IsMouseButtonPressedImpl(int button) override;
+        std::pair<float, float> GetMousePositionImpl() override;
+        float GetMouseXImpl() override;
+        float GetMouseYImpl() override;
+    };
 }

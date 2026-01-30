@@ -3,8 +3,7 @@
 
 #include "Platform/OpenGL/OpenGLRendererAPI.h"
 
-namespace PewPew {
-
-	Scope<RendererAPI> RenderCommand::s_RendererAPI = CreateScope<OpenGLRendererAPI>();
-
+namespace PewPew
+{
+	Scope<RendererAPI> RenderCommand::s_RendererAPI = RendererAPI::Create();
 }

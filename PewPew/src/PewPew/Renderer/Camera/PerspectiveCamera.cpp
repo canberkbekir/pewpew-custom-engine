@@ -23,25 +23,25 @@ namespace PewPew
         front.x = cos(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
         front.y = sin(glm::radians(m_Pitch));
         front.z = sin(glm::radians(m_Yaw)) * cos(glm::radians(m_Pitch));
-        return glm::normalize(front);
+        return normalize(front);
     }
 
     Vector3 PerspectiveCamera::GetRightDirection() const
     {
-        return glm::normalize(glm::cross(GetForwardDirection(), Vector3(0.0f, 1.0f, 0.0f)));
+        return normalize(cross(GetForwardDirection(), Vector3(0.0f, 1.0f, 0.0f)));
     }
 
     Vector3 PerspectiveCamera::GetUpDirection() const
     {
-        return glm::normalize(glm::cross(GetRightDirection(), GetForwardDirection()));
+        return normalize(cross(GetRightDirection(), GetForwardDirection()));
     }
 
     void PerspectiveCamera::RecalculateViewMatrix()
     {
         Vector3 front = GetForwardDirection();
-        Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
+        auto up = Vector3(0.0f, 1.0f, 0.0f);
 
-        m_ViewMatrix = glm::lookAt(m_Position, m_Position + front, up);
+        m_ViewMatrix = lookAt(m_Position, m_Position + front, up);
         m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
     }
 }

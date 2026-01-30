@@ -4,10 +4,10 @@
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
 
-PewPew::OrthographicCamera::OrthographicCamera( float left,  float right,  float bottom,  float top)
+PewPew::OrthographicCamera::OrthographicCamera(float left, float right, float bottom, float top)
 {
     constexpr float NearPlane = -1.0f;
-    constexpr float FarPlane  =  1.0f;
+    constexpr float FarPlane = 1.0f;
 
     m_ProjectionMatrix = glm::ortho(
         left,
@@ -24,12 +24,12 @@ PewPew::OrthographicCamera::OrthographicCamera( float left,  float right,  float
 
 void PewPew::OrthographicCamera::RecalculateViewMatrix()
 {
-    const Mat4 translation = glm::translate(
+    const Mat4 translation = translate(
         Mat4(1.0f),
         m_Position
     );
 
-    const Mat4 rotation = glm::rotate(
+    const Mat4 rotation = rotate(
         Mat4(1.0f),
         glm::radians(m_Rotation),
         Vector3(0.0f, 0.0f, 1.0f)
@@ -37,7 +37,6 @@ void PewPew::OrthographicCamera::RecalculateViewMatrix()
 
     const Mat4 transform = translation * rotation;
 
-    m_ViewMatrix = glm::inverse(transform);
+    m_ViewMatrix = inverse(transform);
     m_ViewProjectionMatrix = m_ProjectionMatrix * m_ViewMatrix;
 }
-

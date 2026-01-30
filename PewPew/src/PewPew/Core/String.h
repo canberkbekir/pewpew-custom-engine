@@ -3,5 +3,5 @@
 
 namespace PewPew
 {
-	using String = std::string; 
+    using String = std::string;
 }

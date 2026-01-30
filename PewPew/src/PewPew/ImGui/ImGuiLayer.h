@@ -4,23 +4,22 @@
 #include "PewPew/Events/KeyEvent.h"
 #include "PewPew/Events/MouseEvent.h"
 
-namespace PewPew {
-
-    class PEW_API ImGuiLayer : public Layer
+namespace PewPew
+{
+    class ImGuiLayer : public Layer
     {
     public:
         ImGuiLayer();
-        ~ImGuiLayer();
+        ~ImGuiLayer() override;
 
-        virtual void OnAttach() override;
-        virtual void OnDetach() override;
-        virtual void OnImGuiRender() override;
+        void OnAttach() override;
+        void OnDetach() override;
+        void OnImGuiRender() override;
 
         void Begin();
         void End();
-        
+
     private:
         float m_Time = 0.0f;
     };
-
 }

@@ -3,7 +3,7 @@
 
 namespace PewPew
 {
-    class PEW_API KeyEvent : public Event
+    class KeyEvent : public Event
     {
     public:
         int GetKeyCode() const { return m_KeyCode; }
@@ -19,7 +19,7 @@ namespace PewPew
         int m_KeyCode;
     };
 
-    class PEW_API KeyPressedEvent : public KeyEvent
+    class KeyPressedEvent : public KeyEvent
     {
     public:
         KeyPressedEvent(int keycode, int repeatCount)
@@ -42,7 +42,7 @@ namespace PewPew
         int m_RepeatCount;
     };
 
-    class PEW_API KeyReleasedEvent : public KeyEvent
+    class KeyReleasedEvent : public KeyEvent
     {
     public:
         KeyReleasedEvent(int keycode)
@@ -60,11 +60,13 @@ namespace PewPew
         EVENT_CLASS_TYPE(KeyReleased)
     };
 
-    class PEW_API KeyTypedEvent : public KeyEvent
+    class KeyTypedEvent : public KeyEvent
     {
     public:
         KeyTypedEvent(int keycode)
-            : KeyEvent(keycode) {}
+            : KeyEvent(keycode)
+        {
+        }
 
         std::string ToString() const override
         {

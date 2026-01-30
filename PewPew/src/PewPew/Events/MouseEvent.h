@@ -4,7 +4,7 @@
 
 namespace PewPew
 {
-    class PEW_API MouseMovedEvent : public Event
+    class MouseMovedEvent : public Event
     {
     public:
         MouseMovedEvent(float x, float y)
@@ -29,7 +29,7 @@ namespace PewPew
         float m_MouseX, m_MouseY;
     };
 
-    class PEW_API MouseScrolledEvent : public Event
+    class MouseScrolledEvent : public Event
     {
     public:
         MouseScrolledEvent(float xOffset, float yOffset)
@@ -54,7 +54,7 @@ namespace PewPew
         float m_XOffset, m_YOffset;
     };
 
-    class PEW_API MouseButtonEvent : public Event
+    class MouseButtonEvent : public Event
     {
     public:
         int GetMouseButton() const { return m_Button; }
@@ -70,7 +70,7 @@ namespace PewPew
         int m_Button;
     };
 
-    class PEW_API MouseButtonPressedEvent : public MouseButtonEvent
+    class MouseButtonPressedEvent : public MouseButtonEvent
     {
     public:
         MouseButtonPressedEvent(int button)
@@ -88,7 +88,7 @@ namespace PewPew
         EVENT_CLASS_TYPE(MouseButtonPressed)
     };
 
-    class PEW_API MouseButtonReleasedEvent : public MouseButtonEvent
+    class MouseButtonReleasedEvent : public MouseButtonEvent
     {
     public:
         MouseButtonReleasedEvent(int button)

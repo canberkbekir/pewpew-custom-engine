@@ -3,23 +3,37 @@
 #include "Core/TimeStep.h"
 #include "Events/Event.h"
 
-namespace PewPew {
-
-    class PEW_API Layer
+namespace PewPew
+{
+    class Layer
     {
     public:
         Layer(const String& name = "Layer");
         virtual ~Layer() = default;
 
-        virtual void OnAttach() {}
-        virtual void OnDetach() {}
-        virtual void OnUpdate(Timestep ts) {}
-        virtual void OnImGuiRender() {}
-        virtual void OnEvent(Event& event) {}
+        virtual void OnAttach()
+        {
+        }
 
-        inline const String& GetName() const { return m_DebugName; }
+        virtual void OnDetach()
+        {
+        }
+
+        virtual void OnUpdate(Timestep ts)
+        {
+        }
+
+        virtual void OnImGuiRender()
+        {
+        }
+
+        virtual void OnEvent(Event& event)
+        {
+        }
+
+        const String& GetName() const { return m_DebugName; }
+
     protected:
         String m_DebugName;
     };
-
 }

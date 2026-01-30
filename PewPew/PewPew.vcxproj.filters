@@ -144,7 +144,13 @@
     <ClInclude Include="src\PewPew\Renderer\Core\Renderer.h">
       <Filter>src\PewPew\Renderer\Core</Filter>
     </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\Core\Renderer3D.h">
+      <Filter>src\PewPew\Renderer\Core</Filter>
+    </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\Core\RendererAPI.h">
+      <Filter>src\PewPew\Renderer\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\PewPew\Renderer\Core\ShaderUniforms.h">
       <Filter>src\PewPew\Renderer\Core</Filter>
     </ClInclude>
     <ClInclude Include="src\PewPew\Renderer\Resources\Buffer.h">
@@ -1488,6 +1494,9 @@
       <Filter>src\PewPew\Renderer\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\Core\Renderer.cpp">
+      <Filter>src\PewPew\Renderer\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\PewPew\Renderer\Core\Renderer3D.cpp">
       <Filter>src\PewPew\Renderer\Core</Filter>
     </ClCompile>
     <ClCompile Include="src\PewPew\Renderer\Core\RendererAPI.cpp">

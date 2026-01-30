@@ -30,8 +30,8 @@ namespace PewPew
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; }
 
 
-    class PEW_API Event
-    {  
+    class Event
+    {
     public:
         virtual ~Event() = default;
         bool Handled = false;
@@ -43,7 +43,7 @@ namespace PewPew
         bool IsInCategory(EventCategory category)
         {
             return GetCategoryFlags() & category;
-        } 
+        }
     };
 
     class EventDispatcher
@@ -57,12 +57,12 @@ namespace PewPew
         {
         }
 
-        template<typename T, typename F>
+        template <typename T, typename F>
         bool Dispatch(const F& func)
         {
             if (m_Event.GetEventType() == T::GetStaticType())
             {
-				m_Event.Handled = func(static_cast<T&>(m_Event));
+                m_Event.Handled = func(static_cast<T&>(m_Event));
                 return true;
             }
             return false;

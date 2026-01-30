@@ -12,27 +12,27 @@ public:
 		: Layer("PBRLayer"), m_CameraController(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f)
 	{
 		// Load mesh (now includes tangent/bitangent for normal mapping)
-		m_Mesh = PewPew::Mesh::Load("assets/models/Matilda.fbx");
+		m_Mesh = PewPew::Mesh::Load("assets/models/Hand.fbx");
 
 		// Load PBR shader
 		m_Shader = PewPew::Shader::Create("assets/shaders/PBR.glsl");
 
 		// Create and configure material
 		m_Material = PewPew::Material::Create();
-		m_Material->SetAlbedoMap(PewPew::Texture2D::Create("assets/textures/MatildaTexture.png"));
-		/*m_Material->SetNormalMap(PewPew::Texture2D::Create("assets/textures/HAND_N.jpg"));
+		m_Material->SetAlbedoMap(PewPew::Texture2D::Create("assets/textures/HAND_C.jpg"));
+		m_Material->SetNormalMap(PewPew::Texture2D::Create("assets/textures/HAND_N.jpg"));
 		// Note: Using HAND_S.jpg as roughness map (green channel will be used)
 		m_Material->SetRoughnessMap(PewPew::Texture2D::Create("assets/textures/HAND_S.jpg"));
 		m_Material->SetRoughness(0.5f);
-		m_Material->SetMetallic(0.0f);*/
+		m_Material->SetMetallic(0.0f);
 
 		// Set default light
-		PewPew::Renderer::SetDirectionalLight(
+		PewPew::Renderer3D::SetDirectionalLight(
 			m_LightDirection,
 			m_LightColor,
 			m_LightIntensity
 		);
-		PewPew::Renderer::SetAmbientLight(m_AmbientColor);
+		PewPew::Renderer3D::SetAmbientLight(m_AmbientColor);
 	}
 
 	void OnUpdate(PewPew::Timestep ts) override
@@ -45,7 +45,7 @@ public:
 		PewPew::RenderCommand::Clear();
 
 		// Begin scene with camera position for specular calculations
-		PewPew::Renderer::BeginScene(m_CameraController.GetCamera(), m_CameraController.GetCamera().GetPosition());
+		PewPew::Renderer3D::BeginScene(m_CameraController.GetCamera(), m_CameraController.GetCamera().GetPosition());
 
 		if (m_Mesh)
 		{
@@ -54,10 +54,10 @@ public:
 			transform = glm::rotate(transform, glm::radians(m_MeshRotation), Vector3(0.0f, 1.0f, 0.0f));
 
 			// Submit with PBR material
-			PewPew::Renderer::Submit(m_Shader, m_Material, m_Mesh, transform);
+			PewPew::Renderer3D::Submit(m_Shader, m_Material, m_Mesh, transform);
 		}
 
-		PewPew::Renderer::EndScene();
+		PewPew::Renderer3D::EndScene();
 	}
 
 	void OnImGuiRender() override
@@ -69,39 +69,6 @@ public:
 			ImGui::Text("Mesh: %u indices", m_Mesh->GetIndexCount());
 			ImGui::SliderFloat("Scale", &m_MeshScale, 0.01f, 10.0f);
 			ImGui::SliderFloat("Rotation Speed", &m_RotationSpeed, 0.0f, 180.0f);
-
-			ImGui::Separator();
-			ImGui::Text("Shader Mode");
-
-			// Shader mode dropdown
-			const char* shaderModes[] = { "Normal (PBR)", "Stylized/Toon", "Voxel", "Pixel" };
-			int shaderMode = m_Material->GetShaderMode();
-			if (ImGui::Combo("Shader", &shaderMode, shaderModes, IM_ARRAYSIZE(shaderModes)))
-				m_Material->SetShaderMode(shaderMode);
-
-			// Mode-specific controls
-			if (shaderMode == 0) // Normal PBR
-			{
-				float smoothAmount = m_Material->GetSmoothAmount();
-				if (ImGui::SliderFloat("Smooth Shading", &smoothAmount, 0.0f, 1.0f, "%.2f"))
-					m_Material->SetSmoothAmount(smoothAmount);
-
-				float stylizedAmount = m_Material->GetStylizedAmount();
-				if (ImGui::SliderFloat("Stylized Blend", &stylizedAmount, 0.0f, 1.0f, "%.2f"))
-					m_Material->SetStylizedAmount(stylizedAmount);
-			}
-			else if (shaderMode == 2) // Voxel
-			{
-				float voxelSize = m_Material->GetVoxelSize();
-				if (ImGui::SliderFloat("Voxel Size", &voxelSize, 0.01f, 1.0f, "%.3f"))
-					m_Material->SetVoxelSize(voxelSize);
-			}
-			else if (shaderMode == 3) // Pixel
-			{
-				float pixelSize = m_Material->GetPixelSize();
-				if (ImGui::SliderFloat("Pixel Resolution", &pixelSize, 8.0f, 256.0f, "%.0f"))
-					m_Material->SetPixelSize(pixelSize);
-			}
 
 			ImGui::Separator();
 			ImGui::Text("Material Properties");
@@ -118,6 +85,10 @@ public:
 			if (ImGui::ColorEdit3("Albedo Tint", &albedo.x))
 				m_Material->SetAlbedo(albedo);
 
+			float smoothShading = m_Material->GetSmoothShading();
+			if (ImGui::SliderFloat("Smooth Shading", &smoothShading, 0.0f, 1.0f))
+				m_Material->SetSmoothShading(smoothShading);
+
 			ImGui::Separator();
 			ImGui::Text("Light Settings");
 
@@ -129,8 +100,8 @@ public:
 
 			if (lightChanged)
 			{
-				PewPew::Renderer::SetDirectionalLight(m_LightDirection, m_LightColor, m_LightIntensity);
-				PewPew::Renderer::SetAmbientLight(m_AmbientColor);
+				PewPew::Renderer3D::SetDirectionalLight(m_LightDirection, m_LightColor, m_LightIntensity);
+				PewPew::Renderer3D::SetAmbientLight(m_AmbientColor);
 			}
 		}
 		else

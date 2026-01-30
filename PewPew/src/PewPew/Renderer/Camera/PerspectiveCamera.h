@@ -11,11 +11,22 @@ namespace PewPew
         void SetProjection(float fovDegrees, float aspectRatio, float nearClip, float farClip);
 
         const Vector3& GetPosition() const { return m_Position; }
-        void SetPosition(const Vector3& position) { m_Position = position; RecalculateViewMatrix(); }
+
+        void SetPosition(const Vector3& position)
+        {
+            m_Position = position;
+            RecalculateViewMatrix();
+        }
 
         float GetPitch() const { return m_Pitch; }
         float GetYaw() const { return m_Yaw; }
-        void SetRotation(float pitch, float yaw) { m_Pitch = pitch; m_Yaw = yaw; RecalculateViewMatrix(); }
+
+        void SetRotation(float pitch, float yaw)
+        {
+            m_Pitch = pitch;
+            m_Yaw = yaw;
+            RecalculateViewMatrix();
+        }
 
         Vector3 GetForwardDirection() const;
         Vector3 GetRightDirection() const;
@@ -28,13 +39,12 @@ namespace PewPew
     private:
         void RecalculateViewMatrix();
 
-    private:
         Mat4 m_ProjectionMatrix;
         Mat4 m_ViewMatrix;
         Mat4 m_ViewProjectionMatrix;
 
-        Vector3 m_Position = { 0.0f, 0.0f, 0.0f };
-        float m_Pitch = 0.0f;   // Up/down rotation in degrees
-        float m_Yaw = -90.0f;   // Left/right rotation in degrees (start looking at -Z)
+        Vector3 m_Position = {0.0f, 0.0f, 0.0f};
+        float m_Pitch = 0.0f; // Up/down rotation in degrees
+        float m_Yaw = -90.0f; // Left/right rotation in degrees (start looking at -Z)
     };
 }

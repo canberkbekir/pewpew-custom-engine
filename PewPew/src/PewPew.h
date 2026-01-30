@@ -1,6 +1,7 @@
 #pragma once
 
-//For use by PewPew applications 
+//For use by PewPew applications
+#include "PewPew/Core.h"
 #include "PewPew/Application.h"
 #include "PewPew/Log.h"
 #include "PewPew/Layer.h"
@@ -9,10 +10,11 @@
 
 #include "PewPew/Input.h"
 #include "PewPew/KeyCodes.h"
-#include "PewPew/MouseButtonCodes.h" 
+#include "PewPew/MouseButtonCodes.h"
 
 // ---Renderer------------------------
 #include "PewPew/Renderer/Core/Renderer.h"
+#include "PewPew/Renderer/Core/Renderer3D.h"
 #include "PewPew/Renderer/Core/RenderCommand.h"
 
 #include "PewPew/Renderer/Resources/Buffer.h"

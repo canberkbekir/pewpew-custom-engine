@@ -1,7 +1,7 @@
 #pragma once
 
-namespace PewPew {
-
+namespace PewPew
+{
     class Timestep
     {
     public:
@@ -14,8 +14,8 @@ namespace PewPew {
 
         float GetSeconds() const { return m_Time; }
         float GetMilliseconds() const { return m_Time * 1000.0f; }
+
     private:
         float m_Time;
     };
-
 }

@@ -2,17 +2,18 @@
 
 #include "spdlog/logger.h"
 
-#include "Core.h"    
+#include "Core.h"
 
 namespace PewPew
 {
-    class PEW_API Log
+    class Log
     {
     public:
         static void Init();
 
-        inline static Ref<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
-        inline static Ref<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+        static Ref<spdlog::logger>& GetCoreLogger() { return s_CoreLogger; }
+        static Ref<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
+
     private:
         static Ref<spdlog::logger> s_CoreLogger;
         static Ref<spdlog::logger> s_ClientLogger;

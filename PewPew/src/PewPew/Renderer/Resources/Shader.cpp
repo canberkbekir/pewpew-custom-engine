@@ -5,14 +5,15 @@
 #include "PewPew/Renderer/Core/RendererAPI.h"
 #include "Platform/OpenGL/OpenGLShader.h"
 
-namespace PewPew {
-
+namespace PewPew
+{
     Ref<Shader> Shader::Create(const String& filepath)
     {
         switch (Renderer::GetAPI())
         {
-        case RendererAPI::API::None:    PEW_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-        case RendererAPI::API::OpenGL:  return std::make_shared<OpenGLShader>(filepath);
+        case RendererAPI::API::None: PEW_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
+            return nullptr;
+        case RendererAPI::API::OpenGL: return std::make_shared<OpenGLShader>(filepath);
         }
 
         PEW_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -23,8 +24,9 @@ namespace PewPew {
     {
         switch (Renderer::GetAPI())
         {
-        case RendererAPI::API::None:    PEW_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-        case RendererAPI::API::OpenGL:  return std::make_shared<OpenGLShader>(name, vertexSrc, fragmentSrc);
+        case RendererAPI::API::None: PEW_CORE_ASSERT(false, "RendererAPI::None is currently not supported!");
+            return nullptr;
+        case RendererAPI::API::OpenGL: return std::make_shared<OpenGLShader>(name, vertexSrc, fragmentSrc);
         }
 
         PEW_CORE_ASSERT(false, "Unknown RendererAPI!");
@@ -69,5 +71,4 @@ namespace PewPew {
     {
         return m_Shaders.find(name) != m_Shaders.end();
     }
-
 }
