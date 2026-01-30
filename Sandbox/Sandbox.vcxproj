@@ -152,7 +152,6 @@
     <None Include="assets\models\Gelatinous_Cube.fbx" />
     <None Include="assets\models\Hand.fbx" />
     <None Include="assets\models\Matilda.fbx" />
-    <None Include="assets\models\cube.obj" />
     <None Include="assets\shaders\Basic3D.glsl" />
     <None Include="assets\shaders\PBR.glsl" />
     <None Include="assets\shaders\Texture.glsl" />

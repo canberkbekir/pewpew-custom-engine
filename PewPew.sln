@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImGui", "PewPew\vendor\imgu
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PewPew", "PewPew\PewPew.vcxproj", "{DD04E2C9-C9A6-0CA0-B261-20F49EA293F0}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Solution Items", "Solution Items.vcxproj", "{64F16CB6-50BF-60BC-3953-D1E225C03C21}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -48,6 +50,9 @@ Global
 		{DD04E2C9-C9A6-0CA0-B261-20F49EA293F0}.Dist|x64.Build.0 = Dist|x64
 		{DD04E2C9-C9A6-0CA0-B261-20F49EA293F0}.Release|x64.ActiveCfg = Release|x64
 		{DD04E2C9-C9A6-0CA0-B261-20F49EA293F0}.Release|x64.Build.0 = Release|x64
+		{64F16CB6-50BF-60BC-3953-D1E225C03C21}.Debug|x64.ActiveCfg = Debug|x64
+		{64F16CB6-50BF-60BC-3953-D1E225C03C21}.Dist|x64.ActiveCfg = Dist|x64
+		{64F16CB6-50BF-60BC-3953-D1E225C03C21}.Release|x64.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

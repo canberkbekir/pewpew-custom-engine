@@ -9,6 +9,11 @@ workspace "PewPew"
 		"Dist"
 	}
 
+-- Solution Items (for README and other root files)
+project "Solution Items"
+	kind "None"
+	files { "README.md" }
+
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 -- Include directories relative to root folder (solution directory)
