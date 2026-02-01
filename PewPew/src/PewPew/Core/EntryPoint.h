@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Debug/Instrumentor.h"
+#include "PewPew/Debug/Instrumentor.h"
 
 #ifdef PEW_PLATFORM_WINDOWS
 

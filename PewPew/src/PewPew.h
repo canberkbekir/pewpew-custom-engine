@@ -1,16 +1,20 @@
 #pragma once
 
-//For use by PewPew applications
-#include "PewPew/Core.h"
-#include "PewPew/Application.h"
-#include "PewPew/Log.h"
-#include "PewPew/Layer.h"
+// For use by PewPew applications
 
-#include "PewPew/Core/Timestep.h"
+// ---Core----------------------------
+#include "PewPew/Core/Core.h"
+#include "PewPew/Core/Application.h"
+#include "PewPew/Core/Log.h"
+#include "PewPew/Core/Layer.h"
+#include "PewPew/Core/TimeStep.h"
+// -----------------------------------
 
-#include "PewPew/Input.h"
-#include "PewPew/KeyCodes.h"
-#include "PewPew/MouseButtonCodes.h"
+// ---Input---------------------------
+#include "PewPew/Input/Input.h"
+#include "PewPew/Input/KeyCodes.h"
+#include "PewPew/Input/MouseButtonCodes.h"
+// -----------------------------------
 
 // ---Debug---------------------------
 #include "PewPew/Debug/Instrumentor.h"
@@ -34,11 +38,16 @@
 
 #include "PewPew/Renderer/Resources/Mesh.h"
 #include "PewPew/Renderer/Resources/Material.h"
-
-#include "PewPew/Renderer/VoxelizerAPI.h"
 // -----------------------------------
 
+// ---Utils---------------------------
+#include "PewPew/Utils/VoxelizerAPI.h"
+// -----------------------------------
+
+// ---ImGui---------------------------
 #include "PewPew/ImGui/ImGuiLayer.h"
-//Entry Point-----------------
-#include "PewPew/EntryPoint.h"
-//---------------------------
+// -----------------------------------
+
+// ---Entry Point---------------------
+#include "PewPew/Core/EntryPoint.h"
+// -----------------------------------

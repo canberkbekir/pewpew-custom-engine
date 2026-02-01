@@ -1,7 +1,7 @@
 #include "pewpch.h"
 #include "ProfilerPanel.h"
 #include "Instrumentor.h"
-#include "PewPew/KeyCodes.h" 
+#include "PewPew/Input/KeyCodes.h" 
 #include "imgui.h"
 
 namespace PewPew

@@ -2,7 +2,7 @@
 #include "Mesh.h"
 
 #include "Buffer.h"
-#include "PewPew/Log.h"
+#include "PewPew/Core/Log.h"
 #include "PewPew/Debug/Instrumentor.h"
 
 #include <assimp/Importer.hpp>

@@ -38,6 +38,7 @@
 # Build output folders (root and submodules)
 bin/
 bin-int/
+obj/
 
 # Visual Studio generated files (Premake generates these)
 *.vcxproj

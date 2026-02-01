@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "PewPew/Input.h"
+#include "PewPew/Input/Input.h"
 
 namespace PewPew
 {

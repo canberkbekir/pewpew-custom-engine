@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "pewpch.h"
-#include "PewPew/Core.h"
+#include "PewPew/Core/Core.h"
 
 namespace PewPew
 {

@@ -3,9 +3,9 @@
 #include "Layer.h"
 #include "LayerStack.h"
 #include "Window.h"
-#include "Events/ApplicationEvent.h"
-#include "Events/Event.h"
-#include "ImGui/ImGuiLayer.h"
+#include "PewPew/Events/ApplicationEvent.h"
+#include "PewPew/Events/Event.h"
+#include "PewPew/ImGui/ImGuiLayer.h"
 
 namespace PewPew
 {

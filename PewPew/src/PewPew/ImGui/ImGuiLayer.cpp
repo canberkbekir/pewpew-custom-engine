@@ -5,7 +5,7 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
-#include "PewPew/Application.h"
+#include "PewPew/Core/Application.h"
 #include "PewPew/Debug/Instrumentor.h"
 
 // TEMPORARY

@@ -1,14 +1,14 @@
 #include "pewpch.h"
 #include "Application.h"
 
-#include "PewPew/Log.h"
-#include "Debug/Instrumentor.h"
+#include "Log.h"
+#include "PewPew/Debug/Instrumentor.h"
 
-#include "Input.h"
-#include "Core/TimeStep.h"
+#include "PewPew/Input/Input.h"
+#include "TimeStep.h"
 #include "GLFW/glfw3.h"
-#include "Renderer/Core/Renderer.h"
-#include "Renderer/Core/Renderer3D.h"
+#include "PewPew/Renderer/Core/Renderer.h"
+#include "PewPew/Renderer/Core/Renderer3D.h"
 
 namespace PewPew
 {

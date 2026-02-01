@@ -12,7 +12,7 @@
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
-#include <PewPew/Log.h>
+#include <PewPew/Core/Log.h>
 
 #ifdef PEW_PLATFORM_WINDOWS
 #include <Windows.h>

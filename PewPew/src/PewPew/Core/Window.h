@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "Events/Event.h"
-#include "Core/String.h"
+#include "PewPew/Events/Event.h"
+#include "String.h"
 
 namespace PewPew
 {

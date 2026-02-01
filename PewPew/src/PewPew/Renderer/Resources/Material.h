@@ -1,5 +1,5 @@
 #pragma once
-#include "PewPew/Core.h"
+#include "PewPew/Core/Core.h"
 #include "PewPew/Core/String.h"
 #include "PewPew/Math/CoreMath.h"
 #include "Texture.h"

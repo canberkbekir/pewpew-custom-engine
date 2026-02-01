@@ -2,7 +2,7 @@
 #include "WindowsInput.h"
 
 #include "WindowsWindow.h"
-#include "PewPew/Application.h"
+#include "PewPew/Core/Application.h"
 
 namespace PewPew
 {

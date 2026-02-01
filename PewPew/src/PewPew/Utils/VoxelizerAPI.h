@@ -1,11 +1,11 @@
 #pragma once
-#include "PewPew/Core.h"
+#include "PewPew/Core/Core.h"
 #include "PewPew/Math/CoreMath.h"
-#include "Resources/Mesh.h"
-#include "Resources/Shader.h"
-#include "Resources/Material.h"
-#include "Resources/Texture.h"
-#include "Camera/Camera.h"
+#include "PewPew/Renderer/Resources/Mesh.h"
+#include "PewPew/Renderer/Resources/Shader.h"
+#include "PewPew/Renderer/Resources/Material.h"
+#include "PewPew/Renderer/Resources/Texture.h"
+#include "PewPew/Renderer/Camera/Camera.h"
 
 #include <Voxelizer.h>
 #include <unordered_map>

@@ -1,9 +1,9 @@
 ﻿#include "pewpch.h"
 #include "PerspectiveCameraController.h"
 
-#include "PewPew/Input.h"
-#include "PewPew/KeyCodes.h"
-#include "PewPew/MouseButtonCodes.h"
+#include "PewPew/Input/Input.h"
+#include "PewPew/Input/KeyCodes.h"
+#include "PewPew/Input/MouseButtonCodes.h"
 
 namespace PewPew
 {

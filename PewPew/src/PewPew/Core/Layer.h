@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "Core/String.h"
-#include "Core/TimeStep.h"
-#include "Events/Event.h"
+#include "String.h"
+#include "TimeStep.h"
+#include "PewPew/Events/Event.h"
 
 namespace PewPew
 {

@@ -1,6 +1,6 @@
 #include "pewpch.h"
 #include "VoxelizerAPI.h"
-#include "PewPew/Log.h"
+#include "PewPew/Core/Log.h"
 #include "PewPew/Debug/Instrumentor.h"
 
 #include <assimp/Importer.hpp>
