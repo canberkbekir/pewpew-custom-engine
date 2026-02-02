@@ -28,17 +28,101 @@ msbuild PewPew.sln /p:Configuration=Release /p:Platform=x64
 
 ### Project Structure
 
-- **PewPew/** - Core engine static library
-- **Sandbox/** - Test application that links PewPew
+```
+PewPew/                          # Core engine (static library)
+├── src/
+│   ├── pewpch.h/cpp             # Precompiled header
+│   ├── PewPew.h                 # Main include header for clients
+│   ├── PewPew/                  # Engine source code
+│   │   ├── Core/                # Core systems
+│   │   │   ├── Application.h/cpp    # Main application class
+│   │   │   ├── Core.h               # Macros, smart pointers, assertions
+│   │   │   ├── EntryPoint.h         # main() definition
+│   │   │   ├── Layer.h/cpp          # Layer base class
+│   │   │   ├── LayerStack.h/cpp     # Layer management
+│   │   │   ├── Log.h/cpp            # Logging system
+│   │   │   ├── String.h             # String type alias
+│   │   │   ├── TimeStep.h           # Frame delta time
+│   │   │   └── Window.h             # Window abstraction
+│   │   │
+│   │   ├── Input/               # Input handling
+│   │   │   ├── Input.h              # Input polling API
+│   │   │   ├── KeyCodes.h           # Keyboard key definitions
+│   │   │   └── MouseButtonCodes.h   # Mouse button definitions
+│   │   │
+│   │   ├── Events/              # Event system
+│   │   │   ├── Event.h              # Base event class
+│   │   │   ├── ApplicationEvent.h   # Window events
+│   │   │   ├── KeyEvent.h           # Keyboard events
+│   │   │   └── MouseEvent.h         # Mouse events
+│   │   │
+│   │   ├── Renderer/            # Rendering system
+│   │   │   ├── Core/                # Renderer core
+│   │   │   │   ├── Renderer.h/cpp       # Basic renderer
+│   │   │   │   ├── Renderer3D.h/cpp     # 3D PBR renderer
+│   │   │   │   ├── RenderCommand.h/cpp  # Low-level commands
+│   │   │   │   ├── RendererAPI.h/cpp    # Graphics API abstraction
+│   │   │   │   └── GraphicsContext.h/cpp
+│   │   │   ├── Camera/              # Camera implementations
+│   │   │   │   ├── Camera.h
+│   │   │   │   ├── PerspectiveCamera.h/cpp
+│   │   │   │   ├── OrthographicCamera.h/cpp
+│   │   │   │   └── PerspectiveCameraController.h/cpp
+│   │   │   └── Resources/           # GPU resources
+│   │   │       ├── Buffer.h/cpp         # Vertex/Index buffers
+│   │   │       ├── VertexArray.h/cpp    # VAO abstraction
+│   │   │       ├── Shader.h/cpp         # Shader programs
+│   │   │       ├── Texture.h/cpp        # Texture loading
+│   │   │       ├── Mesh.h/cpp           # 3D model loading
+│   │   │       └── Material.h/cpp       # PBR materials
+│   │   │
+│   │   ├── Utils/               # Utility systems
+│   │   │   └── VoxelizerAPI.h/cpp   # Mesh voxelization
+│   │   │
+│   │   ├── Debug/               # Debug tools
+│   │   │   ├── Instrumentor.h       # Profiling system
+│   │   │   └── ProfilerPanel.h/cpp  # ImGui profiler UI
+│   │   │
+│   │   ├── ImGui/               # ImGui integration
+│   │   │   ├── ImGuiLayer.h/cpp
+│   │   │   └── ImGuiBuild.cpp
+│   │   │
+│   │   └── Math/                # Math utilities
+│   │       └── CoreMath.h           # GLM type aliases
+│   │
+│   └── Platform/                # Platform implementations
+│       ├── Windows/                 # Windows + GLFW
+│       │   ├── WindowsWindow.h/cpp
+│       │   └── WindowsInput.h/cpp
+│       └── OpenGL/                  # OpenGL backend
+│           ├── OpenGLContext.h/cpp
+│           ├── OpenGLRendererAPI.h/cpp
+│           ├── OpenGLShader.h/cpp
+│           ├── OpenGLTexture.h/cpp
+│           ├── OpenGLBuffer.h/cpp
+│           └── OpenGLVertexArray.h/cpp
+│
+└── vendor/                      # Third-party dependencies
+
+Sandbox/                         # Test application
+├── src/
+│   └── SandboxApp.cpp
+└── assets/
+    ├── models/                  # 3D models (FBX, OBJ, GLTF)
+    ├── textures/                # Images (PNG, JPG, TGA)
+    └── shaders/                 # GLSL shaders
+
+docs/                            # Documentation
+```
 
 ### Core Systems
 
-**Application Lifecycle** (`PewPew/src/PewPew/Application.h`):
+**Application Lifecycle** (`PewPew/src/PewPew/Core/Application.h`):
 - `Application::Run()` is the main loop: process events → update layers → render ImGui → swap buffers
 - Applications are created via `CreateApplication()` defined by the client (Sandbox)
-- Entry point is in `EntryPoint.h` which defines `main()`
+- Entry point is in `Core/EntryPoint.h` which defines `main()`
 
-**Layer System** (`PewPew/src/PewPew/Layer.h`, `LayerStack.h`):
+**Layer System** (`PewPew/src/PewPew/Core/Layer.h`, `LayerStack.h`):
 - Game logic is organized into Layers with `OnUpdate()`, `OnEvent()`, `OnImGuiRender()` methods
 - Layers are pushed to the Application's LayerStack
 
@@ -46,6 +130,10 @@ msbuild PewPew.sln /p:Configuration=Release /p:Platform=x64
 - Events propagate through layers via `OnEvent()` callback
 - Event types: KeyEvent, MouseEvent, ApplicationEvent, WindowCloseEvent
 - Uses EventDispatcher pattern for type-safe event handling
+
+**Input System** (`PewPew/src/PewPew/Input/`):
+- `Input::IsKeyPressed()`, `Input::IsMouseButtonPressed()` for polling
+- Key codes in `KeyCodes.h`, mouse buttons in `MouseButtonCodes.h`
 
 **Renderer** (`PewPew/src/PewPew/Renderer/`):
 - `Renderer3D` handles 3D scene rendering with PBR support
@@ -62,9 +150,12 @@ msbuild PewPew.sln /p:Configuration=Release /p:Platform=x64
 - `PerspectiveCamera`, `OrthographicCamera` with view/projection matrices
 - `PerspectiveCameraController` for WASD + mouse control
 
+**Utilities** (`PewPew/src/PewPew/Utils/`):
+- `VoxelizerAPI` - Convert meshes to voxel representations
+
 ### Memory Management
 
-Uses custom smart pointer aliases defined in `Core.h`:
+Uses custom smart pointer aliases defined in `Core/Core.h`:
 - `Scope<T>` = `std::unique_ptr<T>` (use `CreateScope<T>()`)
 - `Ref<T>` = `std::shared_ptr<T>` (use `CreateRef<T>()`)
 
@@ -86,6 +177,7 @@ Uses custom smart pointer aliases defined in `Core.h`:
 **Prebuilt** (in `PewPew/vendor/`):
 - Assimp - 3D model loading (DLL copied to output post-build)
 - stb_image - Image loading (header-only)
+- voxelizer - Mesh voxelization
 
 ## Profiling
 
@@ -100,14 +192,47 @@ Profile session files are written to Sandbox directory (e.g., `PewPewProfile-Run
 ## Creating a New Layer
 
 ```cpp
+#include <PewPew.h>
+
 class MyLayer : public PewPew::Layer
 {
 public:
     MyLayer() : Layer("MyLayer") {}
 
-    void OnUpdate(PewPew::TimeStep ts) override { /* per-frame logic */ }
-    void OnEvent(PewPew::Event& e) override { /* handle events */ }
-    void OnImGuiRender() override { /* debug UI */ }
+    void OnAttach() override
+    {
+        // Initialize resources
+        m_Shader = PewPew::Shader::Create("assets/shaders/PBR.glsl");
+        m_Mesh = PewPew::Mesh::Load("assets/models/model.fbx");
+        m_Material = PewPew::CreateRef<PewPew::Material>();
+    }
+
+    void OnUpdate(PewPew::Timestep ts) override
+    {
+        // Update camera
+        m_CameraController.OnUpdate(ts);
+
+        // Render
+        PewPew::RenderCommand::SetClearColor({0.1f, 0.1f, 0.15f, 1.0f});
+        PewPew::RenderCommand::Clear();
+
+        auto& camera = m_CameraController.GetCamera();
+        PewPew::Renderer3D::BeginScene(camera, camera.GetPosition());
+        PewPew::Renderer3D::Submit(m_Shader, m_Material, m_Mesh, transform);
+        PewPew::Renderer3D::EndScene();
+    }
+
+    void OnEvent(PewPew::Event& e) override
+    {
+        m_CameraController.OnEvent(e);
+    }
+
+    void OnImGuiRender() override
+    {
+        ImGui::Begin("Debug");
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        ImGui::End();
+    }
 };
 
 // In your Application subclass:
@@ -119,10 +244,64 @@ PushLayer(new MyLayer());
 Shaders use a single-file format with `#type` directives:
 ```glsl
 #type vertex
-// vertex shader code
+#version 450 core
+
+layout(location = 0) in vec3 a_Position;
+layout(location = 1) in vec3 a_Normal;
+layout(location = 2) in vec2 a_TexCoords;
+
+uniform mat4 u_ViewProjection;
+uniform mat4 u_Transform;
+
+out vec3 v_Normal;
+
+void main()
+{
+    gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
+    v_Normal = mat3(u_Transform) * a_Normal;
+}
 
 #type fragment
-// fragment shader code
+#version 450 core
+
+layout(location = 0) out vec4 o_Color;
+
+in vec3 v_Normal;
+
+uniform vec3 u_Albedo;
+
+void main()
+{
+    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+    float diff = max(dot(normalize(v_Normal), lightDir), 0.0);
+    o_Color = vec4(u_Albedo * (0.1 + diff * 0.9), 1.0);
+}
 ```
 
 See `Sandbox/assets/shaders/PBR.glsl` for a complete PBR shader example.
+
+## Include Paths
+
+When including engine headers in client code:
+```cpp
+#include <PewPew.h>              // Main header (includes everything)
+
+// Or individual headers:
+#include "PewPew/Core/Application.h"
+#include "PewPew/Core/Layer.h"
+#include "PewPew/Input/Input.h"
+#include "PewPew/Renderer/Core/Renderer3D.h"
+#include "PewPew/Renderer/Resources/Mesh.h"
+#include "PewPew/Utils/VoxelizerAPI.h"
+```
+
+## Documentation
+
+Full documentation available in `docs/`:
+- `README.md` - Documentation index
+- `ARCHITECTURE.md` - System architecture with diagrams
+- `GETTING_STARTED.md` - Build and setup guide
+- `CORE_SYSTEMS.md` - Application, layers, events, input
+- `RENDERER.md` - 3D rendering guide
+- `API_REFERENCE.md` - Complete API reference
+- `VoxelizerAPI.md` - Voxelization system

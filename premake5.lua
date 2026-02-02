@@ -9,11 +9,6 @@ workspace "PewPew"
 		"Dist"
 	}
 
--- Solution Items (for README and other root files)
-project "Solution Items"
-	kind "None"
-	files { "README.md" }
-
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 -- Include directories relative to root folder (solution directory)
@@ -25,10 +20,6 @@ IncludeDir["glm"] = "PewPew/vendor/glm"
 IncludeDir["stb_image"] = "PewPew/vendor/stb_image"
 IncludeDir["assimp"] = "PewPew/vendor/assimp/include"
 IncludeDir["voxelizer"] = "PewPew/vendor/voxelizer"
-
-include "PewPew/vendor/GLFW"
-include "PewPew/vendor/Glad"
-include "PewPew/vendor/imgui"
 
 project "PewPew"
     location "PewPew"
@@ -45,14 +36,55 @@ project "PewPew"
 
 	files
 	{
+		-- Engine source
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
+
+		-- stb_image
 		"%{prj.name}/vendor/stb_image/**.cpp",
 		"%{prj.name}/vendor/stb_image/**.h",
+
+		-- glm
 		"%{prj.name}/vendor/glm/glm/**.hpp",
 		"%{prj.name}/vendor/glm/glm/**.inl",
+
+		-- voxelizer
 		"%{prj.name}/vendor/voxelizer/**.h",
 		"%{prj.name}/vendor/voxelizer/**.cpp",
+
+		-- Glad (embedded)
+		"%{prj.name}/vendor/Glad/include/glad/glad.h",
+		"%{prj.name}/vendor/Glad/include/KHR/khrplatform.h",
+		"%{prj.name}/vendor/Glad/src/glad.c",
+
+		-- ImGui (embedded)
+		"%{prj.name}/vendor/imgui/imconfig.h",
+		"%{prj.name}/vendor/imgui/imgui.h",
+		"%{prj.name}/vendor/imgui/imgui.cpp",
+		"%{prj.name}/vendor/imgui/imgui_draw.cpp",
+		"%{prj.name}/vendor/imgui/imgui_internal.h",
+		"%{prj.name}/vendor/imgui/imgui_tables.cpp",
+		"%{prj.name}/vendor/imgui/imgui_widgets.cpp",
+		"%{prj.name}/vendor/imgui/imstb_rectpack.h",
+		"%{prj.name}/vendor/imgui/imstb_textedit.h",
+		"%{prj.name}/vendor/imgui/imstb_truetype.h",
+		"%{prj.name}/vendor/imgui/imgui_demo.cpp",
+
+		-- GLFW (embedded - common files)
+		"%{prj.name}/vendor/GLFW/include/GLFW/glfw3.h",
+		"%{prj.name}/vendor/GLFW/include/GLFW/glfw3native.h",
+		"%{prj.name}/vendor/GLFW/src/glfw_config.h",
+		"%{prj.name}/vendor/GLFW/src/context.c",
+		"%{prj.name}/vendor/GLFW/src/init.c",
+		"%{prj.name}/vendor/GLFW/src/input.c",
+		"%{prj.name}/vendor/GLFW/src/monitor.c",
+		"%{prj.name}/vendor/GLFW/src/null_init.c",
+		"%{prj.name}/vendor/GLFW/src/null_joystick.c",
+		"%{prj.name}/vendor/GLFW/src/null_monitor.c",
+		"%{prj.name}/vendor/GLFW/src/null_window.c",
+		"%{prj.name}/vendor/GLFW/src/platform.c",
+		"%{prj.name}/vendor/GLFW/src/vulkan.c",
+		"%{prj.name}/vendor/GLFW/src/window.c",
 	}
 
 	-- Exclude vendor files from precompiled header
@@ -85,9 +117,6 @@ project "PewPew"
 
 	links
 	{
-		"GLFW",
-		"Glad",
-		"ImGui",
 		"opengl32.lib",
 		"assimp-vc143-mt"
 	}
@@ -96,11 +125,27 @@ project "PewPew"
     filter "system:windows"
 	    systemversion "latest"
         buildoptions { "/utf-8" }
+
+		-- GLFW Windows-specific files
+		files
+		{
+			"%{prj.name}/vendor/GLFW/src/win32_init.c",
+			"%{prj.name}/vendor/GLFW/src/win32_joystick.c",
+			"%{prj.name}/vendor/GLFW/src/win32_module.c",
+			"%{prj.name}/vendor/GLFW/src/win32_monitor.c",
+			"%{prj.name}/vendor/GLFW/src/win32_time.c",
+			"%{prj.name}/vendor/GLFW/src/win32_thread.c",
+			"%{prj.name}/vendor/GLFW/src/win32_window.c",
+			"%{prj.name}/vendor/GLFW/src/wgl_context.c",
+			"%{prj.name}/vendor/GLFW/src/egl_context.c",
+			"%{prj.name}/vendor/GLFW/src/osmesa_context.c"
+		}
+
 	    defines
 	    {
 	    	"PEW_PLATFORM_WINDOWS",
 	    	"PEW_BUILD_DLL",
-	    	"GLFW_INCLUDE_NONE"
+			"_GLFW_WIN32"
 	    }
 
 	filter "configurations:Debug"
@@ -160,6 +205,84 @@ project "Sandbox"
         "PewPew/src",
 		"PewPew/vendor",
 		"%{IncludeDir.glm}",
+		"%{IncludeDir.ImGui}",
+		"%{IncludeDir.voxelizer}"
+    }
+
+    links { "PewPew" }
+
+    filter "system:windows"
+	    systemversion "latest"
+        buildoptions { "/utf-8" }
+	    defines
+	    {
+	    	"PEW_PLATFORM_WINDOWS"
+	    }
+
+		-- Copy Assimp DLL to output folder after build
+		postbuildcommands
+		{
+			"{COPYFILE} %{wks.location}PewPew/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}"
+		}
+
+	filter "configurations:Debug"
+		defines "PEW_DEBUG"
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Release"
+		defines "PEW_RELEASE"
+		runtime "Release"
+		optimize "on"
+
+	filter "configurations:Dist"
+		defines "PEW_DIST"
+		runtime "Release"
+		optimize "on"
+
+project "PewPew-Editor"
+    location "PewPew-Editor"
+	kind "ConsoleApp"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+
+    targetdir ("bin/"..outputdir.."/%{prj.name}")
+    objdir ("bin-int/"..outputdir.."/%{prj.name}")
+
+    files
+    {
+        "%{prj.name}/src/**.h",
+        "%{prj.name}/src/**.cpp",
+        -- Asset files (visible in solution but not compiled)
+        "%{prj.name}/assets/shaders/**.glsl",
+        "%{prj.name}/assets/shaders/**.hlsl",
+        "%{prj.name}/assets/shaders/**.vert",
+        "%{prj.name}/assets/shaders/**.frag",
+        "%{prj.name}/assets/textures/**.png",
+        "%{prj.name}/assets/textures/**.jpg",
+        "%{prj.name}/assets/textures/**.tga",
+        "%{prj.name}/assets/models/**.fbx",
+        "%{prj.name}/assets/models/**.obj",
+        "%{prj.name}/assets/models/**.gltf"
+    }
+
+    -- Organize assets in virtual folders in Solution Explorer
+    vpaths
+    {
+        ["Source/*"] = { "%{prj.name}/src/**.h", "%{prj.name}/src/**.cpp" },
+        ["Assets/Shaders/*"] = { "%{prj.name}/assets/shaders/**" },
+        ["Assets/Textures/*"] = { "%{prj.name}/assets/textures/**" },
+        ["Assets/Models/*"] = { "%{prj.name}/assets/models/**" }
+    }
+
+    includedirs
+    {
+        "PewPew/vendor/spdlog/include",
+        "PewPew/src",
+		"PewPew/vendor",
+		"%{IncludeDir.glm}",
+		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.voxelizer}"
     }
 

@@ -1,27 +1,30 @@
 #include <PewPew.h>
 
 #include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "EditorLayer.h"
+
 // ============================================================================
-// Sandbox Application
+// PewPew Editor Application
 // ============================================================================
-class Sandbox : public PewPew::Application
+class PewPewEditor : public PewPew::Application
 {
 public:
-	Sandbox()
+	PewPewEditor()
 	{
 		PEW_PROFILE_FUNCTION();
-		
+		PushLayer(new PewPew::EditorLayer());
 	}
 
-	~Sandbox() {}
+	~PewPewEditor() {}
 };
 
 PewPew::Application* PewPew::CreateApplication()
 {
 	PEW_PROFILE_FUNCTION();
-	return new Sandbox();
+	return new PewPewEditor();
 }

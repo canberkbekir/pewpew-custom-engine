@@ -6,6 +6,7 @@
 
 #include "PewPew/Input/Input.h"
 #include "TimeStep.h"
+#define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 #include "PewPew/Renderer/Core/Renderer.h"
 #include "PewPew/Renderer/Core/Renderer3D.h"

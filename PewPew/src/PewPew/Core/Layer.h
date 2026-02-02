@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "String.h"
 #include "TimeStep.h"
-#include "PewPew/Events/Event.h"
+#include "PewPew/Events/Event.h" 
 
 namespace PewPew
 {
@@ -12,7 +12,7 @@ namespace PewPew
         virtual ~Layer() = default;
 
         virtual void OnAttach()
-        {
+        { 
         }
 
         virtual void OnDetach()

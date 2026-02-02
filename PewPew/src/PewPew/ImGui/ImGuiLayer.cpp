@@ -1,5 +1,6 @@
 ﻿#include "pewpch.h"
 #include "ImGuiLayer.h"
+#include "ImGuiUtils.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -9,8 +10,9 @@
 #include "PewPew/Debug/Instrumentor.h"
 
 // TEMPORARY
-#include <GLFW/glfw3.h>
 #include <glad/glad.h>
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 namespace PewPew
 {
@@ -40,16 +42,7 @@ namespace PewPew
         //io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
 
         // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        //ImGui::StyleColorsClassic();
-
-        // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-        ImGuiStyle& style = ImGui::GetStyle();
-        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-        {
-            style.WindowRounding = 0.0f;
-            style.Colors[ImGuiCol_WindowBg].w = 1.0f;
-        }
+        SetupImGuiStyle();
 
         Application& app = Application::Get();
         auto window = static_cast<GLFWwindow*>(app.GetWindow().GetNativeWindow());

@@ -6,6 +6,7 @@
 #include "PewPew/Core/Core.h"
 #include "PewPew/Core/Application.h"
 #include "PewPew/Core/Log.h"
+#include "PewPew/Core/LogBuffer.h"
 #include "PewPew/Core/Layer.h"
 #include "PewPew/Core/TimeStep.h"
 // -----------------------------------
@@ -18,7 +19,6 @@
 
 // ---Debug---------------------------
 #include "PewPew/Debug/Instrumentor.h"
-#include "PewPew/Debug/ProfilerPanel.h"
 // -----------------------------------
 
 // ---Renderer------------------------
@@ -46,6 +46,7 @@
 
 // ---ImGui---------------------------
 #include "PewPew/ImGui/ImGuiLayer.h"
+#include "PewPew/ImGui/ImGuiUtils.h"
 // -----------------------------------
 
 // ---Entry Point---------------------

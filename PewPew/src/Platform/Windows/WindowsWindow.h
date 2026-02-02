@@ -1,4 +1,5 @@
 ﻿#pragma once
+#define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 #include "PewPew/Core/Window.h"
 #include "PewPew/Renderer/Core/GraphicsContext.h"
