@@ -3,16 +3,16 @@
 
 namespace PewPew
 {
-    void SceneHierarchyPanel::OnImGuiRender()
-    {
-        if (!m_Visible)
-            return;
+	void SceneHierarchyPanel::OnImGuiRender()
+	{
+		if (!m_Visible)
+			return;
 
-        ImGui::Begin(m_Name.c_str(), &m_Visible);
+		ImGui::Begin(m_Name.c_str(), &m_Visible);
 
-        // TODO: Draw entity tree when ECS is implemented
-        ImGui::Text("No entities in scene");
+		// TODO: Draw entity tree when ECS is implemented
+		ImGui::Text("No entities in scene");
 
-        ImGui::End();
-    }
+		ImGui::End();
+	}
 }

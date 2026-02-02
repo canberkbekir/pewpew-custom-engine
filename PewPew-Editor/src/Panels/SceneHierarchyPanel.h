@@ -4,12 +4,14 @@
 
 namespace PewPew
 {
-    class SceneHierarchyPanel : public Panel
-    {
-    public:
-        SceneHierarchyPanel()
-            : Panel("Scene Hierarchy", true) {}
+	class SceneHierarchyPanel : public Panel
+	{
+	public:
+		SceneHierarchyPanel()
+			: Panel("Scene Hierarchy", true)
+		{
+		}
 
-        void OnImGuiRender() override;
-    };
+		void OnImGuiRender() override;
+	};
 }

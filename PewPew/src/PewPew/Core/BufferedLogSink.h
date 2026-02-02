@@ -14,11 +14,11 @@ namespace PewPew
             spdlog::memory_buf_t formatted;
             spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);
 
-            LogLevel level = LogLevel::Info;
+            auto level = LogLevel::Info;
             switch (msg.level)
             {
                 case spdlog::level::trace:    level = LogLevel::Trace; break;
-                case spdlog::level::debug:
+                case spdlog::level::debug:    level = LogLevel::Debug; break;
                 case spdlog::level::info:     level = LogLevel::Info; break;
                 case spdlog::level::warn:     level = LogLevel::Warn; break;
                 case spdlog::level::err:      level = LogLevel::Error; break;

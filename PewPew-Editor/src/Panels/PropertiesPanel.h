@@ -4,12 +4,14 @@
 
 namespace PewPew
 {
-    class PropertiesPanel : public Panel
-    {
-    public:
-        PropertiesPanel()
-            : Panel("Properties", true) {}
+	class PropertiesPanel : public Panel
+	{
+	public:
+		PropertiesPanel()
+			: Panel("Properties", true)
+		{
+		}
 
-        void OnImGuiRender() override;
-    };
+		void OnImGuiRender() override;
+	};
 }

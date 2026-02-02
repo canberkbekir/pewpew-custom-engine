@@ -12,6 +12,7 @@ namespace PewPew
     {
         Trace,
         Info,
+        Debug,
         Warn,
         Error,
         Critical

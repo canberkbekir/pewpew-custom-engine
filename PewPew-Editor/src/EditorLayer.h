@@ -6,6 +6,7 @@
 #include "Panels/ViewportPanel.h"
 #include "Panels/ConsolePanel.h"
 #include "Panels/ProfilerPanel.h"
+#include "Panels/ContentBrowserPanel.h"
 
 namespace PewPew
 {
@@ -33,5 +34,6 @@ namespace PewPew
         ViewportPanel m_ViewportPanel;
         ConsolePanel m_ConsolePanel;
         ProfilerPanel m_ProfilerPanel;
+        ContentBrowserPanel m_ContentBrowserPanel;
     };
 }

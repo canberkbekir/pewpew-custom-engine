@@ -43,6 +43,7 @@ namespace PewPew
         m_ViewportPanel.OnImGuiRender();
         m_ConsolePanel.OnImGuiRender();
         m_ProfilerPanel.OnImGuiRender();
+        m_ContentBrowserPanel.OnImGuiRender();
 
         EndDockspace();
     }
@@ -83,6 +84,7 @@ namespace PewPew
                 ImGui::MenuItem("Properties", nullptr, m_PropertiesPanel.GetVisiblePtr());
                 ImGui::MenuItem("Viewport", nullptr, m_ViewportPanel.GetVisiblePtr());
                 ImGui::MenuItem("Console", nullptr, m_ConsolePanel.GetVisiblePtr());
+                ImGui::MenuItem("Content Browser", nullptr, m_ContentBrowserPanel.GetVisiblePtr());
                 ImGui::EndMenu();
             }
 

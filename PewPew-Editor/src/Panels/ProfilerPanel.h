@@ -6,17 +6,18 @@
 
 namespace PewPew
 {
-    class ProfilerPanel : public Panel
-    {
-    public:
-        ProfilerPanel()
-            : Panel("Profiler", false) {}
+	class ProfilerPanel : public Panel
+	{
+	public:
+		ProfilerPanel()
+			: Panel("Profiler", false)
+		{
+		}
 
-        void OnImGuiRender() override;
-        void OnEvent(Event& e) override;
-
-    private:
-        bool OnKeyPressed(KeyPressedEvent& e);
-        void RenderScopeTree();
-    };
+		void OnImGuiRender() override;
+		void OnEvent(Event& e) override;
+	private:
+		bool OnKeyPressed(KeyPressedEvent& e);
+		void RenderScopeTree();
+	};
 }
