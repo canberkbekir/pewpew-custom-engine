@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <unordered_map>
+#include <set>
 
 namespace PewPew
 {
@@ -15,12 +16,20 @@ namespace PewPew
 
 		void OnImGuiRender() override;
 
+		// Get selected items (for external use)
+		const std::set<std::filesystem::path>& GetSelectedItems() const { return m_SelectedItems; }
+
 	private:
 		Ref<Texture2D> GetIconForEntry(const std::filesystem::directory_entry& entry);
+		void RenderDirectoryTree(const std::filesystem::path& directory);
+		void RenderContentItem(const std::filesystem::directory_entry& entry);
+		bool PassesFilter(const String& filename) const;
 
 	private:
 		std::filesystem::path m_BaseDirectory;
 		std::filesystem::path m_CurrentDirectory;
+
+		float m_TreeWidth = 200.0f;
 
 		// Icons
 		Ref<Texture2D> m_FolderIcon;
@@ -31,6 +40,16 @@ namespace PewPew
 		float m_IconSize = 64.0f;
 		float m_Padding = 16.0f;
 
-		bool IsImageFile(const std::string& extension) const;
+		// Search
+		char m_SearchBuffer[256] = "";
+
+		// Selection
+		std::set<std::filesystem::path> m_SelectedItems;
+
+		// Drag & Drop
+		std::filesystem::path m_DraggedItem;
+		bool m_IsDragging = false;
+
+		bool IsImageFile(const String& extension) const;
 	};
 }
