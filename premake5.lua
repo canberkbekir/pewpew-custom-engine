@@ -20,6 +20,7 @@ IncludeDir["glm"] = "PewPew/vendor/glm"
 IncludeDir["stb_image"] = "PewPew/vendor/stb_image"
 IncludeDir["assimp"] = "PewPew/vendor/assimp/include"
 IncludeDir["voxelizer"] = "PewPew/vendor/voxelizer"
+IncludeDir["entt"] = "PewPew/vendor/entt/include"
 
 project "PewPew"
     location "PewPew"
@@ -108,6 +109,7 @@ project "PewPew"
 		"%{IncludeDir.stb_image}",
 		"%{IncludeDir.assimp}",
 		"%{IncludeDir.voxelizer}",
+		"%{IncludeDir.entt}",
 	}
 
 	libdirs
@@ -206,7 +208,8 @@ project "Sandbox"
 		"PewPew/vendor",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.ImGui}",
-		"%{IncludeDir.voxelizer}"
+		"%{IncludeDir.voxelizer}",
+		"%{IncludeDir.entt}"
     }
 
     links { "PewPew" }
@@ -283,7 +286,8 @@ project "PewPew-Editor"
 		"PewPew/vendor",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.ImGui}",
-		"%{IncludeDir.voxelizer}"
+		"%{IncludeDir.voxelizer}",
+		"%{IncludeDir.entt}"
     }
 
     links { "PewPew" }

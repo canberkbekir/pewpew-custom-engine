@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <unordered_map>
 #include <set>
+#include <vector>
 
 namespace PewPew
 {
@@ -26,18 +27,50 @@ namespace PewPew
 		void OnImGuiRender() override;
 
 	private:
+		// Rendering
 		Ref<Texture2D> GetIconForEntry(const std::filesystem::directory_entry& entry);
 		void RenderDirectoryTree(const std::filesystem::path& directory);
 		void RenderContentItem(const std::filesystem::directory_entry& entry);
 		void RenderToolbar();
+		void RenderBreadcrumbs();
+		void RenderContextMenu();
+
+		// Filtering & Sorting
 		bool PassesFilter(const std::filesystem::directory_entry& entry) const;
 		bool PassesTypeFilter(const std::filesystem::directory_entry& entry) const;
+		std::vector<std::filesystem::directory_entry> GetSortedEntries() const;
 
+		// Selection
 		void SelectAsset(const std::filesystem::path& path, bool addToSelection = false);
+		void SelectRange(const std::filesystem::path& from, const std::filesystem::path& to);
+		void SelectAll();
 		bool IsAssetSelected(const std::filesystem::path& path) const;
 
+		// File Operations
 		void Refresh();
-		std::vector<std::filesystem::directory_entry> GetSortedEntries() const;
+		void DeleteSelected();
+		void DuplicateSelected();
+		void RenameAsset(const std::filesystem::path& path, const std::string& newName);
+		void MoveAsset(const std::filesystem::path& source, const std::filesystem::path& destFolder);
+		void CreateFolder(const std::string& name);
+		void CreateMaterial(const std::string& name);
+
+		// Context Menu Actions
+		void ShowInExplorer(const std::filesystem::path& path);
+		void CopyPathToClipboard(const std::filesystem::path& path);
+		void ReimportAsset(const std::filesystem::path& path);
+
+		// Navigation
+		void NavigateTo(const std::filesystem::path& directory);
+		void NavigateBack();
+		void NavigateForward();
+
+		// Keyboard handling
+		void HandleKeyboardInput();
+
+		// Helpers
+		bool IsImageFile(const String& extension) const;
+		int GetEntryIndex(const std::filesystem::path& path) const;
 
 	private:
 		std::filesystem::path m_BaseDirectory;
@@ -68,15 +101,27 @@ namespace PewPew
 		bool m_ShowShaders = true;
 		bool m_ShowMaterials = true;
 		bool m_ShowScenes = true;
-		bool m_ShowOther = true;  // Unknown types
+		bool m_ShowOther = true;
 
-		// Local path tracking (for UI highlight, synced with global Selection)
+		// Selection
 		std::set<std::filesystem::path> m_SelectedPaths;
+		std::filesystem::path m_LastSelectedPath;  // For shift-click range select
+
+		// Navigation history
+		std::vector<std::filesystem::path> m_BackHistory;
+		std::vector<std::filesystem::path> m_ForwardHistory;
 
 		// Drag & Drop
 		std::filesystem::path m_DraggedItem;
 		bool m_IsDragging = false;
 
-		bool IsImageFile(const String& extension) const;
+		// Rename state
+		bool m_IsRenaming = false;
+		std::filesystem::path m_RenamingPath;
+		char m_RenameBuffer[256] = "";
+
+		// Cached entries for keyboard navigation
+		mutable std::vector<std::filesystem::directory_entry> m_CachedEntries;
+		mutable bool m_EntriesDirty = true;
 	};
 }
