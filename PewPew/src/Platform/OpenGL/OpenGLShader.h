@@ -20,6 +20,8 @@ namespace PewPew
 
         const String& GetName() const override { return m_Name; }
 
+        bool Reload() override;
+
         // Virtual uniform setters (from Shader base class)
         void SetInt(const String& name, int value) override;
         void SetFloat(const String& name, float value) override;
@@ -42,7 +44,11 @@ namespace PewPew
         String ReadFile(const String& filepath);
         std::unordered_map<GLenum, String> PreProcess(const String& source);
         void Compile(const std::unordered_map<GLenum, String>& shaderSources);
-        uint32_t m_RendererID;
+
+    private:
+        uint32_t m_RendererID = 0;
         String m_Name;
+        String m_FilePath;
+        bool m_IsFromFile = false;
     };
 }

@@ -7,7 +7,14 @@
 
 namespace PewPew
 {
-    OpenGLTexture2D::OpenGLTexture2D(const String& path) : m_Path(path)
+    OpenGLTexture2D::OpenGLTexture2D(const String& path) : m_Path(path), m_IsFromFile(true)
+    {
+        PEW_PROFILE_FUNCTION();
+        m_Type = AssetType::Texture2D;
+        LoadFromFile(path);
+    }
+
+    bool OpenGLTexture2D::LoadFromFile(const String& path)
     {
         PEW_PROFILE_FUNCTION();
 
@@ -18,7 +25,13 @@ namespace PewPew
             PEW_PROFILE_SCOPE("stbi_load");
             data = stbi_load(path.c_str(), &width, &height, &channels, 0);
         }
-        PEW_CORE_ASSERT(data, "Failed to load image!")
+
+        if (!data)
+        {
+            PEW_CORE_ERROR("Failed to load image: {0}", path);
+            return false;
+        }
+
         m_Width = width;
         m_Height = height;
 
@@ -44,7 +57,12 @@ namespace PewPew
             dataFormat = GL_RED;
         }
 
-        PEW_CORE_ASSERT(internalFormat & dataFormat, "Format not supported")
+        if (!(internalFormat && dataFormat))
+        {
+            PEW_CORE_ERROR("Texture format not supported: {0}", path);
+            stbi_image_free(data);
+            return false;
+        }
 
         glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
         glTextureStorage2D(m_RendererID, 1, internalFormat, m_Width, m_Height);
@@ -55,12 +73,16 @@ namespace PewPew
         glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
         glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, dataFormat, GL_UNSIGNED_BYTE, data);
+
+        stbi_image_free(data);
+        return true;
     }
 
     OpenGLTexture2D::OpenGLTexture2D(uint32_t width, uint32_t height, uint32_t color)
-        : m_Width(width), m_Height(height)
+        : m_Width(width), m_Height(height), m_IsFromFile(false)
     {
         PEW_PROFILE_FUNCTION();
+        m_Type = AssetType::Texture2D;
 
         glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
         glTextureStorage2D(m_RendererID, 1, GL_RGBA8, m_Width, m_Height);
@@ -83,5 +105,33 @@ namespace PewPew
     void OpenGLTexture2D::Bind(uint32_t slot) const
     {
         glBindTextureUnit(slot, m_RendererID);
+    }
+
+    bool OpenGLTexture2D::Reload()
+    {
+        if (!m_IsFromFile || m_Path.empty())
+        {
+            PEW_CORE_WARN("Cannot reload texture: not loaded from file");
+            return false;
+        }
+
+        PEW_PROFILE_FUNCTION();
+
+        // Delete old texture
+        if (m_RendererID)
+        {
+            glDeleteTextures(1, &m_RendererID);
+            m_RendererID = 0;
+        }
+
+        // Reload from file
+        if (LoadFromFile(m_Path))
+        {
+            PEW_CORE_INFO("Reloaded texture: {0}", m_Path);
+            return true;
+        }
+
+        PEW_CORE_ERROR("Failed to reload texture: {0}", m_Path);
+        return false;
     }
 }

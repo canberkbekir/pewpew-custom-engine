@@ -10,6 +10,7 @@
 #include "GLFW/glfw3.h"
 #include "PewPew/Renderer/Core/Renderer.h"
 #include "PewPew/Renderer/Core/Renderer3D.h"
+#include "PewPew/Asset/AssetManager.h"
 
 namespace PewPew
 {
@@ -28,6 +29,8 @@ namespace PewPew
         Renderer::Init();
         Renderer3D::Init();
 
+        AssetManager::Init("assets");
+
         m_ImGuiLayer = new ImGuiLayer();
         PushOverlay(m_ImGuiLayer);
     }
@@ -35,6 +38,7 @@ namespace PewPew
     Application::~Application()
     {
         PEW_PROFILE_FUNCTION();
+        AssetManager::Shutdown();
         Renderer::Shutdown();
     }
 
@@ -74,6 +78,9 @@ namespace PewPew
             float time = static_cast<float>(glfwGetTime());
             Timestep timestep = time - m_LastFrameTime;
             m_LastFrameTime = time;
+
+            // Process asset hot reloads
+            AssetManager::ProcessReloadQueue();
 
             if (!m_Minimized)
             {

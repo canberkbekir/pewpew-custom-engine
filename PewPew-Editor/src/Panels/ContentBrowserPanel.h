@@ -2,6 +2,8 @@
 
 #include "Panel.h"
 #include "PewPew/Renderer/Resources/Texture.h"
+#include "PewPew/Asset/UUID.h"
+#include "PewPew/Asset/Asset.h"
 
 #include <filesystem>
 #include <unordered_map>
@@ -9,6 +11,13 @@
 
 namespace PewPew
 {
+	enum class SortMode
+	{
+		Name,
+		Type,
+		DateModified
+	};
+
 	class ContentBrowserPanel : public Panel
 	{
 	public:
@@ -16,14 +25,19 @@ namespace PewPew
 
 		void OnImGuiRender() override;
 
-		// Get selected items (for external use)
-		const std::set<std::filesystem::path>& GetSelectedItems() const { return m_SelectedItems; }
-
 	private:
 		Ref<Texture2D> GetIconForEntry(const std::filesystem::directory_entry& entry);
 		void RenderDirectoryTree(const std::filesystem::path& directory);
 		void RenderContentItem(const std::filesystem::directory_entry& entry);
-		bool PassesFilter(const String& filename) const;
+		void RenderToolbar();
+		bool PassesFilter(const std::filesystem::directory_entry& entry) const;
+		bool PassesTypeFilter(const std::filesystem::directory_entry& entry) const;
+
+		void SelectAsset(const std::filesystem::path& path, bool addToSelection = false);
+		bool IsAssetSelected(const std::filesystem::path& path) const;
+
+		void Refresh();
+		std::vector<std::filesystem::directory_entry> GetSortedEntries() const;
 
 	private:
 		std::filesystem::path m_BaseDirectory;
@@ -43,8 +57,21 @@ namespace PewPew
 		// Search
 		char m_SearchBuffer[256] = "";
 
-		// Selection
-		std::set<std::filesystem::path> m_SelectedItems;
+		// Sort
+		SortMode m_SortMode = SortMode::Name;
+		bool m_SortAscending = true;
+
+		// Type filter
+		bool m_ShowAllTypes = true;
+		bool m_ShowTextures = true;
+		bool m_ShowMeshes = true;
+		bool m_ShowShaders = true;
+		bool m_ShowMaterials = true;
+		bool m_ShowScenes = true;
+		bool m_ShowOther = true;  // Unknown types
+
+		// Local path tracking (for UI highlight, synced with global Selection)
+		std::set<std::filesystem::path> m_SelectedPaths;
 
 		// Drag & Drop
 		std::filesystem::path m_DraggedItem;

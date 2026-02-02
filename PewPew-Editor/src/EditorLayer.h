@@ -1,5 +1,6 @@
 #pragma once
 #include "PewPew/Core/Layer.h"
+#include "PewPew/FileWatcher/FileWatcher.h"
 
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/PropertiesPanel.h"
@@ -28,6 +29,9 @@ namespace PewPew
         void DrawMenuBar();
 
     private:
+        // File Watcher for hot reload
+        Scope<FileWatcher> m_FileWatcher;
+
         // Panels
         SceneHierarchyPanel m_SceneHierarchyPanel;
         PropertiesPanel m_PropertiesPanel;

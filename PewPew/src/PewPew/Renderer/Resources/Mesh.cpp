@@ -12,15 +12,17 @@
 namespace PewPew
 {
     Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
+        : m_IsFromFile(false)
     {
         PEW_PROFILE_FUNCTION();
+        m_Type = AssetType::Mesh;
 
         m_IndexCount = static_cast<uint32_t>(indices.size());
 
-        m_VertexArray =VertexArray::Create();
+        m_VertexArray = VertexArray::Create();
 
         // Create vertex buffer
-        Ref<VertexBuffer> vertexBuffer = VertexBuffer::Create((float*)vertices.data(),static_cast<uint32_t>(vertices.size() * sizeof(Vertex)));
+        Ref<VertexBuffer> vertexBuffer = VertexBuffer::Create((float*)vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(Vertex)));
 
         vertexBuffer->SetLayout({
             {ShaderDataType::Float3, "a_Position"},
@@ -172,7 +174,76 @@ namespace PewPew
         PEW_CORE_INFO("Loaded mesh: {0} ({1} vertices, {2} triangles)",
                       filePath, vertices.size(), indices.size() / 3);
 
-        return std::make_shared<Mesh>(vertices, indices);
+        Ref<Mesh> mesh = std::make_shared<Mesh>(vertices, indices);
+        mesh->m_FilePath = filePath;
+        mesh->m_IsFromFile = true;
+        return mesh;
+    }
+
+    bool Mesh::LoadFromFile(const String& filePath)
+    {
+        PEW_PROFILE_FUNCTION();
+
+        Assimp::Importer importer;
+
+        const aiScene* scene = importer.ReadFile(filePath,
+            aiProcess_Triangulate |
+            aiProcess_GenSmoothNormals |
+            aiProcess_CalcTangentSpace |
+            aiProcess_JoinIdenticalVertices |
+            aiProcess_PreTransformVertices
+        );
+
+        if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+        {
+            PEW_CORE_ERROR("Assimp Error: {0}", importer.GetErrorString());
+            return false;
+        }
+
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+
+        ProcessNode(scene->mRootNode, scene, vertices, indices);
+
+        m_IndexCount = static_cast<uint32_t>(indices.size());
+
+        m_VertexArray = VertexArray::Create();
+
+        Ref<VertexBuffer> vertexBuffer = VertexBuffer::Create((float*)vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(Vertex)));
+        vertexBuffer->SetLayout({
+            {ShaderDataType::Float3, "a_Position"},
+            {ShaderDataType::Float3, "a_Normal"},
+            {ShaderDataType::Float2, "a_TexCoord"},
+            {ShaderDataType::Float3, "a_Tangent"},
+            {ShaderDataType::Float3, "a_Bitangent"},
+            {ShaderDataType::Float3, "a_Color"}
+        });
+        m_VertexArray->AddVertexBuffer(vertexBuffer);
+
+        Ref<IndexBuffer> indexBuffer = IndexBuffer::Create(const_cast<uint32_t*>(indices.data()), m_IndexCount);
+        m_VertexArray->SetIndexBuffer(indexBuffer);
+
+        return true;
+    }
+
+    bool Mesh::Reload()
+    {
+        if (!m_IsFromFile || m_FilePath.empty())
+        {
+            PEW_CORE_WARN("Cannot reload mesh: not loaded from file");
+            return false;
+        }
+
+        PEW_PROFILE_FUNCTION();
+
+        if (LoadFromFile(m_FilePath))
+        {
+            PEW_CORE_INFO("Reloaded mesh: {0}", m_FilePath);
+            return true;
+        }
+
+        PEW_CORE_ERROR("Failed to reload mesh: {0}", m_FilePath);
+        return false;
     }
 
     void Mesh::Bind() const

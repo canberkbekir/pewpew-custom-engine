@@ -16,9 +16,16 @@ namespace PewPew
 
         void Bind(uint32_t slot = 0) const override;
 
+        bool Reload() override;
+
+    private:
+        bool LoadFromFile(const String& path);
+
     private:
         String m_Path;
-        uint32_t m_Width, m_Height;
-        uint32_t m_RendererID;
+        uint32_t m_Width = 0;
+        uint32_t m_Height = 0;
+        uint32_t m_RendererID = 0;
+        bool m_IsFromFile = false;
     };
 }

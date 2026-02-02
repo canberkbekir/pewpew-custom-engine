@@ -21,8 +21,10 @@ namespace PewPew
     }
 
     OpenGLShader::OpenGLShader(const String& filepath)
+        : m_FilePath(filepath), m_IsFromFile(true)
     {
         PEW_PROFILE_FUNCTION();
+        m_Type = AssetType::Shader;
 
         String source = ReadFile(filepath);
         auto shaderSources = PreProcess(source);
@@ -37,8 +39,10 @@ namespace PewPew
     }
 
     OpenGLShader::OpenGLShader(const String& name, const String& vertexSrc, const String& fragmentSrc)
-        : m_Name(name)
+        : m_Name(name), m_IsFromFile(false)
     {
+        m_Type = AssetType::Shader;
+
         std::unordered_map<GLenum, String> sources;
         sources[GL_VERTEX_SHADER] = vertexSrc;
         sources[GL_FRAGMENT_SHADER] = fragmentSrc;
@@ -272,5 +276,99 @@ namespace PewPew
     void OpenGLShader::SetMat4(const String& name, const Mat4& matrix)
     {
         UploadUniformMat4(name, matrix);
+    }
+
+    bool OpenGLShader::Reload()
+    {
+        if (!m_IsFromFile || m_FilePath.empty())
+        {
+            PEW_CORE_WARN("Cannot reload shader: not loaded from file");
+            return false;
+        }
+
+        PEW_PROFILE_FUNCTION();
+
+        // Save old program in case reload fails
+        uint32_t oldProgram = m_RendererID;
+
+        try
+        {
+            String source = ReadFile(m_FilePath);
+            if (source.empty())
+            {
+                PEW_CORE_ERROR("Failed to read shader file: {0}", m_FilePath);
+                return false;
+            }
+
+            auto shaderSources = PreProcess(source);
+
+            // Create new program
+            GLuint program = glCreateProgram();
+            std::array<GLenum, 2> glShaderIDs;
+            int glShaderIDIndex = 0;
+
+            for (auto& kv : shaderSources)
+            {
+                GLenum type = kv.first;
+                const String& shaderSource = kv.second;
+
+                GLuint shader = glCreateShader(type);
+                const GLchar* sourceCStr = shaderSource.c_str();
+                glShaderSource(shader, 1, &sourceCStr, nullptr);
+                glCompileShader(shader);
+
+                GLint isCompiled = 0;
+                glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+                if (isCompiled == GL_FALSE)
+                {
+                    GLint maxLength = 0;
+                    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+                    std::vector<GLchar> infoLog(maxLength);
+                    glGetShaderInfoLog(shader, maxLength, &maxLength, &infoLog[0]);
+                    glDeleteShader(shader);
+                    glDeleteProgram(program);
+
+                    PEW_CORE_ERROR("Shader compilation failed during reload: {0}", infoLog.data());
+                    return false;
+                }
+
+                glAttachShader(program, shader);
+                glShaderIDs[glShaderIDIndex++] = shader;
+            }
+
+            glLinkProgram(program);
+
+            GLint isLinked = 0;
+            glGetProgramiv(program, GL_LINK_STATUS, &isLinked);
+            if (isLinked == GL_FALSE)
+            {
+                GLint maxLength = 0;
+                glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
+                std::vector<GLchar> infoLog(maxLength);
+                glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
+
+                glDeleteProgram(program);
+                for (int i = 0; i < glShaderIDIndex; i++)
+                    glDeleteShader(glShaderIDs[i]);
+
+                PEW_CORE_ERROR("Shader linking failed during reload: {0}", infoLog.data());
+                return false;
+            }
+
+            for (int i = 0; i < glShaderIDIndex; i++)
+                glDetachShader(program, glShaderIDs[i]);
+
+            // Success - delete old program and use new one
+            glDeleteProgram(oldProgram);
+            m_RendererID = program;
+
+            PEW_CORE_INFO("Reloaded shader: {0}", m_FilePath);
+            return true;
+        }
+        catch (...)
+        {
+            PEW_CORE_ERROR("Exception during shader reload: {0}", m_FilePath);
+            return false;
+        }
     }
 }

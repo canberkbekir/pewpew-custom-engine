@@ -1,10 +1,11 @@
 ﻿#pragma once
 #include "PewPew/Core/String.h"
 #include "PewPew/Math/CoreMath.h"
+#include "PewPew/Asset/Asset.h"
 
 namespace PewPew
 {
-    class Shader
+    class Shader : public Asset
     {
     public:
         virtual ~Shader() = default;
@@ -25,6 +26,8 @@ namespace PewPew
 
         static Ref<Shader> Create(const String& filePath);
         static Ref<Shader> Create(const String& name, const String& vertexSrc, const String& fragmentSrc);
+
+        static AssetType GetStaticType() { return AssetType::Shader; }
     };
 
     class ShaderLibrary

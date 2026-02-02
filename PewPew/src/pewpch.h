@@ -12,6 +12,10 @@
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
+#include <filesystem>
+#include <random>
+#include <queue>
+#include <mutex>
 #include <PewPew/Core/Log.h>
 
 #ifdef PEW_PLATFORM_WINDOWS

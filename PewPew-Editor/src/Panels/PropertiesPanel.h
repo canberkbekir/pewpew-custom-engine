@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Panel.h"
+#include "PewPew/Selection/Selectable.h"
 
 namespace PewPew
 {
@@ -13,5 +14,10 @@ namespace PewPew
 		}
 
 		void OnImGuiRender() override;
+
+	private:
+		// Add your own drawing methods here
+		void DrawAssetProperties(UUID assetUUID);
+		void DrawEntityProperties(UUID entityUUID);
 	};
 }

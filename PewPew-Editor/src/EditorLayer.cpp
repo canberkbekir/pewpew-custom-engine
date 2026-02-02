@@ -2,6 +2,7 @@
 
 #include "imgui.h"
 #include "PewPew/Debug/Instrumentor.h"
+#include "PewPew/Asset/AssetManager.h"
 
 namespace PewPew
 {
@@ -14,11 +15,34 @@ namespace PewPew
     void EditorLayer::OnAttach()
     {
         PEW_PROFILE_FUNCTION();
+
+        // Start file watcher for hot reload
+        m_FileWatcher = CreateScope<FileWatcher>("assets", [](const FileWatcherEvent& event)
+        {
+            if (event.Action == FileAction::Modified)
+            {
+                // Get relative path
+                std::filesystem::path relativePath = std::filesystem::relative(event.FilePath, "assets");
+                UUID uuid = AssetManager::GetRegistry().GetUUIDByPath(relativePath);
+
+                if (uuid.IsValid())
+                {
+                    AssetManager::QueueReload(uuid);
+                    PEW_CORE_INFO("File changed, queued for reload: {0}", event.FilePath.string());
+                }
+            }
+        });
+        m_FileWatcher->Start();
     }
 
     void EditorLayer::OnDetach()
     {
         PEW_PROFILE_FUNCTION();
+
+        if (m_FileWatcher)
+        {
+            m_FileWatcher->Stop();
+        }
     }
 
     void EditorLayer::OnUpdate(Timestep ts)
