@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UUID.h"
+#include "PewPew/Core/UUID.h"
 #include "AssetManager.h"
 
 namespace PewPew

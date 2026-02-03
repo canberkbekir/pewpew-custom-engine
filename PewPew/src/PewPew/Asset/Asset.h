@@ -1,6 +1,6 @@
 #pragma once
 
-#include "UUID.h"
+#include "PewPew/Core/UUID.h"
 #include "PewPew/Core/Core.h"
 
 #include <filesystem>

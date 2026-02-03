@@ -2,7 +2,7 @@
 
 #include "Panel.h"
 #include "PewPew/Renderer/Resources/Texture.h"
-#include "PewPew/Asset/UUID.h"
+#include "PewPew/Core/UUID.h"
 #include "PewPew/Asset/Asset.h"
 
 #include <filesystem>
