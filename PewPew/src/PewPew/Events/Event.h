@@ -10,7 +10,8 @@ namespace PewPew
         WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,
         AppTick, AppUpdate, AppRender,
         KeyPressed, KeyReleased, KeyTyped,
-        MouseButtonPressed, MouseButtonReleased, MouseButtonDown, MouseButtonUp, MouseMoved, MouseScrolled
+        MouseButtonPressed, MouseButtonReleased, MouseButtonDown, MouseButtonUp, MouseMoved, MouseScrolled,
+        FileDrop
     };
 
     enum EventCategory

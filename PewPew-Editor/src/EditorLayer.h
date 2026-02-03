@@ -2,6 +2,8 @@
 #include "PewPew/Core/Layer.h"
 #include "PewPew/FileWatcher/FileWatcher.h"
 
+typedef unsigned int ImGuiID;
+
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/PropertiesPanel.h"
 #include "Panels/ViewportPanel.h"
@@ -27,10 +29,15 @@ namespace PewPew
         void BeginDockspace();
         void EndDockspace();
         void DrawMenuBar();
+        void SetupDefaultLayout(ImGuiID dockspace_id);
 
     private:
         // File Watcher for hot reload
         Scope<FileWatcher> m_FileWatcher;
+
+        // Layout
+        bool m_ResetLayout = false;
+        bool m_FirstFrame = true;
 
         // Panels
         SceneHierarchyPanel m_SceneHierarchyPanel;

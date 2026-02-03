@@ -25,6 +25,7 @@ namespace PewPew
 		ContentBrowserPanel();
 
 		void OnImGuiRender() override;
+		void OnEvent(Event& e) override;
 
 	private:
 		// Rendering
@@ -67,6 +68,10 @@ namespace PewPew
 
 		// Keyboard handling
 		void HandleKeyboardInput();
+
+		// External file import
+		void ImportExternalFiles(const std::vector<std::string>& paths);
+		bool OnFileDrop(class FileDropEvent& e);
 
 		// Helpers
 		bool IsImageFile(const String& extension) const;
@@ -123,5 +128,8 @@ namespace PewPew
 		// Cached entries for keyboard navigation
 		mutable std::vector<std::filesystem::directory_entry> m_CachedEntries;
 		mutable bool m_EntriesDirty = true;
+
+		// Track if panel is hovered for external file drops
+		bool m_IsWindowHovered = false;
 	};
 }

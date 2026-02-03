@@ -4,6 +4,7 @@
 #include "PewPew/Asset/AssetManager.h"
 #include "PewPew/Selection/Selection.h"
 #include "PewPew/Core/Log.h"
+#include "PewPew/Events/ApplicationEvent.h"
 
 #include <algorithm>
 #include <fstream>
@@ -40,6 +41,9 @@ namespace PewPew
 			return;
 
 		ImGui::Begin(m_Name.c_str(), &m_Visible);
+
+		// Track hover state for external file drops
+		m_IsWindowHovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
 
 		// Handle keyboard input when window is focused
 		if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
@@ -406,7 +410,7 @@ namespace PewPew
 			m_IsRenaming = true;
 			m_RenamingPath = *m_SelectedPaths.begin();
 			String filename = m_RenamingPath.stem().string();
-			strncpy(m_RenameBuffer, filename.c_str(), sizeof(m_RenameBuffer) - 1);
+			strncpy_s(m_RenameBuffer, filename.c_str(), sizeof(m_RenameBuffer) - 1);
 		}
 
 		// Delete - Delete selected
@@ -703,7 +707,7 @@ namespace PewPew
 				m_IsRenaming = true;
 				m_RenamingPath = path;
 				String stem = path.stem().string();
-				strncpy(m_RenameBuffer, stem.c_str(), sizeof(m_RenameBuffer) - 1);
+				strncpy_s(m_RenameBuffer, stem.c_str(), sizeof(m_RenameBuffer) - 1);
 			}
 
 			if (ImGui::MenuItem("Duplicate", "Ctrl+D"))
@@ -1200,7 +1204,7 @@ namespace PewPew
 			// Start renaming the new folder
 			m_IsRenaming = true;
 			m_RenamingPath = folderPath;
-			strncpy(m_RenameBuffer, folderPath.filename().string().c_str(), sizeof(m_RenameBuffer) - 1);
+			strncpy_s(m_RenameBuffer, folderPath.filename().string().c_str(), sizeof(m_RenameBuffer) - 1);
 		}
 	}
 
@@ -1236,7 +1240,7 @@ namespace PewPew
 			// Start renaming
 			m_IsRenaming = true;
 			m_RenamingPath = materialPath;
-			strncpy(m_RenameBuffer, name.c_str(), sizeof(m_RenameBuffer) - 1);
+			strncpy_s(m_RenameBuffer, name.c_str(), sizeof(m_RenameBuffer) - 1);
 		}
 	}
 
@@ -1279,5 +1283,80 @@ namespace PewPew
 
 		// Clear thumbnail cache for this file
 		m_ThumbnailCache.erase(path.string());
+	}
+
+	void ContentBrowserPanel::OnEvent(Event& e)
+	{
+		EventDispatcher dispatcher(e);
+		dispatcher.Dispatch<FileDropEvent>(PEW_BIND_EVENT_FN(ContentBrowserPanel::OnFileDrop));
+	}
+
+	bool ContentBrowserPanel::OnFileDrop(FileDropEvent& e)
+	{
+		// Only handle drops when the Content Browser panel is hovered
+		if (!m_IsWindowHovered || !m_Visible)
+			return false;
+
+		ImportExternalFiles(e.GetPaths());
+		return true;
+	}
+
+	void ContentBrowserPanel::ImportExternalFiles(const std::vector<std::string>& paths)
+	{
+		for (const auto& sourcePath : paths)
+		{
+			std::filesystem::path source(sourcePath);
+
+			if (!std::filesystem::exists(source))
+			{
+				PEW_CORE_WARN("File does not exist: {0}", sourcePath);
+				continue;
+			}
+
+			std::filesystem::path destPath = m_CurrentDirectory / source.filename();
+
+			// Handle duplicate names
+			if (std::filesystem::exists(destPath))
+			{
+				String stem = source.stem().string();
+				String ext = source.extension().string();
+				int counter = 1;
+				while (std::filesystem::exists(destPath))
+				{
+					destPath = m_CurrentDirectory / (stem + "_" + std::to_string(counter) + ext);
+					counter++;
+				}
+			}
+
+			std::error_code ec;
+			if (std::filesystem::is_directory(source))
+			{
+				// Copy directory recursively
+				std::filesystem::copy(source, destPath, std::filesystem::copy_options::recursive, ec);
+			}
+			else
+			{
+				// Copy file
+				std::filesystem::copy_file(source, destPath, ec);
+			}
+
+			if (ec)
+			{
+				PEW_CORE_ERROR("Failed to copy {0}: {1}", sourcePath, ec.message());
+				continue;
+			}
+
+			// Import the new asset
+			if (!std::filesystem::is_directory(destPath))
+			{
+				std::filesystem::path relativePath = std::filesystem::relative(destPath, m_BaseDirectory);
+				AssetManager::ImportAsset(relativePath);
+			}
+
+			PEW_CORE_INFO("Imported: {0} -> {1}", sourcePath, destPath.string());
+		}
+
+		m_EntriesDirty = true;
+		Refresh();
 	}
 }

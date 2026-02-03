@@ -156,6 +156,19 @@ namespace PewPew
             MouseMovedEvent event(static_cast<float>(xPos), static_cast<float>(yPos));
             data.EventCallback(event);
         });
+
+        glfwSetDropCallback(m_Window, [](GLFWwindow* window, int count, const char** paths)
+        {
+            WindowData& data = *static_cast<WindowData*>(glfwGetWindowUserPointer(window));
+            std::vector<std::string> pathList;
+            pathList.reserve(count);
+            for (int i = 0; i < count; i++)
+            {
+                pathList.emplace_back(paths[i]);
+            }
+            FileDropEvent event(pathList);
+            data.EventCallback(event);
+        });
     }
 
     void WindowsWindow::Shutdown()
