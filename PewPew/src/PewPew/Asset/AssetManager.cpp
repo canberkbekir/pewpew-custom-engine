@@ -1,6 +1,10 @@
 #include "pewpch.h"
 #include "AssetManager.h"
 #include "PewPew/Core/Log.h"
+#include "PewPew/Renderer/Resources/Texture.h"
+#include "PewPew/Renderer/Resources/Mesh.h"
+#include "PewPew/Renderer/Resources/Shader.h"
+#include "PewPew/Renderer/Resources/Material.h"
 
 #include <fstream>
 #include <sstream>
@@ -12,6 +16,7 @@ namespace PewPew
 	std::unordered_map<UUID, Ref<Asset>> AssetManager::s_LoadedAssets;
 	std::queue<UUID> AssetManager::s_ReloadQueue;
 	std::mutex AssetManager::s_QueueMutex;
+	std::mutex AssetManager::s_AssetsMutex;
 
 	void AssetManager::Init(const std::filesystem::path& assetDirectory)
 	{
@@ -34,7 +39,10 @@ namespace PewPew
 
 	void AssetManager::Shutdown()
 	{
-		s_LoadedAssets.clear();
+		{
+			std::lock_guard<std::mutex> lock(s_AssetsMutex);
+			s_LoadedAssets.clear();
+		}
 		s_Registry.Clear();
 		PEW_CORE_INFO("AssetManager shutdown");
 	}
@@ -90,15 +98,23 @@ namespace PewPew
 
 	bool AssetManager::IsLoaded(UUID uuid)
 	{
+		std::lock_guard<std::mutex> lock(s_AssetsMutex);
 		return s_LoadedAssets.find(uuid) != s_LoadedAssets.end();
 	}
 
 	void AssetManager::ReloadAsset(UUID uuid)
 	{
-		auto it = s_LoadedAssets.find(uuid);
-		if (it != s_LoadedAssets.end())
+		Ref<Asset> asset;
 		{
-			if (it->second->Reload())
+			std::lock_guard<std::mutex> lock(s_AssetsMutex);
+			auto it = s_LoadedAssets.find(uuid);
+			if (it != s_LoadedAssets.end())
+				asset = it->second;
+		}
+
+		if (asset)
+		{
+			if (asset->Reload())
 			{
 				PEW_CORE_INFO("Reloaded asset: {0}", (uint64_t)uuid);
 
@@ -209,7 +225,10 @@ namespace PewPew
 		std::filesystem::path fullPath = s_AssetDirectory / metadata->FilePath;
 
 		// Remove from loaded assets
-		s_LoadedAssets.erase(uuid);
+		{
+			std::lock_guard<std::mutex> lock(s_AssetsMutex);
+			s_LoadedAssets.erase(uuid);
+		}
 
 		// Unregister
 		s_Registry.Unregister(uuid);
@@ -231,6 +250,7 @@ namespace PewPew
 
 	Ref<Asset> AssetManager::GetLoadedAsset(UUID uuid)
 	{
+		std::lock_guard<std::mutex> lock(s_AssetsMutex);
 		auto it = s_LoadedAssets.find(uuid);
 		if (it != s_LoadedAssets.end())
 			return it->second;
@@ -287,17 +307,41 @@ namespace PewPew
 		// TODO: Replace with JSON parsing (nlohmann/json)
 		std::ifstream file(metaPath);
 		if (!file.is_open())
+		{
+			PEW_CORE_ERROR("Failed to open meta file: {0}", metaPath.string());
 			return;
+		}
 
 		std::string uuidStr, typeStr;
-		std::getline(file, uuidStr);
-		std::getline(file, typeStr);
-
-		uint64_t uuidValue = std::stoull(uuidStr);
-		AssetType type = AssetTypeFromString(typeStr);
-
-		if (type == AssetType::None)
+		if (!std::getline(file, uuidStr) || uuidStr.empty())
+		{
+			PEW_CORE_ERROR("Invalid meta file (missing UUID): {0}", metaPath.string());
 			return;
+		}
+
+		if (!std::getline(file, typeStr) || typeStr.empty())
+		{
+			PEW_CORE_ERROR("Invalid meta file (missing type): {0}", metaPath.string());
+			return;
+		}
+
+		uint64_t uuidValue = 0;
+		try
+		{
+			uuidValue = std::stoull(uuidStr);
+		}
+		catch (const std::exception& e)
+		{
+			PEW_CORE_ERROR("Invalid UUID in meta file {0}: {1}", metaPath.string(), e.what());
+			return;
+		}
+
+		AssetType type = AssetTypeFromString(typeStr);
+		if (type == AssetType::None)
+		{
+			PEW_CORE_WARN("Unknown asset type in meta file: {0}", metaPath.string());
+			return;
+		}
 
 		// Get asset path from meta path
 		std::filesystem::path assetPath = metaPath;
@@ -322,10 +366,18 @@ namespace PewPew
 		// Simple text format for now
 		// TODO: Replace with JSON serialization (nlohmann/json)
 		std::ofstream file(metaPath);
-		if (file.is_open())
+		if (!file.is_open())
 		{
-			file << (uint64_t)uuid << "\n";
-			file << AssetTypeToString(type) << "\n";
+			PEW_CORE_ERROR("Failed to create meta file: {0}", metaPath.string());
+			return;
+		}
+
+		file << (uint64_t)uuid << "\n";
+		file << AssetTypeToString(type) << "\n";
+
+		if (file.fail())
+		{
+			PEW_CORE_ERROR("Failed to write meta file: {0}", metaPath.string());
 		}
 	}
 
@@ -336,36 +388,58 @@ namespace PewPew
 
 	Ref<Asset> AssetManager::LoadAssetInternal(const AssetMetadata& metadata)
 	{
-		// TODO: Implement asset loading based on type
-		// This requires integration with existing Texture2D, Mesh, Shader classes
-		// For now, return nullptr - user will implement loaders
-
 		std::filesystem::path fullPath = s_AssetDirectory / metadata.FilePath;
+
+		if (!std::filesystem::exists(fullPath))
+		{
+			PEW_CORE_ERROR("Asset file not found: {0}", fullPath.string());
+			return nullptr;
+		}
+
+		Ref<Asset> asset = nullptr;
 
 		switch (metadata.Type)
 		{
 			case AssetType::Texture2D:
-				// return Texture2D::Create(fullPath.string());
-				PEW_CORE_WARN("Texture2D loading not yet integrated with AssetManager");
+			{
+				asset = Texture2D::Create(fullPath.string());
 				break;
+			}
 			case AssetType::Mesh:
-				// return Mesh::Load(fullPath.string());
-				PEW_CORE_WARN("Mesh loading not yet integrated with AssetManager");
+			{
+				asset = Mesh::Load(fullPath.string());
 				break;
+			}
 			case AssetType::Shader:
-				// return Shader::Create(fullPath.string());
-				PEW_CORE_WARN("Shader loading not yet integrated with AssetManager");
+			{
+				asset = Shader::Create(fullPath.string());
 				break;
+			}
 			case AssetType::Material:
-				PEW_CORE_WARN("Material loading not yet implemented");
+			{
+				asset = Material::Load(fullPath.string());
 				break;
+			}
 			case AssetType::Scene:
-				PEW_CORE_WARN("Scene loading not yet implemented");
+			{
+				// Scene loading requires ECS implementation
+				PEW_CORE_WARN("Scene loading requires ECS implementation");
 				break;
+			}
 			default:
+				PEW_CORE_ERROR("Unknown asset type: {0}", static_cast<int>(metadata.Type));
 				break;
 		}
 
-		return nullptr;
+		if (asset)
+		{
+			// Set the UUID on the loaded asset
+			asset->m_UUID = metadata.Handle;
+			asset->m_Type = metadata.Type;
+			asset->m_Path = fullPath;
+			PEW_CORE_INFO("Loaded asset: {0} (UUID: {1})", fullPath.string(), (uint64_t)metadata.Handle);
+		}
+
+		return asset;
 	}
 }

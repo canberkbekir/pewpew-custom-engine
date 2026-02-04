@@ -32,14 +32,9 @@ namespace PewPew
 		bool m_Focused = false;
 		bool m_Hovered = false;
 
-		// Scene objects (temporary - will be replaced by Scene/ECS)
-		Ref<Mesh> m_Mesh;
-		Ref<Shader> m_Shader;
-		Ref<Material> m_Material;
-
-		float m_MeshRotation = 0.0f;
-		float m_RotationSpeed = 45.0f;
-		float m_MeshScale = 0.1f;
+		// Default resources for entities without custom shader/material
+		Ref<Shader> m_DefaultShader;
+		Ref<Material> m_DefaultMaterial;
 
 		// Lighting
 		Vector3 m_LightDirection = {-0.5f, -1.0f, -0.3f};

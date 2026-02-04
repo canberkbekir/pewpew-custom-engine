@@ -24,6 +24,8 @@ namespace PewPew
 
         Window& GetWindow() { return *m_Window; }
 
+        void Close() { m_Running = false; }
+
         static Application& Get() { return *s_Instance; }
 
     private:

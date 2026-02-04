@@ -4,6 +4,8 @@
 #include "imgui_internal.h"
 #include "PewPew/Debug/Instrumentor.h"
 #include "PewPew/Asset/AssetManager.h"
+#include "PewPew/Scene/SceneManager.h"
+#include "PewPew/Core/Application.h"
 
 namespace PewPew
 {
@@ -16,6 +18,9 @@ namespace PewPew
     void EditorLayer::OnAttach()
     {
         PEW_PROFILE_FUNCTION();
+
+        // Initialize SceneManager with default empty scene
+        SceneManager::Init();
 
         // Start file watcher for hot reload
         m_FileWatcher = CreateScope<FileWatcher>("assets", [](const FileWatcherEvent& event)
@@ -44,6 +49,8 @@ namespace PewPew
         {
             m_FileWatcher->Stop();
         }
+
+        SceneManager::Shutdown();
     }
 
     void EditorLayer::OnUpdate(Timestep ts)
@@ -88,12 +95,31 @@ namespace PewPew
         {
             if (ImGui::BeginMenu("File"))
             {
-                if (ImGui::MenuItem("New Scene", "Ctrl+N")) {}
-                if (ImGui::MenuItem("Open Scene", "Ctrl+O")) {}
-                if (ImGui::MenuItem("Save Scene", "Ctrl+S")) {}
-                if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S")) {}
+                if (ImGui::MenuItem("New Scene", "Ctrl+N"))
+                {
+                    SceneManager::NewScene();
+                }
+                if (ImGui::MenuItem("Open Scene", "Ctrl+O"))
+                {
+                    // TODO: Open file dialog and call SceneManager::LoadScene(filepath)
+                }
+                if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
+                {
+                    if (!SceneManager::GetActiveScenePath().empty())
+                    {
+                        SceneManager::SaveScene(SceneManager::GetActiveScenePath());
+                    }
+                    // TODO: If no path, open Save As dialog
+                }
+                if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
+                {
+                    // TODO: Open file dialog and call SceneManager::SaveSceneAs(filepath)
+                }
                 ImGui::Separator();
-                if (ImGui::MenuItem("Exit")) {}
+                if (ImGui::MenuItem("Exit"))
+                {
+                    Application::Get().Close();
+                }
                 ImGui::EndMenu();
             }
 

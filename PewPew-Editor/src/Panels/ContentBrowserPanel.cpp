@@ -5,6 +5,7 @@
 #include "PewPew/Selection/Selection.h"
 #include "PewPew/Core/Log.h"
 #include "PewPew/Events/ApplicationEvent.h"
+#include "PewPew/Renderer/Resources/Material.h"
 
 #include <algorithm>
 #include <fstream>
@@ -33,6 +34,12 @@ namespace PewPew
 		m_FileTypeIcons[".glb"] = Texture2D::Create("resources/icons/gltf.png");
 		m_FileTypeIcons[".glsl"] = Texture2D::Create("resources/icons/shader.png");
 		m_FileTypeIcons[".hlsl"] = Texture2D::Create("resources/icons/shader.png");
+
+		// Material icon (uses shader icon as fallback if material.png doesn't exist)
+		if (std::filesystem::exists("resources/icons/material.png"))
+			m_FileTypeIcons[".mat"] = Texture2D::Create("resources/icons/material.png");
+		else
+			m_FileTypeIcons[".mat"] = Texture2D::Create("resources/icons/shader.png");
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -1219,17 +1226,15 @@ namespace PewPew
 			counter++;
 		}
 
-		// Create empty material file
-		std::ofstream file(materialPath);
-		if (file.is_open())
-		{
-			file << "# PewPew Material\n";
-			file << "shader: PBR\n";
-			file << "albedo: 1.0, 1.0, 1.0\n";
-			file << "metallic: 0.0\n";
-			file << "roughness: 0.5\n";
-			file.close();
+		// Create default material using Material class
+		auto material = Material::Create();
+		material->SetAlbedo({ 1.0f, 1.0f, 1.0f });
+		material->SetMetallic(0.0f);
+		material->SetRoughness(0.5f);
+		material->SetSmoothShading(1.0f);
 
+		if (material->Save(materialPath.string()))
+		{
 			// Import the material
 			std::filesystem::path relativePath = std::filesystem::relative(materialPath, m_BaseDirectory);
 			AssetManager::ImportAsset(relativePath);

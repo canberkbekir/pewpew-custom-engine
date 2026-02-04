@@ -2,24 +2,40 @@
 #include "PewPew/Core/Core.h"
 #include "PewPew/Core/String.h"
 #include "PewPew/Math/CoreMath.h"
+#include "PewPew/Asset/Asset.h"
 #include "Texture.h"
 #include "Shader.h"
 
 namespace PewPew
 {
-    class Material
+    class Material : public Asset
     {
     public:
         Material();
         ~Material() = default;
 
-        static Ref<Material> Create();
+        // Asset interface
+        bool Reload() override;
+        static AssetType GetStaticType() { return AssetType::Material; }
 
-        // Texture setters
+        // Factory methods
+        static Ref<Material> Create();
+        static Ref<Material> Load(const String& filePath);
+
+        // Serialization
+        bool Save(const String& filePath) const;
+
+        // Texture setters (direct)
         void SetAlbedoMap(const Ref<Texture2D>& texture) { m_AlbedoMap = texture; }
         void SetNormalMap(const Ref<Texture2D>& texture) { m_NormalMap = texture; }
         void SetMetallicMap(const Ref<Texture2D>& texture) { m_MetallicMap = texture; }
         void SetRoughnessMap(const Ref<Texture2D>& texture) { m_RoughnessMap = texture; }
+
+        // Texture setters with path (for Save() support)
+        void SetAlbedoMap(const Ref<Texture2D>& texture, const String& path) { m_AlbedoMap = texture; m_AlbedoMapPath = path; }
+        void SetNormalMap(const Ref<Texture2D>& texture, const String& path) { m_NormalMap = texture; m_NormalMapPath = path; }
+        void SetMetallicMap(const Ref<Texture2D>& texture, const String& path) { m_MetallicMap = texture; m_MetallicMapPath = path; }
+        void SetRoughnessMap(const Ref<Texture2D>& texture, const String& path) { m_RoughnessMap = texture; m_RoughnessMapPath = path; }
 
         // Scalar property setters
         void SetAlbedo(const Vector3& color) { m_Albedo = color; }
@@ -47,16 +63,29 @@ namespace PewPew
         void Bind(const Ref<Shader>& shader) const;
 
     private:
+        bool LoadFromFile(const String& filePath);
+
+    private:
         // Textures
         Ref<Texture2D> m_AlbedoMap;
         Ref<Texture2D> m_NormalMap;
         Ref<Texture2D> m_MetallicMap;
         Ref<Texture2D> m_RoughnessMap;
 
+        // Texture paths (for serialization and reload)
+        String m_AlbedoMapPath;
+        String m_NormalMapPath;
+        String m_MetallicMapPath;
+        String m_RoughnessMapPath;
+
         // Scalar fallbacks
         Vector3 m_Albedo = {1.0f, 1.0f, 1.0f};
         float m_Metallic = 0.0f;
         float m_Roughness = 0.5f;
         float m_SmoothShading = 1.0f;
+
+        // For reload
+        String m_FilePath;
+        bool m_IsFromFile = false;
     };
 }

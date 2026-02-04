@@ -11,6 +11,7 @@
 namespace PewPew
 {
     static bool s_GLFWInitialized = false;
+    static uint32_t s_GLFWWindowCount = 0;
 
     static void GLFWErrorCallBack(int error, const char* description)
     {
@@ -54,6 +55,7 @@ namespace PewPew
 
         m_Window = glfwCreateWindow(static_cast<int>(props.Width), static_cast<int>(props.Height), m_Data.Title.c_str(),
                                     nullptr, nullptr);
+        ++s_GLFWWindowCount;
 
         m_Context = GraphicsContext::Create(m_Window);
         m_Context->Init();
@@ -175,6 +177,14 @@ namespace PewPew
     {
         PEW_PROFILE_FUNCTION();
         glfwDestroyWindow(m_Window);
+        --s_GLFWWindowCount;
+
+        if (s_GLFWWindowCount == 0)
+        {
+            PEW_CORE_INFO("Terminating GLFW");
+            glfwTerminate();
+            s_GLFWInitialized = false;
+        }
     }
 
     void WindowsWindow::OnUpdate()

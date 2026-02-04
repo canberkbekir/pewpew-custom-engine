@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Panel.h"
+#include "PewPew/Core/Core.h"
+#include "PewPew/Core/UUID.h"
 #include "PewPew/Selection/Selectable.h"
 
 namespace PewPew
@@ -15,9 +17,16 @@ namespace PewPew
 
 		void OnImGuiRender() override;
 
+		// Lock the panel to current selection
+		void Lock() { m_Locked = true; m_LockedSelection = GetCurrentSelection(); }
+		void Unlock() { m_Locked = false; }
+		bool IsLocked() const { return m_Locked; }
+
 	private:
-		// Add your own drawing methods here
 		void DrawAssetProperties(UUID assetUUID);
-		void DrawEntityProperties(UUID entityUUID);
+		Selectable GetCurrentSelection() const;
+
+		bool m_Locked = false;
+		Selectable m_LockedSelection;
 	};
 }

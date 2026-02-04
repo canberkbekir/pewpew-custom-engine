@@ -44,6 +44,12 @@
 #include "PewPew/Utils/VoxelizerAPI.h"
 // -----------------------------------
 
+// ---Scene---------------------------
+#include "PewPew/Scene/Scene.h"
+#include "PewPew/Scene/Entity.h"
+#include "PewPew/Scene/SceneManager.h"
+// -----------------------------------
+
 // ---ImGui---------------------------
 #include "PewPew/ImGui/ImGuiLayer.h"
 #include "PewPew/ImGui/ImGuiUtils.h"

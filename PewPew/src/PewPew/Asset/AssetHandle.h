@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PewPew/Core/UUID.h"
+#include "PewPew/Core/Core.h"
 #include "AssetManager.h"
 
 namespace PewPew
@@ -38,7 +39,12 @@ namespace PewPew
 
 		// Convenience operators
 		Ref<T> operator->() const { return Get(); }
-		T& operator*() const { return *Get(); }
+		T& operator*() const
+		{
+			Ref<T> asset = Get();
+			PEW_CORE_ASSERT(asset, "Dereferencing invalid or unloaded AssetHandle!");
+			return *asset;
+		}
 		operator bool() const { return IsValid(); }
 
 		bool operator==(const AssetHandle& other) const { return m_UUID == other.m_UUID; }

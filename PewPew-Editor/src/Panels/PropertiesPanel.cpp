@@ -3,6 +3,13 @@
 #include "PewPew/Selection/Selection.h"
 #include "PewPew/Asset/AssetManager.h"
 
+// Editor widgets
+#include "../Widgets/EntityEditor.h"
+#include "../Widgets/MaterialEditor.h"
+#include "../Widgets/TextureEditor.h"
+#include "../Widgets/MeshEditor.h"
+#include "../Widgets/ShaderEditor.h"
+
 namespace PewPew
 {
 	void PropertiesPanel::OnImGuiRender()
@@ -12,18 +19,69 @@ namespace PewPew
 
 		ImGui::Begin(m_Name.c_str(), &m_Visible);
 
-		if (!Selection::HasSelection())
+		// Lock button in header
+		bool hasSelection = Selection::HasSelection() || m_Locked;
+		bool wasLocked = m_Locked;  // Save state before button click changes it
+
+		if (wasLocked)
+		{
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.4f, 0.1f, 1.0f));
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.5f, 0.2f, 1.0f));
+		}
+
+		if (ImGui::Button(m_Locked ? "Locked" : "Lock"))
+		{
+			if (m_Locked)
+			{
+				Unlock();
+			}
+			else if (Selection::HasSelection())
+			{
+				Lock();
+			}
+		}
+
+		if (wasLocked)
+		{
+			ImGui::PopStyleColor(2);
+		}
+
+		if (ImGui::IsItemHovered())
+		{
+			ImGui::SetTooltip(m_Locked ? "Click to unlock and follow selection" : "Lock to keep current view while browsing");
+		}
+
+		ImGui::SameLine();
+		ImGui::Separator();
+
+		// Get the selection to display (locked or current)
+		Selectable primary;
+		if (m_Locked)
+		{
+			primary = m_LockedSelection;
+		}
+		else if (Selection::HasSelection())
+		{
+			primary = Selection::GetPrimarySelection();
+		}
+		else
 		{
 			ImGui::TextDisabled("Nothing selected");
 			ImGui::End();
 			return;
 		}
 
-		// Get primary selection
-		Selectable primary = Selection::GetPrimarySelection();
+		// Validate locked selection still exists
+		if (m_Locked && primary.Type == SelectableType::None)
+		{
+			Unlock();
+			ImGui::TextDisabled("Locked item no longer exists");
+			ImGui::End();
+			return;
+		}
 
-		// Multi-selection info
-		if (Selection::GetSelectionCount() > 1)
+		// Multi-selection info (only when not locked)
+		if (!m_Locked && Selection::GetSelectionCount() > 1)
 		{
 			ImGui::Text("%zu items selected", Selection::GetSelectionCount());
 			ImGui::Separator();
@@ -37,7 +95,7 @@ namespace PewPew
 				break;
 
 			case SelectableType::Entity:
-				DrawEntityProperties(primary.ID);
+				EntityEditor::Draw(primary.ID);
 				break;
 
 			default:
@@ -46,6 +104,13 @@ namespace PewPew
 		}
 
 		ImGui::End();
+	}
+
+	Selectable PropertiesPanel::GetCurrentSelection() const
+	{
+		if (Selection::HasSelection())
+			return Selection::GetPrimarySelection();
+		return Selectable();
 	}
 
 	void PropertiesPanel::DrawAssetProperties(UUID assetUUID)
@@ -58,54 +123,34 @@ namespace PewPew
 			return;
 		}
 
-		// Show basic info
-		ImGui::Text("Asset Properties");
-		ImGui::Separator();
+		// Draw type-specific editor
+		switch (metadata->Type)
+		{
+			case AssetType::Texture2D:
+				TextureEditor::Draw(assetUUID);
+				break;
 
-		ImGui::Text("UUID: %llu", static_cast<uint64_t>(assetUUID));
-		ImGui::Text("Type: %s", AssetTypeToString(metadata->Type));
-		ImGui::Text("Path: %s", metadata->FilePath.string().c_str());
+			case AssetType::Mesh:
+				MeshEditor::Draw(assetUUID);
+				break;
 
-		ImGui::Separator();
+			case AssetType::Shader:
+				ShaderEditor::Draw(assetUUID);
+				break;
 
-		// TODO: Add your custom property drawing here based on asset type
-		// Example:
-		// switch (metadata->Type)
-		// {
-		//     case AssetType::Texture2D:
-		//         // Draw texture preview, import settings, etc.
-		//         break;
-		//     case AssetType::Mesh:
-		//         // Draw mesh info, vertex count, etc.
-		//         break;
-		//     case AssetType::Shader:
-		//         // Draw shader uniforms, compile status, etc.
-		//         break;
-		//     case AssetType::Material:
-		//         // Draw material properties, textures, etc.
-		//         break;
-		// }
+			case AssetType::Material:
+				MaterialEditor::Draw(assetUUID);
+				break;
 
-		ImGui::TextDisabled("(Add your property drawing code here)");
-	}
-
-	void PropertiesPanel::DrawEntityProperties(UUID entityUUID)
-	{
-		ImGui::Text("Entity Properties");
-		ImGui::Separator();
-
-		ImGui::Text("Entity UUID: %llu", static_cast<uint64_t>(entityUUID));
-
-		ImGui::Separator();
-
-		// TODO: Add your entity/component drawing here
-		// When you have ECS, you can draw components like:
-		// - Transform component
-		// - Mesh component
-		// - Material component
-		// - Light component
-		// - etc.
-
-		ImGui::TextDisabled("(Add your component drawing code here)");
+			default:
+				ImGui::Text("Asset Properties");
+				ImGui::Separator();
+				ImGui::Text("UUID: %llu", static_cast<uint64_t>(assetUUID));
+				ImGui::Text("Type: %s", AssetTypeToString(metadata->Type));
+				ImGui::Text("Path: %s", metadata->FilePath.string().c_str());
+				ImGui::Separator();
+				ImGui::TextDisabled("No editor available for this asset type");
+				break;
+		}
 	}
 }

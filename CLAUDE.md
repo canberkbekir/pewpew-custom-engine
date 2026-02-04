@@ -43,6 +43,7 @@ PewPew/                          # Core engine (static library)
 │   │   │   ├── Log.h/cpp            # Logging system
 │   │   │   ├── String.h             # String type alias
 │   │   │   ├── TimeStep.h           # Frame delta time
+│   │   │   ├── UUID.h               # Unique identifier for assets/entities
 │   │   │   └── Window.h             # Window abstraction
 │   │   │
 │   │   ├── Input/               # Input handling
@@ -279,6 +280,44 @@ void main()
 ```
 
 See `Sandbox/assets/shaders/PBR.glsl` for a complete PBR shader example.
+
+## Material Format
+
+Materials use a simple key=value text format (`.mat` extension):
+```ini
+# PewPew Material File
+albedo=1.0,0.5,0.2
+metallic=0.0
+roughness=0.5
+smoothShading=1.0
+albedoMap=textures/wood_diffuse.png
+normalMap=textures/wood_normal.png
+metallicMap=
+roughnessMap=
+```
+
+**Properties:**
+- `albedo` - RGB color (0.0-1.0 each)
+- `metallic` - Metallic factor (0.0-1.0)
+- `roughness` - Roughness factor (0.0-1.0)
+- `smoothShading` - Smooth shading blend (0.0-1.0)
+- `albedoMap`, `normalMap`, `metallicMap`, `roughnessMap` - Texture paths (relative to .mat file)
+
+**Usage:**
+```cpp
+// Load from file
+auto material = PewPew::Material::Load("assets/materials/wood.mat");
+
+// Or via AssetManager
+auto material = PewPew::AssetManager::GetAsset<PewPew::Material>("materials/wood.mat");
+
+// Create programmatically
+auto mat = PewPew::Material::Create();
+mat->SetAlbedo({1.0f, 0.8f, 0.6f});
+mat->SetRoughness(0.7f);
+mat->SetAlbedoMap(texture, "textures/brick.png");  // Path for serialization
+mat->Save("assets/materials/brick.mat");
+```
 
 ## Include Paths
 

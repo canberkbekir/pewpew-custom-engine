@@ -6,6 +6,9 @@
 #include "PewPew/Renderer/Core/RenderCommand.h"
 #include "PewPew/Renderer/Core/Renderer3D.h"
 #include "PewPew/Renderer/Resources/Texture.h"
+#include "PewPew/Scene/SceneManager.h"
+#include "PewPew/Scene/Entity.h"
+#include "PewPew/Components/Components.h"
 
 namespace PewPew
 {
@@ -19,17 +22,14 @@ namespace PewPew
 		fbSpec.Height = 720;
 		m_Framebuffer = Framebuffer::Create(fbSpec);
 
-		// Load mesh
-		m_Mesh = Mesh::Load("assets/models/Matilda.fbx");
+		// Load default shader for entities without custom shader
+		m_DefaultShader = Shader::Create("assets/shaders/PBR.glsl");
 
-		// Load shader
-		m_Shader = Shader::Create("assets/shaders/PBR.glsl");
-
-		// Create material with texture
-		m_Material = CreateRef<Material>();
-		m_Material->SetAlbedoMap(Texture2D::Create("assets/textures/MatildaTexture.png"));
-		m_Material->SetRoughness(0.5f);
-		m_Material->SetMetallic(0.0f);
+		// Create default material for entities without custom material
+		m_DefaultMaterial = CreateRef<Material>();
+		m_DefaultMaterial->SetAlbedo({ 0.8f, 0.8f, 0.8f });
+		m_DefaultMaterial->SetRoughness(0.5f);
+		m_DefaultMaterial->SetMetallic(0.0f);
 
 		// Set up lighting
 		Renderer3D::SetDirectionalLight(m_LightDirection, m_LightColor, m_LightIntensity);
@@ -52,9 +52,6 @@ namespace PewPew
 		// Only update camera if viewport is focused
 		if (m_Focused) { m_CameraController.OnUpdate(ts); }
 
-		// Update rotation
-		m_MeshRotation += m_RotationSpeed * ts;
-
 		// Bind framebuffer - render to texture
 		m_Framebuffer->Bind();
 
@@ -65,12 +62,27 @@ namespace PewPew
 		// Render scene
 		Renderer3D::BeginScene(m_CameraController.GetCamera(), m_CameraController.GetCamera().GetPosition());
 
-		// Render mesh
-		if (m_Mesh) {
-			Mat4 transform = glm::scale(Mat4(1.0f), Vector3(m_MeshScale));
-			transform = glm::rotate(transform, glm::radians(m_MeshRotation), Vector3(0.0f, 1.0f, 0.0f));
+		// Render entities from active scene
+		Ref<Scene> scene = SceneManager::GetActiveScene();
+		if (scene)
+		{
+			// Get all entities with MeshRendererComponent and TransformComponent
+			auto view = scene->GetRegistry().view<TransformComponent, MeshRendererComponent>();
+			for (auto entityID : view)
+			{
+				auto& transform = view.get<TransformComponent>(entityID);
+				auto& meshRenderer = view.get<MeshRendererComponent>(entityID);
 
-			Renderer3D::Submit(m_Shader, m_Material, m_Mesh, transform);
+				// Skip invisible entities or entities without mesh
+				if (!meshRenderer.Visible || !meshRenderer.MeshAsset)
+					continue;
+
+				// Use entity's shader/material or fall back to defaults
+				Ref<Shader> shader = meshRenderer.ShaderAsset ? meshRenderer.ShaderAsset : m_DefaultShader;
+				Ref<Material> material = meshRenderer.MaterialAsset ? meshRenderer.MaterialAsset : m_DefaultMaterial;
+
+				Renderer3D::Submit(shader, material, meshRenderer.MeshAsset, transform.GetTransform());
+			}
 		}
 
 		Renderer3D::EndScene();

@@ -66,6 +66,7 @@ namespace PewPew
 
 		static std::queue<UUID> s_ReloadQueue;
 		static std::mutex s_QueueMutex;
+		static std::mutex s_AssetsMutex;  // Protects s_LoadedAssets
 	};
 
 	// Template implementations
@@ -75,12 +76,15 @@ namespace PewPew
 		if (!uuid.IsValid())
 			return nullptr;
 
-		// Check if already loaded
-		auto it = s_LoadedAssets.find(uuid);
-		if (it != s_LoadedAssets.end())
-			return std::dynamic_pointer_cast<T>(it->second);
+		{
+			// Check if already loaded (with lock)
+			std::lock_guard<std::mutex> lock(s_AssetsMutex);
+			auto it = s_LoadedAssets.find(uuid);
+			if (it != s_LoadedAssets.end())
+				return std::dynamic_pointer_cast<T>(it->second);
+		}
 
-		// Get metadata and load
+		// Get metadata and load (outside lock to avoid blocking during load)
 		const AssetMetadata* metadata = s_Registry.GetMetadata(uuid);
 		if (!metadata)
 			return nullptr;
@@ -88,6 +92,12 @@ namespace PewPew
 		Ref<Asset> asset = LoadAssetInternal(*metadata);
 		if (asset)
 		{
+			std::lock_guard<std::mutex> lock(s_AssetsMutex);
+			// Double-check in case another thread loaded it
+			auto it = s_LoadedAssets.find(uuid);
+			if (it != s_LoadedAssets.end())
+				return std::dynamic_pointer_cast<T>(it->second);
+
 			s_LoadedAssets[uuid] = asset;
 			return std::dynamic_pointer_cast<T>(asset);
 		}
