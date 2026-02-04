@@ -16,30 +16,37 @@ namespace PewPew
 	public:
 		ViewportPanel();
 
-		void OnImGuiRender() override;
 		void OnUpdate(Timestep ts);
+		void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
 
-		bool IsFocused() const { return m_Focused; }
-		bool IsHovered() const { return m_Hovered; }
-
-		PerspectiveCameraController& GetCameraController() { return m_CameraController; }
 	private:
+		void RenderToolbar();
+		void RenderStatsOverlay();
+		void RenderScene();
+
+	private:
+		// Rendering
 		Ref<Framebuffer> m_Framebuffer;
-		PerspectiveCameraController m_CameraController;
-
-		Vector2 m_ViewportSize = {0.0f, 0.0f};
-		bool m_Focused = false;
-		bool m_Hovered = false;
-
-		// Default resources for entities without custom shader/material
 		Ref<Shader> m_DefaultShader;
 		Ref<Material> m_DefaultMaterial;
 
+		// Camera
+		PerspectiveCameraController m_CameraController;
+
+		// Viewport state
+		Vector2 m_ViewportSize = { 1280.0f, 720.0f };
+		bool m_Focused = false;
+		bool m_Hovered = false;
+
+		// Toolbar options
+		bool m_Wireframe = false;
+		bool m_ShowStats = true;
+
 		// Lighting
-		Vector3 m_LightDirection = {-0.5f, -1.0f, -0.3f};
-		Vector3 m_LightColor = {1.0f, 0.98f, 0.95f};
-		float m_LightIntensity = 2.0f;
-		Vector3 m_AmbientColor = {0.03f, 0.03f, 0.05f};
+		Vector3 m_LightDirection = { -0.2f, -1.0f, -0.3f };
+		Vector3 m_LightColor = { 1.0f, 1.0f, 1.0f };
+		float m_LightIntensity = 1.0f;
+		Vector3 m_AmbientColor = { 0.1f, 0.1f, 0.1f };
 	};
 }

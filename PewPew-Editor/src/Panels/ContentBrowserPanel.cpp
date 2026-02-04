@@ -2,7 +2,10 @@
 
 #include "imgui.h"
 #include "PewPew/Asset/AssetManager.h"
+#include "PewPew/Asset/Asset.h"
 #include "PewPew/Selection/Selection.h"
+#include "PewPew/Scene/SceneManager.h"
+#include "PewPew/Scene/SceneSerializer.h"
 #include "PewPew/Core/Log.h"
 #include "PewPew/Events/ApplicationEvent.h"
 #include "PewPew/Renderer/Resources/Material.h"
@@ -378,6 +381,10 @@ namespace PewPew
 				{
 					CreateMaterial("New Material");
 				}
+				if (ImGui::MenuItem("Scene"))
+				{
+					CreateScene("New Scene");
+				}
 				ImGui::EndMenu();
 			}
 
@@ -695,6 +702,33 @@ namespace PewPew
 			if (entry.is_directory())
 			{
 				NavigateTo(path);
+			}
+			else
+			{
+				std::string ext = path.extension().string();
+				std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+				AssetType type = AssetTypeFromExtension(ext);
+
+				switch (type)
+				{
+					case AssetType::Scene:
+						SceneManager::LoadScene(path.string());
+						break;
+					case AssetType::Material:
+						// TODO: Open material in Material Editor
+						break;
+					case AssetType::Shader:
+						// TODO: Open shader in Shader Editor
+						break;
+					case AssetType::Mesh:
+						// TODO: Preview mesh in Viewport
+						break;
+					case AssetType::Texture2D:
+						// TODO: Open texture in Texture Viewer
+						break;
+					default:
+						break;
+				}
 			}
 		}
 
@@ -1247,6 +1281,35 @@ namespace PewPew
 			m_RenamingPath = materialPath;
 			strncpy_s(m_RenameBuffer, name.c_str(), sizeof(m_RenameBuffer) - 1);
 		}
+	}
+
+	void ContentBrowserPanel::CreateScene(const std::string& name)
+	{
+		std::filesystem::path scenePath = m_CurrentDirectory / (name + ".scene");
+
+		int counter = 1;
+		while (std::filesystem::exists(scenePath))
+		{
+			scenePath = m_CurrentDirectory / (name + " " + std::to_string(counter) + ".scene");
+			counter++;
+		}
+
+		// Create an empty scene file using SceneSerializer
+		auto scene = CreateRef<Scene>();
+		SceneSerializer serializer(scene);
+		serializer.SerializeText(scenePath.string());
+
+		// Import the scene asset
+		std::filesystem::path relativePath = std::filesystem::relative(scenePath, m_BaseDirectory);
+		AssetManager::ImportAsset(relativePath);
+
+		PEW_CORE_INFO("Created scene: {0}", scenePath.string());
+		m_EntriesDirty = true;
+
+		// Start renaming
+		m_IsRenaming = true;
+		m_RenamingPath = scenePath;
+		strncpy_s(m_RenameBuffer, name.c_str(), sizeof(m_RenameBuffer) - 1);
 	}
 
 	// Context Menu Actions

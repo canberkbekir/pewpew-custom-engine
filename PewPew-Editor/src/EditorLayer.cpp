@@ -6,14 +6,12 @@
 #include "PewPew/Asset/AssetManager.h"
 #include "PewPew/Scene/SceneManager.h"
 #include "PewPew/Core/Application.h"
+#include "PewPew/Utils/FileDialogs.h"
 
 namespace PewPew
 {
     EditorLayer::EditorLayer()
-        : Layer("EditorLayer")
-    {
-        PEW_PROFILE_FUNCTION();
-    }
+        : Layer("EditorLayer"), m_SceneHierarchyPanel(SceneManager::GetActiveScene()) { PEW_PROFILE_FUNCTION(); }
 
     void EditorLayer::OnAttach()
     {
@@ -69,6 +67,22 @@ namespace PewPew
 
         DrawMenuBar();
 
+        // Global keyboard shortcuts
+        {
+            ImGuiIO& io = ImGui::GetIO();
+            if (!io.WantTextInput)
+            {
+                if (io.KeyCtrl && io.KeyShift && ImGui::IsKeyPressed(ImGuiKey_S))
+                    SaveSceneAs();
+                else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S))
+                    SaveScene();
+                else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_N))
+                    NewScene();
+                else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O))
+                    OpenScene();
+            }
+        }
+
         // Render all panels
         m_SceneHierarchyPanel.OnImGuiRender();
         m_PropertiesPanel.OnImGuiRender();
@@ -97,23 +111,19 @@ namespace PewPew
             {
                 if (ImGui::MenuItem("New Scene", "Ctrl+N"))
                 {
-                    SceneManager::NewScene();
+                    NewScene();
                 }
                 if (ImGui::MenuItem("Open Scene", "Ctrl+O"))
                 {
-                    // TODO: Open file dialog and call SceneManager::LoadScene(filepath)
+                    OpenScene();
                 }
                 if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
                 {
-                    if (!SceneManager::GetActiveScenePath().empty())
-                    {
-                        SceneManager::SaveScene(SceneManager::GetActiveScenePath());
-                    }
-                    // TODO: If no path, open Save As dialog
+                    SaveScene();
                 }
                 if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
                 {
-                    // TODO: Open file dialog and call SceneManager::SaveSceneAs(filepath)
+                    SaveSceneAs();
                 }
                 ImGui::Separator();
                 if (ImGui::MenuItem("Exit"))
@@ -208,6 +218,41 @@ namespace PewPew
     void EditorLayer::EndDockspace()
     {
         ImGui::End();
+    }
+
+    void EditorLayer::NewScene()
+    {
+        SceneManager::NewScene();
+    }
+
+    void EditorLayer::OpenScene()
+    {
+        String filepath = FileDialogs::OpenFile("PewPew Scene (*.scene)\0*.scene\0All Files (*.*)\0*.*\0");
+        if (!filepath.empty())
+        {
+            SceneManager::LoadScene(filepath);
+        }
+    }
+
+    void EditorLayer::SaveScene()
+    {
+        if (!SceneManager::GetActiveScenePath().empty())
+        {
+            SceneManager::SaveScene(SceneManager::GetActiveScenePath());
+        }
+        else
+        {
+            SaveSceneAs();
+        }
+    }
+
+    void EditorLayer::SaveSceneAs()
+    {
+        String filepath = FileDialogs::SaveFile("PewPew Scene (*.scene)\0*.scene\0All Files (*.*)\0*.*\0");
+        if (!filepath.empty())
+        {
+            SceneManager::SaveSceneAs(filepath);
+        }
     }
 
     void EditorLayer::SetupDefaultLayout(ImGuiID dockspace_id)

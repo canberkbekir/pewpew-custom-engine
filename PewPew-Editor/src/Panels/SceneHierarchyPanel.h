@@ -1,3 +1,4 @@
+// SceneHierarchyPanel.h
 #pragma once
 
 #include "Panel.h"
@@ -9,8 +10,7 @@ namespace PewPew
 	class SceneHierarchyPanel : public Panel
 	{
 	public:
-		SceneHierarchyPanel()
-			: Panel("Scene Hierarchy", true) {}
+		SceneHierarchyPanel() = default;
 		SceneHierarchyPanel(const Ref<Scene>& scene);
 
 		void SetContext(const Ref<Scene>& scene);
@@ -20,8 +20,9 @@ namespace PewPew
 		void SetSelectedEntity(Entity entity) { m_SelectionContext = entity; }
 
 	private:
-		void DrawEntityNode(Entity entity);
 		void DrawCreateEntityMenu();
+		void DrawEntityNode(Entity entity);
+		void DrawEntityTree();  // New: draws the full hierarchy
 		void DuplicateEntity(Entity entity);
 
 		Ref<Scene> m_Context;
@@ -31,5 +32,8 @@ namespace PewPew
 
 		char m_SearchBuffer[256] = "";
 		char m_RenameBuffer[256] = "";
+        
+		// Drag and drop state
+		Entity m_DraggedEntity;
 	};
 }

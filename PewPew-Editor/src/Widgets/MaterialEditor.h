@@ -278,7 +278,7 @@ namespace PewPew
 			ImGui::EndGroup();
 
 			// Texture picker popup
-			ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowSize(ImVec2(300, 400), ImGuiCond_Appearing);
 			if (ImGui::BeginPopup("TexturePicker"))
 			{
 				static char searchBuffer[256] = "";

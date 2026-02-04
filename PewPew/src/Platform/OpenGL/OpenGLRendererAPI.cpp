@@ -23,6 +23,13 @@ namespace PewPew
     {
         glClearColor(color.r, color.g, color.b, color.a);
     }
+    void OpenGLRendererAPI::SetWireframeMode(bool enabled)
+    {
+        if (enabled)
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        else
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
 
     void OpenGLRendererAPI::Clear()
     {

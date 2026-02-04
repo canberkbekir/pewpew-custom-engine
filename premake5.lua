@@ -21,6 +21,7 @@ IncludeDir["stb_image"] = "PewPew/vendor/stb_image"
 IncludeDir["assimp"] = "PewPew/vendor/assimp/include"
 IncludeDir["voxelizer"] = "PewPew/vendor/voxelizer"
 IncludeDir["entt"] = "PewPew/vendor/entt/include"
+IncludeDir["yaml_cpp"] = "PewPew/vendor/yaml-cpp/include"
 
 project "PewPew"
     location "PewPew"
@@ -71,6 +72,11 @@ project "PewPew"
 		"%{prj.name}/vendor/imgui/imstb_truetype.h",
 		"%{prj.name}/vendor/imgui/imgui_demo.cpp",
 
+		-- yaml-cpp
+		"%{prj.name}/vendor/yaml-cpp/src/**.cpp",
+		"%{prj.name}/vendor/yaml-cpp/src/**.h",
+		"%{prj.name}/vendor/yaml-cpp/include/**.h",
+
 		-- GLFW (embedded - common files)
 		"%{prj.name}/vendor/GLFW/include/GLFW/glfw3.h",
 		"%{prj.name}/vendor/GLFW/include/GLFW/glfw3native.h",
@@ -91,11 +97,14 @@ project "PewPew"
 	-- Exclude vendor files from precompiled header
 	filter "files:PewPew/vendor/**"
 		flags { "NoPCH" }
+	filter "files:PewPew/vendor/yaml-cpp/**"
+		disablewarnings { "4267" }
 	filter {}
 
 	defines
 	{
-		"_CRT_SECURE_NO_WARNINGS"
+		"_CRT_SECURE_NO_WARNINGS",
+		"YAML_CPP_STATIC_DEFINE"
 	}
 
 	includedirs
@@ -110,6 +119,7 @@ project "PewPew"
 		"%{IncludeDir.assimp}",
 		"%{IncludeDir.voxelizer}",
 		"%{IncludeDir.entt}",
+		"%{IncludeDir.yaml_cpp}",
 	}
 
 	libdirs
@@ -209,7 +219,8 @@ project "Sandbox"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.voxelizer}",
-		"%{IncludeDir.entt}"
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.yaml_cpp}"
     }
 
     links { "PewPew" }
@@ -287,7 +298,8 @@ project "PewPew-Editor"
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.voxelizer}",
-		"%{IncludeDir.entt}"
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.yaml_cpp}"
     }
 
     links { "PewPew" }

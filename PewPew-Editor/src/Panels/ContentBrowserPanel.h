@@ -55,6 +55,7 @@ namespace PewPew
 		void MoveAsset(const std::filesystem::path& source, const std::filesystem::path& destFolder);
 		void CreateFolder(const std::string& name);
 		void CreateMaterial(const std::string& name);
+		void CreateScene(const std::string& name);
 
 		// Context Menu Actions
 		void ShowInExplorer(const std::filesystem::path& path);

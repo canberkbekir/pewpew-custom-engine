@@ -2,6 +2,7 @@
 
 #include <entt.hpp>
 #include "Scene.h"
+#include "PewPew/Components/TransformComponent.h"
 #include "PewPew/Core/UUID.h"
 
 namespace PewPew
@@ -63,6 +64,39 @@ namespace PewPew
 		{
 			return !(*this == other);
 		}
+
+		// ===== Hierarchy =====
+		void SetParent(Entity parent, bool keepWorldPosition = true);
+		void RemoveParent(bool keepWorldPosition = true);
+		Entity GetParent() const;
+		std::vector<Entity> GetChildren() const;
+    
+		bool HasParent() const
+		{
+			if (!HasComponent<TransformComponent>())
+				return false;
+			return GetComponent<TransformComponent>().HasParent();
+		}
+    
+		bool HasChildren() const
+		{
+			if (!HasComponent<TransformComponent>())
+				return false;
+			return GetComponent<TransformComponent>().HasChildren();
+		}
+    
+		bool IsDescendantOf(Entity ancestor) const
+		{
+			Entity current = GetParent();
+			while (current)
+			{
+				if (current == ancestor)
+					return true;
+				current = current.GetParent();
+			}
+			return false;
+		}
+		
 	private:
 		entt::entity m_EntityHandle{ entt::null };
 		Scene* m_Scene = nullptr;

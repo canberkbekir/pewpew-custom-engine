@@ -28,6 +28,22 @@ namespace PewPew
 
         void SetViewportSize(float width, float height) override;
 
+        // Camera settings accessors
+        float GetMoveSpeed() const { return m_MoveSpeed; }
+        void SetMoveSpeed(float speed) { m_MoveSpeed = speed; }
+
+        float GetMouseSensitivity() const { return m_MouseSensitivity; }
+        void SetMouseSensitivity(float sensitivity) { m_MouseSensitivity = sensitivity; }
+
+        float GetFOV() const { return m_FOV; }
+        void SetFOV(float fov);
+
+        float GetNearClip() const { return m_NearClip; }
+        void SetNearClip(float nearClip);
+
+        float GetFarClip() const { return m_FarClip; }
+        void SetFarClip(float farClip);
+
     private:
         bool OnMouseScrolled(MouseScrolledEvent& e);
         bool OnWindowResized(WindowResizeEvent& e);

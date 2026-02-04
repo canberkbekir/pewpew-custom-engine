@@ -121,4 +121,22 @@ namespace PewPew
         SetViewportSize(w, h);
         return false;
     }
+
+    void PerspectiveCameraController::SetFOV(float fov)
+    {
+        m_FOV = std::clamp(fov, 1.0f, 120.0f);
+        m_Camera.SetProjection(m_FOV, m_AspectRatio, m_NearClip, m_FarClip);
+    }
+
+    void PerspectiveCameraController::SetNearClip(float nearClip)
+    {
+        m_NearClip = nearClip;
+        m_Camera.SetProjection(m_FOV, m_AspectRatio, m_NearClip, m_FarClip);
+    }
+
+    void PerspectiveCameraController::SetFarClip(float farClip)
+    {
+        m_FarClip = farClip;
+        m_Camera.SetProjection(m_FOV, m_AspectRatio, m_NearClip, m_FarClip);
+    }
 }

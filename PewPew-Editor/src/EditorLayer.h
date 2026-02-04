@@ -31,6 +31,12 @@ namespace PewPew
         void DrawMenuBar();
         void SetupDefaultLayout(ImGuiID dockspace_id);
 
+        // Scene file operations
+        void NewScene();
+        void OpenScene();
+        void SaveScene();
+        void SaveSceneAs();
+
     private:
         // File Watcher for hot reload
         Scope<FileWatcher> m_FileWatcher;

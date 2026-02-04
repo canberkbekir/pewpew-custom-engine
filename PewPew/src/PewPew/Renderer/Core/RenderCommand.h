@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <GL/gl.h>
+
 #include "RendererAPI.h"
 
 namespace PewPew
@@ -21,6 +23,11 @@ namespace PewPew
             s_RendererAPI->SetClearColor(color);
         }
 
+        static void SetWireframeMode(bool enabled)
+        {
+            s_RendererAPI->SetWireframeMode(enabled);
+        }
+        
         static void Clear()
         {
             s_RendererAPI->Clear();

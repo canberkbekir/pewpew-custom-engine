@@ -1,5 +1,6 @@
 #include "pewpch.h"
 #include "SceneManager.h"
+#include "SceneSerializer.h"
 #include "PewPew/Core/Log.h"
 
 namespace PewPew
@@ -39,9 +40,6 @@ namespace PewPew
 
 	Ref<Scene> SceneManager::LoadScene(const String& filepath)
 	{
-		// TODO: Implement scene serialization/deserialization
-		// For now, create a new scene and set the path
-
 		s_ActiveScene = CreateRef<Scene>();
 		s_ActiveScenePath = filepath;
 
@@ -50,7 +48,9 @@ namespace PewPew
 		s_ActiveSceneName = path.stem().string();
 		s_SceneModified = false;
 
-		// TODO: Call SceneSerializer::Deserialize(s_ActiveScene, filepath);
+		// Deserialize scene from file
+		SceneSerializer serializer(s_ActiveScene);
+		serializer.DeserializeText(filepath);
 
 		NotifySceneChanged();
 
@@ -68,7 +68,9 @@ namespace PewPew
 
 		String savePath = filepath.empty() ? s_ActiveScenePath : filepath;
 
-		// TODO: Call SceneSerializer::Serialize(s_ActiveScene, savePath);
+		// Serialize scene to file
+		SceneSerializer serializer(s_ActiveScene);
+		serializer.SerializeText(savePath);
 
 		s_ActiveScenePath = savePath;
 		std::filesystem::path path(savePath);
