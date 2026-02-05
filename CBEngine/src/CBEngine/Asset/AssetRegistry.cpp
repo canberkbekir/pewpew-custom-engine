@@ -116,6 +116,34 @@ namespace CB
 		return {};
 	}
 
+	void AssetRegistry::UpdateDependencies(UUID uuid, const std::vector<UUID>& deps)
+	{
+		std::lock_guard<std::mutex> lock(m_Mutex);
+
+		auto it = m_UUIDToMetadata.find(uuid);
+		if (it == m_UUIDToMetadata.end())
+			return;
+
+		// Remove old reverse dependencies
+		for (UUID oldDep : it->second.Dependencies)
+		{
+			auto& dependents = m_ReverseDependencies[oldDep];
+			dependents.erase(
+				std::remove(dependents.begin(), dependents.end(), uuid),
+				dependents.end()
+			);
+		}
+
+		// Set new dependencies
+		it->second.Dependencies = deps;
+
+		// Add new reverse dependencies
+		for (UUID newDep : deps)
+		{
+			m_ReverseDependencies[newDep].push_back(uuid);
+		}
+	}
+
 	bool AssetRegistry::Contains(UUID uuid) const
 	{
 		std::lock_guard<std::mutex> lock(m_Mutex);

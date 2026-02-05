@@ -3,6 +3,7 @@
 #include "Panel.h"
 #include "CBEngine/Core/Core.h"
 #include "CBEngine/Core/UUID.h"
+#include "CBEngine/Renderer/Resources/Texture.h"
 #include "CBEngine/Selection/Selectable.h"
 
 namespace CB
@@ -13,6 +14,7 @@ namespace CB
 		PropertiesPanel()
 			: Panel("Properties", true)
 		{
+			m_LockIcon = Texture2D::Create("resources/icons/lock.png"); 
 		}
 
 		void OnImGuiRender() override;
@@ -28,5 +30,8 @@ namespace CB
 
 		bool m_Locked = false;
 		Selectable m_LockedSelection;
+
+		//Icons
+		Ref<Texture2D> m_LockIcon;
 	};
 }

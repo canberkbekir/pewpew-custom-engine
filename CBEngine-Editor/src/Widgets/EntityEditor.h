@@ -99,35 +99,123 @@ namespace CB
 		}
 
 		static void DrawTransformComponent(Entity entity)
-		{
-			if (!entity.HasComponent<TransformComponent>())
-				return;
+{
+    if (!entity.HasComponent<TransformComponent>())
+        return;
 
-			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed
-				| ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_SpanAvailWidth;
+    ImGuiTreeNodeFlags flags =
+        ImGuiTreeNodeFlags_DefaultOpen |
+        ImGuiTreeNodeFlags_Framed |
+        ImGuiTreeNodeFlags_AllowItemOverlap |
+        ImGuiTreeNodeFlags_SpanAvailWidth;
 
-			bool opened = ImGui::TreeNodeEx("Transform", flags);
+    if (!ImGui::TreeNodeEx("Transform", flags))
+        return;
 
-			if (opened)
-			{
-				auto& transform = entity.GetComponent<TransformComponent>();
+    auto& transform = entity.GetComponent<TransformComponent>();
 
-				// Position
-				DrawVec3Control("Position", transform.Position);
+    // --- Table layout: Left = label, Right = controls (aligned) ---
+    if (ImGui::BeginTable("##TransformTable", 2,
+        ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV))
+    {
+        ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
 
-				// Rotation (convert to degrees for display)
-				Vector3 rotationDegrees = glm::degrees(transform.Rotation);
-				if (DrawVec3Control("Rotation", rotationDegrees))
-				{
-					transform.Rotation = glm::radians(rotationDegrees);
-				}
+        // Position
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Position");
+        ImGui::TableSetColumnIndex(1);
+        DrawVec3Control("##Position", transform.Position);
 
-				// Scale
-				DrawVec3Control("Scale", transform.Scale, 1.0f);
+        // Rotation (store radians, show degrees)
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Rotation");
+        ImGui::TableSetColumnIndex(1);
 
-				ImGui::TreePop();
-			}
-		}
+        Vector3 rotationDegrees = glm::degrees(transform.Rotation);
+        if (DrawVec3Control("##Rotation", rotationDegrees))
+            transform.Rotation = glm::radians(rotationDegrees);
+
+        // Scale with lock button on the right
+        static bool scaleLocked = true;
+
+        // Keep lastScale stable across frames AND across entity selection
+        static uint64_t s_LastEntityId = 0;
+        static Vector3  s_LastScale(1.0f, 1.0f, 1.0f);
+
+        const uint64_t entityId = (uint64_t)entity.GetUUID(); // adjust if your API differs
+        if (s_LastEntityId != entityId)
+        {
+            s_LastEntityId = entityId;
+            s_LastScale = transform.Scale;
+        }
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::TextUnformatted("Scale");
+        ImGui::TableSetColumnIndex(1);
+
+        Vector3 currentScale = transform.Scale;
+
+        // Reserve space for lock button at the far right
+        const float buttonSize = ImGui::GetFrameHeight();
+        const float spacing    = ImGui::GetStyle().ItemInnerSpacing.x;
+        const float avail      = ImGui::GetContentRegionAvail().x;
+        const float vecWidth   = ImMax(1.0f, avail - (buttonSize + spacing));
+
+        ImGui::BeginGroup();
+        ImGui::PushItemWidth(vecWidth);
+
+        const bool scaleEdited = DrawVec3Control("##Scale", currentScale, 1.0f);
+
+        ImGui::PopItemWidth();
+
+        ImGui::SameLine(0.0f, spacing);
+
+        // Icon-only button (no text)
+        // TODO: draw your lock/unlock icon here (ImageButton or custom draw)
+        if (ImGui::Button("##ScaleLock", ImVec2(buttonSize, buttonSize)))
+            scaleLocked = !scaleLocked;
+
+        ImGui::EndGroup();
+
+        if (scaleEdited)
+        {
+            if (scaleLocked)
+            {
+                Vector3 delta = currentScale - s_LastScale;
+
+                float ratio = 0.0f;
+                if (fabs(delta.x) > 0.0001f && fabs(s_LastScale.x) > 0.000001f)
+                    ratio = currentScale.x / s_LastScale.x;
+                else if (fabs(delta.y) > 0.0001f && fabs(s_LastScale.y) > 0.000001f)
+                    ratio = currentScale.y / s_LastScale.y;
+                else if (fabs(delta.z) > 0.0001f && fabs(s_LastScale.z) > 0.000001f)
+                    ratio = currentScale.z / s_LastScale.z;
+
+                if (ratio != 0.0f)
+                    transform.Scale = s_LastScale * ratio;
+            }
+            else
+            {
+                transform.Scale = currentScale;
+            }
+
+            s_LastScale = transform.Scale;
+        }
+        else
+        {
+            s_LastScale = transform.Scale;
+        }
+
+        ImGui::EndTable();
+    }
+
+    ImGui::TreePop();
+}
+
 
 		static void DrawMeshRendererComponent(Entity entity)
 		{

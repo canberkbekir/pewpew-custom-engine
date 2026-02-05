@@ -11,13 +11,20 @@
 
 namespace CB
 {
-    Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices)
-        : m_IsFromFile(false)
+    Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool retainCPUData)
+        : m_IsFromFile(false), m_RetainCPUData(retainCPUData)
     {
         CB_PROFILE_FUNCTION();
         m_Type = AssetType::Mesh;
 
         m_IndexCount = static_cast<uint32_t>(indices.size());
+        m_VertexCount = static_cast<uint32_t>(vertices.size());
+
+        if (m_RetainCPUData)
+        {
+            m_Vertices = vertices;
+            m_Indices = indices;
+        }
 
         m_VertexArray = VertexArray::Create();
 
@@ -138,6 +145,11 @@ namespace CB
 
     Ref<Mesh> Mesh::Load(const String& filePath)
     {
+        return Load(filePath, false);
+    }
+
+    Ref<Mesh> Mesh::Load(const String& filePath, bool retainCPUData)
+    {
         CB_PROFILE_FUNCTION();
 
         Assimp::Importer importer;
@@ -174,7 +186,7 @@ namespace CB
         CB_CORE_INFO("Loaded mesh: {0} ({1} vertices, {2} triangles)",
                       filePath, vertices.size(), indices.size() / 3);
 
-        Ref<Mesh> mesh = std::make_shared<Mesh>(vertices, indices);
+        Ref<Mesh> mesh = std::make_shared<Mesh>(vertices, indices, retainCPUData);
         mesh->m_FilePath = filePath;
         mesh->m_IsFromFile = true;
         return mesh;
@@ -206,6 +218,13 @@ namespace CB
         ProcessNode(scene->mRootNode, scene, vertices, indices);
 
         m_IndexCount = static_cast<uint32_t>(indices.size());
+        m_VertexCount = static_cast<uint32_t>(vertices.size());
+
+        if (m_RetainCPUData)
+        {
+            m_Vertices = vertices;
+            m_Indices = indices;
+        }
 
         m_VertexArray = VertexArray::Create();
 

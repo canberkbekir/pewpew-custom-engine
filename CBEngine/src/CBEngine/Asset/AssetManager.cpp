@@ -1,5 +1,6 @@
 #include "cbpch.h"
 #include "AssetManager.h"
+#include "ProcessedMeshAsset.h"
 #include "CBEngine/Core/Log.h"
 #include "CBEngine/Renderer/Resources/Texture.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
@@ -352,6 +353,27 @@ namespace CB
 		metadata.Type = type;
 		metadata.FilePath = std::filesystem::relative(assetPath, s_AssetDirectory);
 
+		// Optional third line: deps:UUID1,UUID2,...
+		std::string depsStr;
+		if (std::getline(file, depsStr) && depsStr.substr(0, 5) == "deps:")
+		{
+			std::string depsList = depsStr.substr(5);
+			std::stringstream ss(depsList);
+			std::string token;
+			while (std::getline(ss, token, ','))
+			{
+				if (!token.empty())
+				{
+					try
+					{
+						uint64_t depUUID = std::stoull(token);
+						metadata.Dependencies.push_back(UUID(depUUID));
+					}
+					catch (...) {}
+				}
+			}
+		}
+
 		s_Registry.Register(metadata);
 	}
 
@@ -424,6 +446,16 @@ namespace CB
 			{
 				// Scene loading requires ECS implementation
 				CB_CORE_WARN("Scene loading requires ECS implementation");
+				break;
+			}
+			case AssetType::ProcessedMesh:
+			{
+				asset = ProcessedMeshAsset::Load(fullPath);
+				break;
+			}
+			case AssetType::VoxelMesh:
+			{
+				asset = VoxelMeshAsset::Load(fullPath);
 				break;
 			}
 			default:

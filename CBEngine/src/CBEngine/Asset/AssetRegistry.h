@@ -23,6 +23,7 @@ namespace CB
 		size_t GetAssetCount() const { return m_UUIDToMetadata.size(); }
 
 		std::vector<UUID> GetDependents(UUID uuid) const;
+		void UpdateDependencies(UUID uuid, const std::vector<UUID>& deps);
 
 		bool Contains(UUID uuid) const;
 		bool ContainsPath(const std::filesystem::path& path) const;

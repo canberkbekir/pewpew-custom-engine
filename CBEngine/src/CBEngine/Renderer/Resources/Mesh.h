@@ -22,15 +22,23 @@ namespace CB
     class Mesh : public Asset
     {
     public:
-        Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);
+        Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool retainCPUData = false);
         ~Mesh() = default;
 
         static Ref<Mesh> Load(const String& filePath);
+        static Ref<Mesh> Load(const String& filePath, bool retainCPUData);
 
         void Bind() const;
         uint32_t GetIndexCount() const { return m_IndexCount; }
+        uint32_t GetVertexCount() const { return m_VertexCount; }
 
         const Ref<VertexArray>& GetVertexArray() const { return m_VertexArray; }
+
+        // CPU data access (only available if retainCPUData was true)
+        bool HasCPUData() const { return !m_Vertices.empty(); }
+        const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
+        const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
+        void ReleaseCPUData() { m_Vertices.clear(); m_Vertices.shrink_to_fit(); m_Indices.clear(); m_Indices.shrink_to_fit(); }
 
         bool Reload() override;
 
@@ -42,7 +50,13 @@ namespace CB
     private:
         Ref<VertexArray> m_VertexArray;
         uint32_t m_IndexCount = 0;
+        uint32_t m_VertexCount = 0;
         String m_FilePath;
         bool m_IsFromFile = false;
+        bool m_RetainCPUData = false;
+
+        // Optional CPU-side data retention for voxelization etc.
+        std::vector<Vertex> m_Vertices;
+        std::vector<uint32_t> m_Indices;
     };
 }

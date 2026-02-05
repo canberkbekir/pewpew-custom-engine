@@ -1,12 +1,20 @@
 Scene: SampleScene
 Entities:
-  - Entity: 10584827706656117993
+  - Entity: 11611691697583805860
+    TagComponent:
+      Tag: Child
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 3584612647765517781
+  - Entity: 3584612647765517781
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
-      Position: [-1.1, -173.8, 0]
+      Position: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scale: [1.1, 1, 1]
+      Scale: [1, 1, 1]
       Parent: 0
   - Entity: 7914719244330789713
     TagComponent:
@@ -14,10 +22,18 @@ Entities:
     TransformComponent:
       Position: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scale: [0.2, 1, 1]
+      Scale: [1, 1, 1]
       Parent: 10584827706656117993
     MeshRendererComponent:
       MeshUUID: 3918260253036501014
       MaterialUUID: 1344730489972898971
       ShaderUUID: 0
       Visible: true
+  - Entity: 10584827706656117993
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
