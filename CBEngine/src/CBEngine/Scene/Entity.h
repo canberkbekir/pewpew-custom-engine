@@ -2,8 +2,8 @@
 
 #include <entt.hpp>
 #include "Scene.h"
-#include "PewPew/Components/TransformComponent.h"
-#include "PewPew/Core/UUID.h"
+#include "CBEngine/Components/TransformComponent.h"
+#include "CBEngine/Core/UUID.h"
 
 namespace CB
 {

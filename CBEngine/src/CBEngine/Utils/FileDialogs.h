@@ -1,8 +1,8 @@
 #pragma once
 
-#include "PewPew/Core/String.h"
+#include "CBEngine/Core/String.h"
 
-namespace PewPew
+namespace CB
 {
 	class FileDialogs
 	{

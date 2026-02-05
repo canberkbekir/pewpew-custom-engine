@@ -1,22 +1,26 @@
-#include "pewpch.h"
-#include "PewPew/Utils/FileDialogs.h"
-#include "PewPew/Core/Application.h"
+#include "cbpch.h"
+#include "CBEngine/Utils/FileDialogs.h"
+#include "CBEngine/Core/Application.h"
 
 #include <GLFW/glfw3.h>
 #include <commdlg.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
-namespace PewPew
+#include "CBEngine/Core/Application.h"
+#include "CBEngine/Core/String.h"
+#include "CBEngine/Utils/FileDialogs.h"
+
+namespace CB
 {
-	String FileDialogs::OpenFile(const char* filter)
+	CB::String FileDialogs::OpenFile(const char* filter)
 	{
 		OPENFILENAMEA ofn;
 		CHAR szFile[260] = { 0 };
 		ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
 		ofn.lStructSize = sizeof(OPENFILENAMEA);
 		ofn.hwndOwner = glfwGetWin32Window(
-			static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow()));
+			static_cast<GLFWwindow*>(CB::Application::Get().GetWindow().GetNativeWindow()));
 		ofn.lpstrFile = szFile;
 		ofn.nMaxFile = sizeof(szFile);
 		ofn.lpstrFilter = filter;
@@ -26,17 +30,17 @@ namespace PewPew
 		if (GetOpenFileNameA(&ofn) == TRUE)
 			return ofn.lpstrFile;
 
-		return String();
+		return CB::String();
 	}
 
-	String FileDialogs::SaveFile(const char* filter)
+	CB::String FileDialogs::SaveFile(const char* filter)
 	{
 		OPENFILENAMEA ofn;
 		CHAR szFile[260] = { 0 };
 		ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
 		ofn.lStructSize = sizeof(OPENFILENAMEA);
 		ofn.hwndOwner = glfwGetWin32Window(
-			static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow()));
+			static_cast<GLFWwindow*>(CB::Application::Get().GetWindow().GetNativeWindow()));
 		ofn.lpstrFile = szFile;
 		ofn.nMaxFile = sizeof(szFile);
 		ofn.lpstrFilter = filter;
@@ -47,6 +51,6 @@ namespace PewPew
 		if (GetSaveFileNameA(&ofn) == TRUE)
 			return ofn.lpstrFile;
 
-		return String();
+		return CB::String();
 	}
 }

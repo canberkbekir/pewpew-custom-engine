@@ -1,9 +1,9 @@
-#include "pewpch.h"
+#include "cbpch.h"
 #include "SceneManager.h"
 #include "SceneSerializer.h"
-#include "PewPew/Core/Log.h"
+#include "CBEngine/Core/Log.h"
 
-namespace PewPew
+namespace CB
 {
 	Ref<Scene> SceneManager::s_ActiveScene = nullptr;
 	String SceneManager::s_ActiveScenePath = "";
@@ -15,14 +15,14 @@ namespace PewPew
 	{
 		// Create default empty scene on startup
 		NewScene("Untitled");
-		PEW_CORE_INFO("SceneManager initialized with default scene");
+		CB_CORE_INFO("SceneManager initialized with default scene");
 	}
 
 	void SceneManager::Shutdown()
 	{
 		s_ActiveScene = nullptr;
 		s_Callbacks.clear();
-		PEW_CORE_INFO("SceneManager shutdown");
+		CB_CORE_INFO("SceneManager shutdown");
 	}
 
 	Ref<Scene> SceneManager::NewScene(const String& name)
@@ -34,7 +34,7 @@ namespace PewPew
 
 		NotifySceneChanged();
 
-		PEW_CORE_INFO("Created new scene: {0}", name);
+		CB_CORE_INFO("Created new scene: {0}", name);
 		return s_ActiveScene;
 	}
 
@@ -54,7 +54,7 @@ namespace PewPew
 
 		NotifySceneChanged();
 
-		PEW_CORE_INFO("Loaded scene: {0}", filepath);
+		CB_CORE_INFO("Loaded scene: {0}", filepath);
 		return s_ActiveScene;
 	}
 
@@ -62,7 +62,7 @@ namespace PewPew
 	{
 		if (filepath.empty() && s_ActiveScenePath.empty())
 		{
-			PEW_CORE_WARN("No filepath specified for saving scene");
+			CB_CORE_WARN("No filepath specified for saving scene");
 			return false;
 		}
 
@@ -77,7 +77,7 @@ namespace PewPew
 		s_ActiveSceneName = path.stem().string();
 		s_SceneModified = false;
 
-		PEW_CORE_INFO("Saved scene: {0}", savePath);
+		CB_CORE_INFO("Saved scene: {0}", savePath);
 		return true;
 	}
 
