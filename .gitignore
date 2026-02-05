@@ -64,3 +64,6 @@ obj/
 .claude/settings.local.json
 
 Sandbox/profiles/
+
+# Runtime profiles
+CBEngineProfile-*.json 
