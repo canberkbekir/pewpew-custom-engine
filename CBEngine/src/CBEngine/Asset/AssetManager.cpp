@@ -151,7 +151,7 @@ namespace CB
 		s_ReloadQueue.push(uuid);
 	}
 
-	void AssetManager::RenameAsset(UUID uuid, const std::string& newName)
+	void AssetManager::RenameAsset(UUID uuid, const String& newName)
 	{
 		const AssetMetadata* metadata = s_Registry.GetMetadata(uuid);
 		if (!metadata)
@@ -160,7 +160,7 @@ namespace CB
 		std::filesystem::path oldPath = s_AssetDirectory / metadata->FilePath;
 		std::filesystem::path newPath = oldPath.parent_path() / (newName + oldPath.extension().string());
 
-		if (std::filesystem::exists(newPath))
+		if (exists(newPath))
 		{
 			CB_CORE_ERROR("Cannot rename: file already exists: {0}", newPath.string());
 			return;
@@ -172,7 +172,7 @@ namespace CB
 		// Rename .meta file
 		std::filesystem::path oldMetaPath = GetMetaFilePath(oldPath);
 		std::filesystem::path newMetaPath = GetMetaFilePath(newPath);
-		if (std::filesystem::exists(oldMetaPath))
+		if (exists(oldMetaPath))
 		{
 			std::filesystem::rename(oldMetaPath, newMetaPath);
 		}
@@ -193,7 +193,7 @@ namespace CB
 		std::filesystem::path oldPath = s_AssetDirectory / metadata->FilePath;
 		std::filesystem::path newPath = newDirectory / oldPath.filename();
 
-		if (std::filesystem::exists(newPath))
+		if (exists(newPath))
 		{
 			CB_CORE_ERROR("Cannot move: file already exists: {0}", newPath.string());
 			return;
@@ -205,13 +205,13 @@ namespace CB
 		// Move .meta file
 		std::filesystem::path oldMetaPath = GetMetaFilePath(oldPath);
 		std::filesystem::path newMetaPath = GetMetaFilePath(newPath);
-		if (std::filesystem::exists(oldMetaPath))
+		if (exists(oldMetaPath))
 		{
 			std::filesystem::rename(oldMetaPath, newMetaPath);
 		}
 
 		// Update registry
-		std::filesystem::path newRelativePath = std::filesystem::relative(newPath, s_AssetDirectory);
+		std::filesystem::path newRelativePath = relative(newPath, s_AssetDirectory);
 		s_Registry.UpdatePath(uuid, newRelativePath);
 
 		CB_CORE_INFO("Moved asset to: {0}", newPath.string());
@@ -235,13 +235,13 @@ namespace CB
 		s_Registry.Unregister(uuid);
 
 		// Delete files
-		if (std::filesystem::exists(fullPath))
+		if (exists(fullPath))
 		{
 			std::filesystem::remove(fullPath);
 		}
 
 		std::filesystem::path metaPath = GetMetaFilePath(fullPath);
-		if (std::filesystem::exists(metaPath))
+		if (exists(metaPath))
 		{
 			std::filesystem::remove(metaPath);
 		}
@@ -278,7 +278,7 @@ namespace CB
 
 				// Check for existing .meta file
 				std::filesystem::path metaPath = GetMetaFilePath(path);
-				if (std::filesystem::exists(metaPath))
+				if (exists(metaPath))
 				{
 					LoadMetaFile(metaPath);
 					metaLoaded++;
