@@ -1,0 +1,374 @@
+#include "cbpch.h"
+#include "OpenGLShader.h"
+
+#include <fstream>
+#include <glad/glad.h>
+
+#include <glm/gtc/type_ptr.hpp>
+#include "CBEngine/Debug/Instrumentor.h"
+
+namespace CB
+{
+    static GLenum ShaderTypeFromString(const String& type)
+    {
+        if (type == "vertex")
+            return GL_VERTEX_SHADER;
+        if (type == "fragment" || type == "pixel")
+            return GL_FRAGMENT_SHADER;
+
+        CB_CORE_ASSERT(false, "Unknown shader type!")
+        return 0;
+    }
+
+    OpenGLShader::OpenGLShader(const String& filepath)
+        : m_FilePath(filepath), m_IsFromFile(true)
+    {
+        CB_PROFILE_FUNCTION();
+        m_Type = AssetType::Shader;
+
+        String source = ReadFile(filepath);
+        auto shaderSources = PreProcess(source);
+        Compile(shaderSources);
+
+        // Extract name from filepath
+        auto lastSlash = filepath.find_last_of("/\\");
+        lastSlash = lastSlash == String::npos ? 0 : lastSlash + 1;
+        auto lastDot = filepath.rfind('.');
+        auto count = lastDot == String::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
+        m_Name = filepath.substr(lastSlash, count);
+    }
+
+    OpenGLShader::OpenGLShader(const String& name, const String& vertexSrc, const String& fragmentSrc)
+        : m_Name(name), m_IsFromFile(false)
+    {
+        m_Type = AssetType::Shader;
+
+        std::unordered_map<GLenum, String> sources;
+        sources[GL_VERTEX_SHADER] = vertexSrc;
+        sources[GL_FRAGMENT_SHADER] = fragmentSrc;
+        Compile(sources);
+    }
+
+    OpenGLShader::~OpenGLShader()
+    {
+        glDeleteProgram(m_RendererID);
+    }
+
+    String OpenGLShader::ReadFile(const String& filepath)
+    {
+        CB_PROFILE_FUNCTION();
+
+        String result;
+        std::ifstream in(filepath, std::ios::in | std::ios::binary);
+        if (in)
+        {
+            in.seekg(0, std::ios::end);
+            size_t size = in.tellg();
+            if (size != -1)
+            {
+                result.resize(size);
+                in.seekg(0, std::ios::beg);
+                in.read(&result[0], size);
+                in.close();
+            }
+            else
+            {
+                CB_CORE_ERROR("Could not read from file '{0}'", filepath);
+            }
+        }
+        else
+        {
+            CB_CORE_ERROR("Could not open file '{0}'", filepath);
+        }
+
+        return result;
+    }
+
+    std::unordered_map<GLenum, String> OpenGLShader::PreProcess(const String& source)
+    {
+        std::unordered_map<GLenum, String> shaderSources;
+
+        auto typeToken = "#type";
+        size_t typeTokenLength = strlen(typeToken);
+        size_t pos = source.find(typeToken, 0); //Start of shader type declaration line
+        while (pos != String::npos)
+        {
+            size_t eol = source.find_first_of("\r\n", pos); //End of shader type declaration line
+            CB_CORE_ASSERT(eol != String::npos, "Syntax error")
+            size_t begin = pos + typeTokenLength + 1; //Start of shader type name (after "#type " 
+            String type = source.substr(begin, eol - begin);
+            CB_CORE_ASSERT(ShaderTypeFromString(type), "Invalid shader type specified")
+
+            size_t nextLinePos = source.find_first_not_of("\r\n", eol);
+            //Start of shader code after shader type declaration line
+            CB_CORE_ASSERT(nextLinePos != std::string::npos, "Syntax error")
+            pos = source.find(typeToken, nextLinePos); //Start of next shader type declaration line
+
+            shaderSources[ShaderTypeFromString(type)] = (pos == std::string::npos)
+                                                            ? source.substr(nextLinePos)
+                                                            : source.substr(nextLinePos, pos - nextLinePos);
+        }
+
+        return shaderSources;
+    }
+
+    void OpenGLShader::Compile(const std::unordered_map<GLenum, String>& shaderSources)
+    {
+        CB_PROFILE_FUNCTION();
+
+        GLuint program = glCreateProgram();
+        CB_CORE_ASSERT(shaderSources.size() <= 2, "We only support 2 shaders for now")
+        std::array<GLenum, 2> glShaderIDs;
+        int glShaderIDIndex = 0;
+        for (auto& kv : shaderSources)
+        {
+            GLenum type = kv.first;
+            const String& source = kv.second;
+
+            GLuint shader = glCreateShader(type);
+
+            const GLchar* sourceCStr = source.c_str();
+            glShaderSource(shader, 1, &sourceCStr, nullptr);
+
+            glCompileShader(shader);
+
+            GLint isCompiled = 0;
+            glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+            if (isCompiled == GL_FALSE)
+            {
+                GLint maxLength = 0;
+                glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+                std::vector<GLchar> infoLog(maxLength);
+                glGetShaderInfoLog(shader, maxLength, &maxLength, &infoLog[0]);
+
+                glDeleteShader(shader);
+
+                CB_CORE_ERROR("{0}", infoLog.data());
+                CB_CORE_ASSERT(false, "Shader compilation failure!")
+                break;
+            }
+
+            glAttachShader(program, shader);
+            glShaderIDs[glShaderIDIndex++] = shader;
+        }
+
+        m_RendererID = program;
+
+        // Link our program
+        glLinkProgram(program);
+
+        // Note the different functions here: glGetProgram* instead of glGetShader*.
+        GLint isLinked = 0;
+        glGetProgramiv(program, GL_LINK_STATUS, &isLinked);
+        if (isLinked == GL_FALSE)
+        {
+            GLint maxLength = 0;
+            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
+
+            // The maxLength includes the NULL character
+            std::vector<GLchar> infoLog(maxLength);
+            glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
+
+            // We don't need the program anymore.
+            glDeleteProgram(program);
+
+            for (auto id : glShaderIDs)
+            {
+                glDetachShader(program, id);
+                glDeleteShader(id);
+            }
+
+
+            CB_CORE_ERROR("{0}", infoLog.data());
+            CB_CORE_ASSERT(false, "Shader link failure!");
+            return;
+        }
+
+        for (auto id : glShaderIDs)
+            glDetachShader(program, id);
+    }
+
+    void OpenGLShader::Bind() const
+    {
+        CB_PROFILE_FUNCTION();
+        glUseProgram(m_RendererID);
+    }
+
+    void OpenGLShader::Unbind() const
+    {
+        glUseProgram(0);
+    }
+
+    void OpenGLShader::UploadUniformInt(const String& name, int value)
+    {
+        GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+        glUniform1i(location, value);
+    }
+
+    void OpenGLShader::UploadUniformFloat(const String& name, float value)
+    {
+        GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+        glUniform1f(location, value);
+    }
+
+    void OpenGLShader::UploadUniformFloat2(const String& name, const Vector2& value)
+    {
+        GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+        glUniform2f(location, value.x, value.y);
+    }
+
+    void OpenGLShader::UploadUniformFloat3(const String& name, const Vector3& value)
+    {
+        GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+        glUniform3f(location, value.x, value.y, value.z);
+    }
+
+    void OpenGLShader::UploadUniformFloat4(const String& name, const Vector4& value)
+    {
+        GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+        glUniform4f(location, value.x, value.y, value.z, value.w);
+    }
+
+    void OpenGLShader::UploadUniformMat3(const String& name, const Mat3& matrix)
+    {
+        GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+        glUniformMatrix3fv(location, 1, GL_FALSE, value_ptr(matrix));
+    }
+
+    void OpenGLShader::UploadUniformMat4(const String& name, const Mat4& matrix)
+    {
+        GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+        glUniformMatrix4fv(location, 1, GL_FALSE, value_ptr(matrix));
+    }
+
+    // Virtual uniform setters (call the Upload* methods)
+    void OpenGLShader::SetInt(const String& name, int value)
+    {
+        UploadUniformInt(name, value);
+    }
+
+    void OpenGLShader::SetFloat(const String& name, float value)
+    {
+        UploadUniformFloat(name, value);
+    }
+
+    void OpenGLShader::SetFloat2(const String& name, const Vector2& value)
+    {
+        UploadUniformFloat2(name, value);
+    }
+
+    void OpenGLShader::SetFloat3(const String& name, const Vector3& value)
+    {
+        UploadUniformFloat3(name, value);
+    }
+
+    void OpenGLShader::SetFloat4(const String& name, const Vector4& value)
+    {
+        UploadUniformFloat4(name, value);
+    }
+
+    void OpenGLShader::SetMat3(const String& name, const Mat3& matrix)
+    {
+        UploadUniformMat3(name, matrix);
+    }
+
+    void OpenGLShader::SetMat4(const String& name, const Mat4& matrix)
+    {
+        UploadUniformMat4(name, matrix);
+    }
+
+    bool OpenGLShader::Reload()
+    {
+        if (!m_IsFromFile || m_FilePath.empty())
+        {
+            CB_CORE_WARN("Cannot reload shader: not loaded from file");
+            return false;
+        }
+
+        CB_PROFILE_FUNCTION();
+
+        // Save old program in case reload fails
+        uint32_t oldProgram = m_RendererID;
+
+        try
+        {
+            String source = ReadFile(m_FilePath);
+            if (source.empty())
+            {
+                CB_CORE_ERROR("Failed to read shader file: {0}", m_FilePath);
+                return false;
+            }
+
+            auto shaderSources = PreProcess(source);
+
+            // Create new program
+            GLuint program = glCreateProgram();
+            std::array<GLenum, 2> glShaderIDs;
+            int glShaderIDIndex = 0;
+
+            for (auto& kv : shaderSources)
+            {
+                GLenum type = kv.first;
+                const String& shaderSource = kv.second;
+
+                GLuint shader = glCreateShader(type);
+                const GLchar* sourceCStr = shaderSource.c_str();
+                glShaderSource(shader, 1, &sourceCStr, nullptr);
+                glCompileShader(shader);
+
+                GLint isCompiled = 0;
+                glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+                if (isCompiled == GL_FALSE)
+                {
+                    GLint maxLength = 0;
+                    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+                    std::vector<GLchar> infoLog(maxLength);
+                    glGetShaderInfoLog(shader, maxLength, &maxLength, &infoLog[0]);
+                    glDeleteShader(shader);
+                    glDeleteProgram(program);
+
+                    CB_CORE_ERROR("Shader compilation failed during reload: {0}", infoLog.data());
+                    return false;
+                }
+
+                glAttachShader(program, shader);
+                glShaderIDs[glShaderIDIndex++] = shader;
+            }
+
+            glLinkProgram(program);
+
+            GLint isLinked = 0;
+            glGetProgramiv(program, GL_LINK_STATUS, &isLinked);
+            if (isLinked == GL_FALSE)
+            {
+                GLint maxLength = 0;
+                glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
+                std::vector<GLchar> infoLog(maxLength);
+                glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
+
+                glDeleteProgram(program);
+                for (int i = 0; i < glShaderIDIndex; i++)
+                    glDeleteShader(glShaderIDs[i]);
+
+                CB_CORE_ERROR("Shader linking failed during reload: {0}", infoLog.data());
+                return false;
+            }
+
+            for (int i = 0; i < glShaderIDIndex; i++)
+                glDetachShader(program, glShaderIDs[i]);
+
+            // Success - delete old program and use new one
+            glDeleteProgram(oldProgram);
+            m_RendererID = program;
+
+            CB_CORE_INFO("Reloaded shader: {0}", m_FilePath);
+            return true;
+        }
+        catch (...)
+        {
+            CB_CORE_ERROR("Exception during shader reload: {0}", m_FilePath);
+            return false;
+        }
+    }
+}

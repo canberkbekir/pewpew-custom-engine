@@ -47,16 +47,16 @@ obj/
 *.sln
 
 # Profiler output
-**/PewPewProfile*.json
+**/CBEngineProfile*.json
 
 # ImGui settings
 **/imgui.ini
 
 # Include assimp vendor binaries
-!PewPew/vendor/assimp/bin/
-!PewPew/vendor/assimp/bin/**
-!PewPew/vendor/assimp/lib/
-!PewPew/vendor/assimp/lib/**
+!CBEngine/vendor/assimp/bin/
+!CBEngine/vendor/assimp/bin/**
+!CBEngine/vendor/assimp/lib/
+!CBEngine/vendor/assimp/lib/**
 !**/vendor/assimp/**/*.dll
 !**/vendor/assimp/**/*.lib
 !**/vendor/assimp/**/*.pdb

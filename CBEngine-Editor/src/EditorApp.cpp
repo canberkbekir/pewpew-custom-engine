@@ -1,27 +1,30 @@
 #include <CBEngine.h>
 
 #include "imgui/imgui.h"
+#include "imgui/imgui_internal.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "EditorLayer.h"
+
 // ============================================================================
-// Sandbox Application
+// CBEngine Editor Application
 // ============================================================================
-class Sandbox : public CB::Application
+class CBEngineEditor : public CB::Application
 {
 public:
-	Sandbox()
+	CBEngineEditor()
 	{
 		CB_PROFILE_FUNCTION();
-		
+		PushLayer(new CB::EditorLayer());
 	}
 
-	~Sandbox() {}
+	~CBEngineEditor() {}
 };
 
 CB::Application* CB::CreateApplication()
 {
 	CB_PROFILE_FUNCTION();
-	return new Sandbox();
+	return new CBEngineEditor();
 }

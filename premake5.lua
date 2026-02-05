@@ -1,4 +1,4 @@
-workspace "PewPew"
+workspace "CBEngine"
 	architecture "x64"
 	startproject "Sandbox"
 
@@ -13,18 +13,18 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 -- Include directories relative to root folder (solution directory)
 IncludeDir = {}
-IncludeDir["GLFW"] = "PewPew/vendor/GLFW/include"
-IncludeDir["Glad"] = "PewPew/vendor/Glad/include"
-IncludeDir["ImGui"] = "PewPew/vendor/imgui"
-IncludeDir["glm"] = "PewPew/vendor/glm"
-IncludeDir["stb_image"] = "PewPew/vendor/stb_image"
-IncludeDir["assimp"] = "PewPew/vendor/assimp/include"
-IncludeDir["voxelizer"] = "PewPew/vendor/voxelizer"
-IncludeDir["entt"] = "PewPew/vendor/entt/include"
-IncludeDir["yaml_cpp"] = "PewPew/vendor/yaml-cpp/include"
+IncludeDir["GLFW"] = "CBEngine/vendor/GLFW/include"
+IncludeDir["Glad"] = "CBEngine/vendor/Glad/include"
+IncludeDir["ImGui"] = "CBEngine/vendor/imgui"
+IncludeDir["glm"] = "CBEngine/vendor/glm"
+IncludeDir["stb_image"] = "CBEngine/vendor/stb_image"
+IncludeDir["assimp"] = "CBEngine/vendor/assimp/include"
+IncludeDir["voxelizer"] = "CBEngine/vendor/voxelizer"
+IncludeDir["entt"] = "CBEngine/vendor/entt/include"
+IncludeDir["yaml_cpp"] = "CBEngine/vendor/yaml-cpp/include"
 
-project "PewPew"
-    location "PewPew"
+project "CBEngine"
+    location "CBEngine"
 	kind "StaticLib"
 	language "C++"
 	cppdialect "C++17"
@@ -33,8 +33,8 @@ project "PewPew"
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
 
-	pchheader "pewpch.h"
-	pchsource "PewPew/src/pewpch.cpp"
+	pchheader "cbpch.h"
+	pchsource "CBEngine/src/cbpch.cpp"
 
 	files
 	{
@@ -95,9 +95,9 @@ project "PewPew"
 	}
 
 	-- Exclude vendor files from precompiled header
-	filter "files:PewPew/vendor/**"
+	filter "files:CBEngine/vendor/**"
 		flags { "NoPCH" }
-	filter "files:PewPew/vendor/yaml-cpp/**"
+	filter "files:CBEngine/vendor/yaml-cpp/**"
 		disablewarnings { "4267" }
 	filter {}
 
@@ -155,23 +155,23 @@ project "PewPew"
 
 	    defines
 	    {
-	    	"PEW_PLATFORM_WINDOWS",
-	    	"PEW_BUILD_DLL",
+	    	"CB_PLATFORM_WINDOWS",
+	    	"CB_BUILD_DLL",
 			"_GLFW_WIN32"
 	    }
 
 	filter "configurations:Debug"
-		defines "PEW_DEBUG"
+		defines "CB_DEBUG"
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Release"
-		defines "PEW_RELEASE"
+		defines "CB_RELEASE"
 		runtime "Release"
 		optimize "on"
 
 	filter "configurations:Dist"
-		defines "PEW_DIST"
+		defines "CB_DIST"
 		runtime "Release"
 		optimize "on"
 
@@ -189,6 +189,7 @@ project "Sandbox"
     {
         "%{prj.name}/src/**.h",
         "%{prj.name}/src/**.cpp",
+        "%{prj.name}/resources/icon.rc",
         -- Asset files (visible in solution but not compiled)
         "%{prj.name}/assets/shaders/**.glsl",
         "%{prj.name}/assets/shaders/**.hlsl",
@@ -213,9 +214,9 @@ project "Sandbox"
 
     includedirs
     {
-        "PewPew/vendor/spdlog/include",
-        "PewPew/src",
-		"PewPew/vendor",
+        "CBEngine/vendor/spdlog/include",
+        "CBEngine/src",
+		"CBEngine/vendor",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.voxelizer}",
@@ -223,39 +224,39 @@ project "Sandbox"
 		"%{IncludeDir.yaml_cpp}"
     }
 
-    links { "PewPew" }
+    links { "CBEngine" }
 
     filter "system:windows"
 	    systemversion "latest"
         buildoptions { "/utf-8" }
 	    defines
 	    {
-	    	"PEW_PLATFORM_WINDOWS"
+	    	"CB_PLATFORM_WINDOWS"
 	    }
 
 		-- Copy Assimp DLL to output folder after build
 		postbuildcommands
 		{
-			"{COPYFILE} %{wks.location}PewPew/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}"
+			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}"
 		}
 
 	filter "configurations:Debug"
-		defines "PEW_DEBUG"
+		defines "CB_DEBUG"
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Release"
-		defines "PEW_RELEASE"
+		defines "CB_RELEASE"
 		runtime "Release"
 		optimize "on"
 
 	filter "configurations:Dist"
-		defines "PEW_DIST"
+		defines "CB_DIST"
 		runtime "Release"
 		optimize "on"
 
-project "PewPew-Editor"
-    location "PewPew-Editor"
+project "CBEngine-Editor"
+    location "CBEngine-Editor"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++17"
@@ -268,6 +269,7 @@ project "PewPew-Editor"
     {
         "%{prj.name}/src/**.h",
         "%{prj.name}/src/**.cpp",
+        "%{prj.name}/resources/icon.rc",
         -- Asset files (visible in solution but not compiled)
         "%{prj.name}/assets/shaders/**.glsl",
         "%{prj.name}/assets/shaders/**.hlsl",
@@ -292,9 +294,9 @@ project "PewPew-Editor"
 
     includedirs
     {
-        "PewPew/vendor/spdlog/include",
-        "PewPew/src",
-		"PewPew/vendor",
+        "CBEngine/vendor/spdlog/include",
+        "CBEngine/src",
+		"CBEngine/vendor",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.voxelizer}",
@@ -302,33 +304,33 @@ project "PewPew-Editor"
 		"%{IncludeDir.yaml_cpp}"
     }
 
-    links { "PewPew" }
+    links { "CBEngine" }
 
     filter "system:windows"
 	    systemversion "latest"
         buildoptions { "/utf-8" }
 	    defines
 	    {
-	    	"PEW_PLATFORM_WINDOWS"
+	    	"CB_PLATFORM_WINDOWS"
 	    }
 
 		-- Copy Assimp DLL to output folder after build
 		postbuildcommands
 		{
-			"{COPYFILE} %{wks.location}PewPew/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}"
+			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}"
 		}
 
 	filter "configurations:Debug"
-		defines "PEW_DEBUG"
+		defines "CB_DEBUG"
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Release"
-		defines "PEW_RELEASE"
+		defines "CB_RELEASE"
 		runtime "Release"
 		optimize "on"
 
 	filter "configurations:Dist"
-		defines "PEW_DIST"
+		defines "CB_DIST"
 		runtime "Release"
 		optimize "on"

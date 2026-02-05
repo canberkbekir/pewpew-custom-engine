@@ -1,15 +1,15 @@
 [submodule "pewpew-engine/vendor/sdplog"]
 	path = pewpew-engine/vendor/sdplog
 	url = https://github.com/gabime/spdlog.git
-[submodule "PewPew/vendor/imgui"]
-	path = PewPew/vendor/imgui
+[submodule "CBEngine/vendor/imgui"]
+	path = CBEngine/vendor/imgui
 	url = https://github.com/canberkbekir/game-engine-imgui
-[submodule "PewPew/vendor/GLFW"]
-	path = PewPew/vendor/GLFW
+[submodule "CBEngine/vendor/GLFW"]
+	path = CBEngine/vendor/GLFW
 	url = https://github.com/canberkbekir/game-engine-glfw
-[submodule "PewPew/vendor/glm"]
-	path = PewPew/vendor/glm
+[submodule "CBEngine/vendor/glm"]
+	path = CBEngine/vendor/glm
 	url = https://github.com/canberkbekir/game-engine-glm
-[submodule "PewPew/vendor/yaml-cpp"]
-	path = PewPew/vendor/yaml-cpp
+[submodule "CBEngine/vendor/yaml-cpp"]
+	path = CBEngine/vendor/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
