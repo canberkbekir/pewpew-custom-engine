@@ -134,6 +134,14 @@ namespace CB
 				MeshEditor::Draw(assetUUID);
 				break;
 
+			case AssetType::ProcessedMesh:
+				MeshEditor::Draw(assetUUID);
+				break;
+
+			case AssetType::VoxelMesh:
+				MeshEditor::Draw(assetUUID);
+				break;
+
 			case AssetType::Shader:
 				ShaderEditor::Draw(assetUUID);
 				break;

@@ -1,0 +1,16 @@
+version: 1
+source:
+  path: models\Tree.fbx
+  uuid: 3891978219779609676
+import_settings:
+  scale: 1
+  generate_normals: true
+  calc_tangents: true
+  join_identical_vertices: true
+  pre_transform_vertices: true
+material_slots:
+  - name: Default
+    material: 0
+texture_slots:
+  - name: Albedo
+    texture: 0

@@ -8,6 +8,7 @@
 
 #include <string>
 #include <algorithm>
+#include <initializer_list>
 
 namespace CB
 {
@@ -17,6 +18,12 @@ namespace CB
 		// Draw an asset picker field for a specific asset type
 		// Returns true if an asset was selected, and sets outUUID to the selected asset
 		static bool Draw(const char* label, UUID& currentUUID, AssetType filterType)
+		{
+			return DrawMultiType(label, currentUUID, { filterType });
+		}
+
+		// Draw an asset picker field that accepts multiple asset types
+		static bool DrawMultiType(const char* label, UUID& currentUUID, std::initializer_list<AssetType> filterTypes)
 		{
 			bool changed = false;
 
@@ -55,17 +62,37 @@ namespace CB
 				changed = true;
 			}
 
-			// Also support drag-drop on the button
+			// Support drag-drop: ASSET_UUID payload
 			if (ImGui::BeginDragDropTarget())
 			{
 				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_UUID"))
 				{
 					UUID droppedUUID = *(UUID*)payload->Data;
 					const AssetMetadata* metadata = AssetManager::GetRegistry().GetMetadata(droppedUUID);
-					if (metadata && metadata->Type == filterType)
+					if (metadata && MatchesFilter(metadata->Type, filterTypes))
 					{
 						currentUUID = droppedUUID;
 						changed = true;
+					}
+				}
+				// Support drag-drop: CONTENT_BROWSER_ITEM payload (file path from content browser)
+				if (!changed)
+				{
+					if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+					{
+						const char* droppedPath = static_cast<const char*>(payload->Data);
+						std::filesystem::path filePath(droppedPath);
+						std::filesystem::path relativePath = std::filesystem::relative(filePath, AssetManager::GetAssetDirectory());
+						UUID droppedUUID = AssetManager::GetRegistry().GetUUIDByPath(relativePath);
+						if (droppedUUID.IsValid())
+						{
+							const AssetMetadata* metadata = AssetManager::GetRegistry().GetMetadata(droppedUUID);
+							if (metadata && MatchesFilter(metadata->Type, filterTypes))
+							{
+								currentUUID = droppedUUID;
+								changed = true;
+							}
+						}
 					}
 				}
 				ImGui::EndDragDropTarget();
@@ -94,7 +121,7 @@ namespace CB
 
 				ImGui::Separator();
 
-				// List all assets of the specified type
+				// List all assets matching any of the filter types
 				String searchLower = s_SearchBuffer;
 				std::transform(searchLower.begin(), searchLower.end(), searchLower.begin(), ::tolower);
 
@@ -103,7 +130,7 @@ namespace CB
 				const auto& registry = AssetManager::GetRegistry();
 				for (const auto& [uuid, metadata] : registry.GetAllAssets())
 				{
-					if (metadata.Type != filterType)
+					if (!MatchesFilter(metadata.Type, filterTypes))
 						continue;
 
 					String assetName = metadata.FilePath.stem().string();
@@ -120,7 +147,7 @@ namespace CB
 					bool isSelected = (uuid == currentUUID);
 
 					// Show icon based on type
-					const char* icon = GetIconForType(filterType);
+					const char* icon = GetIconForType(metadata.Type);
 					String displayLabel = String(icon) + " " + assetName;
 
 					if (ImGui::Selectable(displayLabel.c_str(), isSelected))
@@ -150,7 +177,12 @@ namespace CB
 		// Convenience overloads that automatically determine the asset type
 		static bool DrawMesh(const char* label, UUID& currentUUID)
 		{
-			return Draw(label, currentUUID, AssetType::Mesh);
+			return DrawMultiType(label, currentUUID, { AssetType::ProcessedMesh });
+		}
+
+		static bool DrawVoxelMesh(const char* label, UUID& currentUUID)
+		{
+			return DrawMultiType(label, currentUUID, { AssetType::VoxelMesh });
 		}
 
 		static bool DrawTexture(const char* label, UUID& currentUUID)
@@ -169,15 +201,24 @@ namespace CB
 		}
 
 	private:
+		static bool MatchesFilter(AssetType type, std::initializer_list<AssetType> filterTypes)
+		{
+			for (AssetType ft : filterTypes)
+				if (type == ft) return true;
+			return false;
+		}
+
 		static const char* GetIconForType(AssetType type)
 		{
 			switch (type)
 			{
-				case AssetType::Mesh:      return "[M]";
-				case AssetType::Texture2D: return "[T]";
-				case AssetType::Material:  return "[MAT]";
-				case AssetType::Shader:    return "[S]";
-				default:                   return "[?]";
+				case AssetType::Mesh:          return "[M]";
+				case AssetType::ProcessedMesh: return "[PM]";
+				case AssetType::VoxelMesh:     return "[VM]";
+				case AssetType::Texture2D:     return "[T]";
+				case AssetType::Material:      return "[MAT]";
+				case AssetType::Shader:        return "[S]";
+				default:                       return "[?]";
 			}
 		}
 

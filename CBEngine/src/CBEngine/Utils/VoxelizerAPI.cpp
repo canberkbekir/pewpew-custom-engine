@@ -252,7 +252,8 @@ namespace CB
         CB_CORE_INFO("Voxelized mesh: {0} voxels, grid size: ({1}, {2}, {3})",
                       result.VoxelCount, result.Grid.size.x, result.Grid.size.y, result.Grid.size.z);
 
-        // Create renderable mesh
+        // Create renderable mesh (only on main thread with GL context)
+        if (settings.CreateGPUMesh)
         {
             CB_PROFILE_SCOPE("CreateMeshFromGrid");
             result.Mesh = CreateMeshFromGrid(result.Grid);
@@ -498,7 +499,8 @@ namespace CB
         CB_CORE_INFO("Voxelized mesh with colors: {0} voxels, grid size: ({1}, {2}, {3})",
                       result.VoxelCount, result.Grid.size.x, result.Grid.size.y, result.Grid.size.z);
 
-        // Create colored mesh
+        // Create colored mesh (only on main thread with GL context)
+        if (settings.CreateGPUMesh)
         {
             CB_PROFILE_SCOPE("CreateColoredMeshFromGrid");
             result.Mesh = CreateColoredMeshFromGrid(result.Grid, voxelColors);

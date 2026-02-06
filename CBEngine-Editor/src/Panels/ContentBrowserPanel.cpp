@@ -9,6 +9,7 @@
 #include "CBEngine/Core/Log.h"
 #include "CBEngine/Events/ApplicationEvent.h"
 #include "CBEngine/Renderer/Resources/Material.h"
+#include "../EditorLayer.h"
 
 #include <algorithm>
 #include <fstream>
@@ -43,6 +44,17 @@ namespace CB
 			m_FileTypeIcons[".mat"] = Texture2D::Create("resources/icons/material.png");
 		else
 			m_FileTypeIcons[".mat"] = Texture2D::Create("resources/icons/shader.png");
+
+		// Processed mesh icons
+		if (std::filesystem::exists("resources/icons/mesh.png"))
+			m_FileTypeIcons[".mesh"] = Texture2D::Create("resources/icons/mesh.png");
+		else
+			m_FileTypeIcons[".mesh"] = m_FileIcon;
+
+		if (std::filesystem::exists("resources/icons/vmesh.png"))
+			m_FileTypeIcons[".vmesh"] = Texture2D::Create("resources/icons/vmesh.png");
+		else
+			m_FileTypeIcons[".vmesh"] = m_FileIcon;
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()
@@ -277,7 +289,8 @@ namespace CB
 			{
 				if (m_ShowAllTypes)
 				{
-					m_ShowTextures = m_ShowMeshes = m_ShowShaders = true;
+					m_ShowTextures = m_ShowMeshes = m_ShowRawMeshes = true;
+					m_ShowProcessedMeshes = m_ShowShaders = true;
 					m_ShowMaterials = m_ShowScenes = m_ShowOther = true;
 				}
 				m_EntriesDirty = true;
@@ -287,6 +300,13 @@ namespace CB
 			bool anyChanged = false;
 			anyChanged |= ImGui::Checkbox("Textures", &m_ShowTextures);
 			anyChanged |= ImGui::Checkbox("Meshes", &m_ShowMeshes);
+			if (m_ShowMeshes)
+			{
+				ImGui::Indent();
+				anyChanged |= ImGui::Checkbox("Raw (.fbx, .obj, ...)", &m_ShowRawMeshes);
+				anyChanged |= ImGui::Checkbox("Processed (.mesh, .vmesh)", &m_ShowProcessedMeshes);
+				ImGui::Unindent();
+			}
 			anyChanged |= ImGui::Checkbox("Shaders", &m_ShowShaders);
 			anyChanged |= ImGui::Checkbox("Materials", &m_ShowMaterials);
 			anyChanged |= ImGui::Checkbox("Scenes", &m_ShowScenes);
@@ -294,7 +314,8 @@ namespace CB
 
 			if (anyChanged)
 			{
-				m_ShowAllTypes = m_ShowTextures && m_ShowMeshes && m_ShowShaders &&
+				m_ShowAllTypes = m_ShowTextures && m_ShowMeshes && m_ShowRawMeshes &&
+				                 m_ShowProcessedMeshes && m_ShowShaders &&
 				                 m_ShowMaterials && m_ShowScenes && m_ShowOther;
 				m_EntriesDirty = true;
 			}
@@ -600,7 +621,10 @@ namespace CB
 			return m_ShowTextures;
 
 		if (ext == ".fbx" || ext == ".obj" || ext == ".gltf" || ext == ".glb")
-			return m_ShowMeshes;
+			return m_ShowMeshes && m_ShowRawMeshes;
+
+		if (ext == ".mesh" || ext == ".vmesh")
+			return m_ShowMeshes && m_ShowProcessedMeshes;
 
 		if (ext == ".glsl" || ext == ".hlsl" || ext == ".vert" || ext == ".frag" || ext == ".comp")
 			return m_ShowShaders;
@@ -709,6 +733,12 @@ namespace CB
 				std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 				AssetType type = AssetTypeFromExtension(ext);
 
+				// Select the asset for the Properties panel
+				std::filesystem::path relPath = std::filesystem::relative(path, m_BaseDirectory);
+				UUID assetUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+				if (assetUUID.IsValid())
+					Selection::Select(Selectable::Asset(assetUUID));
+
 				switch (type)
 				{
 					case AssetType::Scene:
@@ -722,6 +752,10 @@ namespace CB
 						break;
 					case AssetType::Mesh:
 						// TODO: Preview mesh in Viewport
+						break;
+					case AssetType::ProcessedMesh:
+					case AssetType::VoxelMesh:
+						// Select to show in Properties panel (already done above)
 						break;
 					case AssetType::Texture2D:
 						// TODO: Open texture in Texture Viewer
@@ -1343,7 +1377,15 @@ namespace CB
 		std::filesystem::path relativePath = std::filesystem::relative(path, m_BaseDirectory);
 		UUID uuid = AssetManager::GetRegistry().GetUUIDByPath(relativePath);
 
-		if (uuid.IsValid())
+		// Check if this is a processed mesh type — route through ImportPreviewPanel
+		std::string ext = path.extension().string();
+		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+		if ((ext == ".mesh" || ext == ".vmesh") && uuid.IsValid())
+		{
+			EditorLayer::RequestImportPreviewReimport(path, uuid);
+			CB_CORE_INFO("Queued reimport via ImportPreviewPanel: {0}", path.string());
+		}
+		else if (uuid.IsValid())
 		{
 			AssetManager::QueueReload(uuid);
 			CB_CORE_INFO("Queued reimport: {0}", path.string());

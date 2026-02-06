@@ -92,25 +92,50 @@ namespace CB
         Ref<Scene> scene = SceneManager::GetActiveScene();
         if (scene)
         {
-            auto view = scene->GetRegistry().view<TransformComponent, MeshRendererComponent>();
-
-            for (auto entityID : view)
+            // Render MeshRendererComponent entities
             {
-                auto& transform = view.get<TransformComponent>(entityID);
-                auto& meshRenderer = view.get<MeshRendererComponent>(entityID);
+                auto view = scene->GetRegistry().view<TransformComponent, MeshRendererComponent>();
+                for (auto entityID : view)
+                {
+                    auto& transform = view.get<TransformComponent>(entityID);
+                    auto& meshRenderer = view.get<MeshRendererComponent>(entityID);
 
-                if (!meshRenderer.Visible || !meshRenderer.MeshAsset)
-                    continue;
+                    if (!meshRenderer.Visible || !meshRenderer.MeshAsset)
+                        continue;
 
-                Ref<Shader> shader = meshRenderer.ShaderAsset
-                    ? meshRenderer.ShaderAsset
-                    : m_DefaultShader;
+                    Ref<Shader> shader = meshRenderer.ShaderAsset
+                        ? meshRenderer.ShaderAsset
+                        : m_DefaultShader;
 
-                Ref<Material> material = meshRenderer.MaterialAsset
-                    ? meshRenderer.MaterialAsset
-                    : m_DefaultMaterial;
+                    Ref<Material> material = meshRenderer.MaterialAsset
+                        ? meshRenderer.MaterialAsset
+                        : m_DefaultMaterial;
 
-                Renderer3D::Submit(shader, material, meshRenderer.MeshAsset, transform.GetTransform());
+                    Renderer3D::Submit(shader, material, meshRenderer.MeshAsset, transform.GetTransform());
+                }
+            }
+
+            // Render VoxelRendererComponent entities
+            {
+                auto view = scene->GetRegistry().view<TransformComponent, VoxelRendererComponent>();
+                for (auto entityID : view)
+                {
+                    auto& transform = view.get<TransformComponent>(entityID);
+                    auto& voxelRenderer = view.get<VoxelRendererComponent>(entityID);
+
+                    if (!voxelRenderer.Visible || !voxelRenderer.MeshAsset)
+                        continue;
+
+                    Ref<Shader> shader = voxelRenderer.ShaderAsset
+                        ? voxelRenderer.ShaderAsset
+                        : m_DefaultShader;
+
+                    Ref<Material> material = voxelRenderer.MaterialAsset
+                        ? voxelRenderer.MaterialAsset
+                        : m_DefaultMaterial;
+
+                    Renderer3D::Submit(shader, material, voxelRenderer.MeshAsset, transform.GetTransform());
+                }
             }
         }
 
@@ -270,8 +295,11 @@ namespace CB
             Ref<Scene> scene = SceneManager::GetActiveScene();
             if (scene)
             {
-                auto view = scene->GetRegistry().view<MeshRendererComponent>();
-                ImGui::Text("Entities: %d", static_cast<int>(view.size()));
+                auto meshView = scene->GetRegistry().view<MeshRendererComponent>();
+                auto voxelView = scene->GetRegistry().view<VoxelRendererComponent>();
+                ImGui::Text("Mesh: %d | Voxel: %d",
+                    static_cast<int>(meshView.size()),
+                    static_cast<int>(voxelView.size()));
             }
 
             ImGui::Text("Viewport: %dx%d",

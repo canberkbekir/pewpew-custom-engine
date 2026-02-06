@@ -104,6 +104,8 @@ namespace CB
 		bool m_ShowAllTypes = true;
 		bool m_ShowTextures = true;
 		bool m_ShowMeshes = true;
+		bool m_ShowRawMeshes = true;
+		bool m_ShowProcessedMeshes = true;
 		bool m_ShowShaders = true;
 		bool m_ShowMaterials = true;
 		bool m_ShowScenes = true;

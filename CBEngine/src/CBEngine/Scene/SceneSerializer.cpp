@@ -3,6 +3,7 @@
 #include "Entity.h"
 #include "CBEngine/Components/Components.h"
 #include "CBEngine/Asset/AssetManager.h"
+#include "CBEngine/Asset/ProcessedMeshAsset.h"
 
 #include <yaml-cpp/yaml.h>
 #include <fstream>
@@ -89,6 +90,19 @@ namespace CB
 			out << YAML::Key << "MaterialUUID" << YAML::Value << (uint64_t)mrc.MaterialUUID;
 			out << YAML::Key << "ShaderUUID" << YAML::Value << (uint64_t)mrc.ShaderUUID;
 			out << YAML::Key << "Visible" << YAML::Value << mrc.Visible;
+			out << YAML::EndMap;
+		}
+
+		// VoxelRendererComponent
+		if (entity.HasComponent<VoxelRendererComponent>())
+		{
+			out << YAML::Key << "VoxelRendererComponent";
+			out << YAML::BeginMap;
+			auto& vrc = entity.GetComponent<VoxelRendererComponent>();
+			out << YAML::Key << "VoxelMeshUUID" << YAML::Value << (uint64_t)vrc.VoxelMeshUUID;
+			out << YAML::Key << "MaterialUUID" << YAML::Value << (uint64_t)vrc.MaterialUUID;
+			out << YAML::Key << "ShaderUUID" << YAML::Value << (uint64_t)vrc.ShaderUUID;
+			out << YAML::Key << "Visible" << YAML::Value << vrc.Visible;
 			out << YAML::EndMap;
 		}
 
@@ -216,6 +230,32 @@ namespace CB
 					mrc.MaterialAsset = AssetManager::GetAsset<Material>(mrc.MaterialUUID);
 				if (mrc.ShaderUUID.IsValid())
 					mrc.ShaderAsset = AssetManager::GetAsset<Shader>(mrc.ShaderUUID);
+			}
+
+			// VoxelRendererComponent
+			auto voxelRendererComponent = entityNode["VoxelRendererComponent"];
+			if (voxelRendererComponent)
+			{
+				auto& vrc = entity.AddComponent<VoxelRendererComponent>();
+				vrc.VoxelMeshUUID = UUID(voxelRendererComponent["VoxelMeshUUID"].as<uint64_t>());
+				vrc.MaterialUUID = UUID(voxelRendererComponent["MaterialUUID"].as<uint64_t>());
+				vrc.ShaderUUID = UUID(voxelRendererComponent["ShaderUUID"].as<uint64_t>());
+				vrc.Visible = voxelRendererComponent["Visible"].as<bool>();
+
+				// Resolve VoxelMesh UUID: load asset and create renderable mesh from grid
+				if (vrc.VoxelMeshUUID.IsValid())
+				{
+					auto vmAsset = AssetManager::GetAsset<VoxelMeshAsset>(vrc.VoxelMeshUUID);
+					if (vmAsset && vmAsset->VoxelCount > 0)
+					{
+						vrc.MeshAsset = VoxelizerAPI::CreateMeshFromGrid(vmAsset->GridData);
+						vrc.VoxelSettings = vmAsset->VoxelSettings;
+					}
+				}
+				if (vrc.MaterialUUID.IsValid())
+					vrc.MaterialAsset = AssetManager::GetAsset<Material>(vrc.MaterialUUID);
+				if (vrc.ShaderUUID.IsValid())
+					vrc.ShaderAsset = AssetManager::GetAsset<Shader>(vrc.ShaderUUID);
 			}
 		}
 

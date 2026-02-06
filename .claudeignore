@@ -1,0 +1,44 @@
+# Build output
+bin/
+bin-int/
+obj/
+
+# Visual Studio generated files
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# Third-party dependencies
+CBEngine/vendor/
+vendor/
+
+# Compiled binaries
+*.dll
+*.lib
+*.pdb
+*.exe
+*.obj
+*.pch
+
+# Profiler output
+*Profile*.json
+
+# ImGui settings
+imgui.ini
+
+# Binary assets (models, textures)
+*.fbx
+*.fbx.meta
+*.obj
+*.gltf
+*.glb
+*.png
+*.jpg
+*.jpeg
+*.tga
+*.bmp
+*.hdr
+
+# Documentation (read on demand, not indexed)
+docs/

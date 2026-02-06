@@ -4,3 +4,4 @@
 #include "TransformComponent.h"
 #include "MeshRendererComponent.h"
 #include "VoxelComponent.h"
+#include "VoxelRendererComponent.h"

@@ -1,6 +1,19 @@
-Scene: SampleScene
+Scene: TreeScene
 Entities:
-  - Entity: 10584827706656117993
+  - Entity: 11611691697583805860
+    TagComponent:
+      Tag: Child
+    TransformComponent:
+      Position: [-3, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.001, 0.001, 0.001]
+      Parent: 3584612647765517781
+    VoxelRendererComponent:
+      VoxelMeshUUID: 12359736467135495872
+      MaterialUUID: 0
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 3584612647765517781
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
@@ -12,16 +25,16 @@ Entities:
     TagComponent:
       Tag: Child
     TransformComponent:
-      Position: [1.1, 0, 0]
+      Position: [0, 0, 0]
       Rotation: [0, 0, 0]
-      Scale: [0.01, 0.01, 0.01]
+      Scale: [0.001, 0.001, 0.001]
       Parent: 10584827706656117993
     MeshRendererComponent:
-      MeshUUID: 9822671189742086249
+      MeshUUID: 10884345810425844984
       MaterialUUID: 1344730489972898971
       ShaderUUID: 0
       Visible: true
-  - Entity: 3584612647765517781
+  - Entity: 10584827706656117993
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
@@ -29,16 +42,3 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
       Parent: 0
-  - Entity: 11611691697583805860
-    TagComponent:
-      Tag: Child
-    TransformComponent:
-      Position: [-1.5, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [0.001, 0.001, 0.001]
-      Parent: 3584612647765517781
-    VoxelRendererComponent:
-      VoxelMeshUUID: 10850478245900889218
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true

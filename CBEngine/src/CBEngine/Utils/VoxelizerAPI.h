@@ -34,6 +34,8 @@ namespace CB
         bool Solid = true;
         /// Padding around mesh bounds in world units
         float Padding = 0.01f;
+        /// If false, skip GPU mesh creation (for background thread usage)
+        bool CreateGPUMesh = true;
     };
 
     /// @brief Helper class for sampling colors from texture files

@@ -124,7 +124,10 @@ namespace CB
                     return;
                 }
 
-                auto data = VoxelizerAPI::Voxelize(vertices, indices, settings);
+                // Skip GPU mesh creation - no OpenGL context on background thread
+                auto taskSettings = settings;
+                taskSettings.CreateGPUMesh = false;
+                auto data = VoxelizerAPI::Voxelize(vertices, indices, taskSettings);
 
                 if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
 
@@ -156,7 +159,10 @@ namespace CB
         {
             try
             {
-                auto data = VoxelizerAPI::VoxelizeFromFileWithColors(meshPath, texturePath, settings);
+                // Skip GPU mesh creation - no OpenGL context on background thread
+                auto taskSettings = settings;
+                taskSettings.CreateGPUMesh = false;
+                auto data = VoxelizerAPI::VoxelizeFromFileWithColors(meshPath, texturePath, taskSettings);
 
                 if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
 
@@ -192,7 +198,10 @@ namespace CB
         {
             try
             {
-                auto data = VoxelizerAPI::Voxelize(*verticesCopy, *indicesCopy, settings);
+                // Skip GPU mesh creation - no OpenGL context on background thread
+                auto taskSettings = settings;
+                taskSettings.CreateGPUMesh = false;
+                auto data = VoxelizerAPI::Voxelize(*verticesCopy, *indicesCopy, taskSettings);
 
                 if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
 
@@ -228,7 +237,10 @@ namespace CB
         {
             try
             {
-                auto data = VoxelizerAPI::VoxelizeWithColors(*verticesCopy, *indicesCopy, texturePath, settings);
+                // Skip GPU mesh creation - no OpenGL context on background thread
+                auto taskSettings = settings;
+                taskSettings.CreateGPUMesh = false;
+                auto data = VoxelizerAPI::VoxelizeWithColors(*verticesCopy, *indicesCopy, texturePath, taskSettings);
 
                 if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
 

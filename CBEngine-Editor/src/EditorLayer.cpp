@@ -10,6 +10,11 @@
 
 namespace CB
 {
+    // Static member definitions
+    std::queue<std::filesystem::path> EditorLayer::s_PendingImports;
+    std::mutex EditorLayer::s_PendingImportsMutex;
+    std::queue<EditorLayer::ReimportRequest> EditorLayer::s_PendingReimports;
+
     EditorLayer::EditorLayer()
         : Layer("EditorLayer"), m_SceneHierarchyPanel(SceneManager::GetActiveScene()) { CB_PROFILE_FUNCTION(); }
 
@@ -35,6 +40,16 @@ namespace CB
                     CB_CORE_INFO("File changed, queued for reload: {0}", event.FilePath.string());
                 }
             }
+            else if (event.Action == FileAction::Added)
+            {
+                // Check if it's a mesh file — queue for import preview
+                std::string ext = event.FilePath.extension().string();
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                if (ext == ".fbx" || ext == ".obj" || ext == ".gltf" || ext == ".glb")
+                {
+                    RequestImportPreview(event.FilePath);
+                }
+            }
         });
         m_FileWatcher->Start();
     }
@@ -55,6 +70,26 @@ namespace CB
     {
         CB_PROFILE_FUNCTION();
 
+        // Process pending import requests from FileWatcher
+        {
+            std::lock_guard<std::mutex> lock(s_PendingImportsMutex);
+            while (!s_PendingImports.empty())
+            {
+                auto path = s_PendingImports.front();
+                s_PendingImports.pop();
+                m_ImportPreviewPanel.OpenForFile(path);
+            }
+            while (!s_PendingReimports.empty())
+            {
+                auto request = s_PendingReimports.front();
+                s_PendingReimports.pop();
+                m_ImportPreviewPanel.OpenForReimport(request.AssetUUID);
+            }
+        }
+
+        // Process hot reload queue
+        AssetManager::ProcessReloadQueue();
+
         // Update scene (transform hierarchy, physics, etc.)
         Ref<Scene> scene = SceneManager::GetActiveScene();
         if (scene)
@@ -62,6 +97,9 @@ namespace CB
 
         // Update viewport (handles rendering)
         m_ViewportPanel.OnUpdate(ts);
+
+        // Update import preview panel
+        m_ImportPreviewPanel.OnUpdate(ts);
     }
 
     void EditorLayer::OnImGuiRender()
@@ -95,6 +133,7 @@ namespace CB
         m_ConsolePanel.OnImGuiRender();
         m_ProfilerPanel.OnImGuiRender();
         m_ContentBrowserPanel.OnImGuiRender();
+        m_ImportPreviewPanel.OnImGuiRender();
 
         EndDockspace();
     }
@@ -106,10 +145,25 @@ namespace CB
         m_ProfilerPanel.OnEvent(e);
         if (e.Handled) return;
 
+        m_ImportPreviewPanel.OnEvent(e);
+        if (e.Handled) return;
+
         m_ViewportPanel.OnEvent(e);
         if (e.Handled) return;
 
         m_ContentBrowserPanel.OnEvent(e);
+    }
+
+    void EditorLayer::RequestImportPreview(const std::filesystem::path& path)
+    {
+        std::lock_guard<std::mutex> lock(s_PendingImportsMutex);
+        s_PendingImports.push(path);
+    }
+
+    void EditorLayer::RequestImportPreviewReimport(const std::filesystem::path& path, UUID uuid)
+    {
+        std::lock_guard<std::mutex> lock(s_PendingImportsMutex);
+        s_PendingReimports.push({ path, uuid });
     }
 
     void EditorLayer::DrawMenuBar()
@@ -165,6 +219,7 @@ namespace CB
             if (ImGui::BeginMenu("Tools"))
             {
                 ImGui::MenuItem("Profiler", "F3", m_ProfilerPanel.GetVisiblePtr());
+                ImGui::MenuItem("Import Preview", nullptr, m_ImportPreviewPanel.GetVisiblePtr());
                 ImGui::EndMenu();
             }
 
