@@ -37,7 +37,8 @@ namespace CB
             {ShaderDataType::Float2, "a_TexCoord"},
             {ShaderDataType::Float3, "a_Tangent"},
             {ShaderDataType::Float3, "a_Bitangent"},
-            {ShaderDataType::Float3, "a_Color"}
+            {ShaderDataType::Float3, "a_Color"},
+            {ShaderDataType::Float, "a_PaletteIndex"}
         });
 
         m_VertexArray->AddVertexBuffer(vertexBuffer);
@@ -235,7 +236,8 @@ namespace CB
             {ShaderDataType::Float2, "a_TexCoord"},
             {ShaderDataType::Float3, "a_Tangent"},
             {ShaderDataType::Float3, "a_Bitangent"},
-            {ShaderDataType::Float3, "a_Color"}
+            {ShaderDataType::Float3, "a_Color"},
+            {ShaderDataType::Float, "a_PaletteIndex"}
         });
         m_VertexArray->AddVertexBuffer(vertexBuffer);
 

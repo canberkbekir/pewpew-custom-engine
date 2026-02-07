@@ -6,6 +6,7 @@
 #include "CBEngine/Core/UUID.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Utils/VoxelizerAPI.h"
+#include "CBEngine/Utils/VoxelPalette.h"
 
 #include <Voxelizer.h>
 #include <vector>
@@ -47,7 +48,7 @@ namespace CB
     {
     public:
         static constexpr uint32_t s_MeshMagic   = 0x43424D48; // "CBMH"
-        static constexpr uint32_t s_MeshVersion  = 1;
+        static constexpr uint32_t s_MeshVersion  = 2;
 
         ProcessedMeshAsset();
         ~ProcessedMeshAsset() override = default;
@@ -82,7 +83,7 @@ namespace CB
     {
     public:
         static constexpr uint32_t s_VmeshMagic   = 0x43425648; // "CBVM"
-        static constexpr uint32_t s_VmeshVersion  = 1;
+        static constexpr uint32_t s_VmeshVersion  = 3;
 
         VoxelMeshAsset();
         ~VoxelMeshAsset() override = default;
@@ -97,6 +98,15 @@ namespace CB
         UUID ColorTextureUUID;
         voxelizer::VoxelGrid GridData;
         uint64_t VoxelCount = 0;
+
+        // Palette data (v2+)
+        VoxelPalette Palette;
+        std::vector<uint8_t> PaletteIndices;
+        bool HasPalette = false;
+
+        // Per-voxel UVs for deferred texture sampling (v3+)
+        std::vector<Vector2> VoxelUVs;
+        bool HasUVs = false;
 
         // Slots
         std::vector<MaterialSlot> MaterialSlots;

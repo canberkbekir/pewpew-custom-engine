@@ -7,6 +7,7 @@ layout(location = 2) in vec2 a_TexCoord;
 layout(location = 3) in vec3 a_Tangent;
 layout(location = 4) in vec3 a_Bitangent;
 layout(location = 5) in vec3 a_Color;
+layout(location = 6) in float a_PaletteIndex;
 
 uniform mat4 u_ViewProjection;
 uniform mat4 u_Transform;
@@ -14,6 +15,7 @@ uniform mat4 u_Transform;
 out vec3 v_WorldPos;
 out vec2 v_TexCoord;
 out vec3 v_Color;
+out float v_PaletteIndex;
 out mat3 v_TBN;
 
 void main()
@@ -22,6 +24,7 @@ void main()
     v_WorldPos = worldPos.xyz;
     v_TexCoord = a_TexCoord;
     v_Color = a_Color;
+    v_PaletteIndex = a_PaletteIndex;
 
     // TBN matrix for normal mapping
     mat3 normalMatrix = transpose(inverse(mat3(u_Transform)));
@@ -42,6 +45,7 @@ const float PI = 3.14159265359;
 in vec3 v_WorldPos;
 in vec2 v_TexCoord;
 in vec3 v_Color;
+in float v_PaletteIndex;
 in mat3 v_TBN;
 
 // Textures
@@ -57,6 +61,11 @@ uniform int u_UseRoughnessMap;
 
 // When 1, vertex colors are the albedo (skip texture maps)
 uniform int u_UseVertexColor;
+
+// Palette mode (voxel palette coloring)
+uniform int u_UsePalette;
+uniform sampler2D u_PaletteColorMap;
+uniform sampler2D u_PaletteMaterialMap;
 
 // Material properties
 uniform vec3  u_Albedo;
@@ -141,8 +150,20 @@ void main()
     vec3 albedo;
     float metallic;
     float roughness;
+    float emission = 0.0;
 
-    if (u_UseVertexColor == 1)
+    if (u_UsePalette == 1)
+    {
+        // Palette mode: lookup color and material from 256x1 textures
+        float palU = (v_PaletteIndex + 0.5) / 256.0;
+        vec4 palColor = texture(u_PaletteColorMap, vec2(palU, 0.5));
+        vec4 palMat = texture(u_PaletteMaterialMap, vec2(palU, 0.5));
+        albedo = palColor.rgb;
+        metallic = palMat.r;
+        roughness = palMat.g;
+        emission = palMat.b;
+    }
+    else if (u_UseVertexColor == 1)
     {
         // Vertex colors are the albedo (voxel meshes with baked colors)
         // Skip texture maps since UVs don't match
@@ -209,6 +230,9 @@ void main()
     vec3 ambient = ambientLight * albedo * (0.6 + 0.4 * (1.0 - metallic)) + ambientSpec * ambientLight;
 
     vec3 color = ambient + direct;
+
+    // Emission contribution (from palette)
+    color += albedo * emission;
 
     color *= 1.2;
     color = ACESFilm(color);

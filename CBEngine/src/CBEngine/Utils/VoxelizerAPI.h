@@ -7,6 +7,8 @@
 #include "CBEngine/Renderer/Resources/Texture.h"
 #include "CBEngine/Renderer/Camera/Camera.h"
 
+#include "VoxelPalette.h"
+
 #include <Voxelizer.h>
 #include <unordered_map>
 
@@ -75,6 +77,12 @@ namespace CB
         uint32_t m_Width = 0;
         uint32_t m_Height = 0;
         int m_Channels = 0;
+    };
+
+    struct VoxelPaletteData
+    {
+        VoxelPalette Palette;
+        std::vector<uint8_t> PaletteIndices;
     };
 
     /// @brief Static utility API for converting 3D meshes into voxel representations
@@ -164,6 +172,19 @@ namespace CB
                                                          const String& texturePath,
                                                          const VoxelizeSettings& settings = {});
 
+        /// @brief Voxelize with colors and return per-voxel color array
+        /// @param vertices Vertex data (must include valid TexCoords)
+        /// @param indices Triangle index array
+        /// @param texturePath Path to texture file
+        /// @param settings Voxelization configuration
+        /// @param outVoxelColors Receives per-filled-voxel RGB colors
+        /// @return VoxelMeshData (Mesh may be null if CreateGPUMesh is false)
+        static VoxelMeshData VoxelizeWithColorsAndOutput(const std::vector<Vertex>& vertices,
+                                                          const std::vector<uint32_t>& indices,
+                                                          const String& texturePath,
+                                                          const VoxelizeSettings& settings,
+                                                          std::vector<Vector3>& outVoxelColors);
+
         // ============ MESH CREATION ============
 
         /// @brief Create renderable mesh from voxel grid with per-voxel colors
@@ -183,6 +204,40 @@ namespace CB
         /// @param color RGB color for all voxels (0-1 range)
         /// @return Renderable Mesh, or nullptr if no filled voxels
         static Ref<Mesh> CreateMeshFromGrid(const voxelizer::VoxelGrid& grid, const Vector3& color);
+
+        // ============ UV COMPUTATION ============
+
+        /// @brief Voxelize and compute per-voxel average UVs
+        /// @param vertices Vertex data (must include valid TexCoords)
+        /// @param indices Triangle index array
+        /// @param settings Voxelization configuration
+        /// @param outVoxelUVs Receives per-filled-voxel average UV coordinates
+        /// @return VoxelMeshData (Mesh may be null if CreateGPUMesh is false)
+        static VoxelMeshData VoxelizeWithUVs(const std::vector<Vertex>& vertices,
+                                              const std::vector<uint32_t>& indices,
+                                              const VoxelizeSettings& settings,
+                                              std::vector<Vector2>& outVoxelUVs);
+
+        /// @brief Build palette by sampling a texture at per-voxel UVs
+        /// @param voxelUVs One UV per filled voxel
+        /// @param texturePath Path to texture file (PNG, JPG, TGA)
+        /// @return Palette and per-voxel palette indices (empty if texture fails to load)
+        static VoxelPaletteData BuildPaletteFromUVs(const std::vector<Vector2>& voxelUVs,
+                                                     const String& texturePath);
+
+        // ============ PALETTE METHODS ============
+
+        /// @brief Quantize per-voxel colors into a 256-entry palette
+        /// @param voxelColors One RGB color per filled voxel
+        /// @return Palette and per-voxel palette indices
+        static VoxelPaletteData BuildPaletteFromColors(const std::vector<Vector3>& voxelColors);
+
+        /// @brief Create renderable mesh from voxel grid with palette indices
+        /// @param grid Voxel grid data
+        /// @param paletteIndices One palette index per filled voxel
+        /// @return Renderable Mesh with PaletteIndex set per vertex, or nullptr if empty
+        static Ref<Mesh> CreatePaletteMeshFromGrid(const voxelizer::VoxelGrid& grid,
+                                                    const std::vector<uint8_t>& paletteIndices);
 
         // ============ QUERY METHODS ============
 
@@ -212,6 +267,13 @@ namespace CB
         /// @param color Albedo RGB color (default: light gray)
         /// @return Material with roughness=0.7, metallic=0.0
         static Ref<Material> CreateVoxelMaterial(const Vector3& color = Vector3(0.8f, 0.8f, 0.8f));
+
+        /// @brief Compute per-voxel average UVs from triangle-voxel intersections
+        static void ComputeVoxelUVs(const voxelizer::VoxelGrid& grid,
+                                     const std::vector<Vertex>& vertices,
+                                     const std::vector<uint32_t>& indices,
+                                     std::unordered_map<uint64_t, Vector2>& uvSumMap,
+                                     std::unordered_map<uint64_t, int>& uvCountMap);
 
     private:
         /// @brief Generate unit cube geometry (called by Init)

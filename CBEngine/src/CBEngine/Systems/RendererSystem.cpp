@@ -99,7 +99,8 @@ namespace CB
 			if (!shader || !material)
 				continue;
 
-			Renderer3D::Submit(shader, material, vr.MeshAsset, tc.GetTransform(), (int)(uint32_t)e, true);
+			Renderer3D::Submit(shader, material, vr.MeshAsset, tc.GetTransform(), (int)(uint32_t)e,
+				!vr.HasPalette, vr.PaletteColorTexture, vr.PaletteMaterialTexture);
 		}
 	}
 

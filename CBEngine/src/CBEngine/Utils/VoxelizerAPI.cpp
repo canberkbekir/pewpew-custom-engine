@@ -585,6 +585,307 @@ namespace CB
         return CreateRef<Mesh>(vertices, indices);
     }
 
+    VoxelMeshData VoxelizerAPI::VoxelizeWithColorsAndOutput(const std::vector<Vertex>& vertices,
+                                                              const std::vector<uint32_t>& indices,
+                                                              const String& texturePath,
+                                                              const VoxelizeSettings& settings,
+                                                              std::vector<Vector3>& outVoxelColors)
+    {
+        CB_PROFILE_FUNCTION();
+
+        if (!s_Initialized)
+            Init();
+
+        VoxelMeshData result;
+
+        TextureSampler texture;
+        if (!texture.Load(texturePath))
+        {
+            CB_CORE_WARN("VoxelizerAPI: Failed to load texture, using default colors");
+            return Voxelize(vertices, indices, settings);
+        }
+
+        std::vector<glm::vec3> positions;
+        positions.reserve(vertices.size());
+        for (const auto& v : vertices)
+            positions.push_back(v.Position);
+
+        voxelizer::Voxelizer vox(settings.GridSize);
+        if (settings.VoxelSize > 0.0f)
+            vox.SetVoxelSize(settings.VoxelSize);
+        vox.SetPadding(settings.Padding);
+
+        {
+            CB_PROFILE_SCOPE("Voxelizer::Voxelize");
+            result.Grid = vox.Voxelize(positions, indices, settings.Solid);
+        }
+
+        result.VoxelCount = result.Grid.CountFilled();
+
+        std::unordered_map<uint64_t, Vector3> colorSumMap;
+        std::unordered_map<uint64_t, int> colorCountMap;
+
+        {
+            CB_PROFILE_SCOPE("ComputeVoxelColors");
+            ComputeVoxelColors(result.Grid, vertices, indices, texture, colorSumMap, colorCountMap);
+        }
+
+        auto filledCoords = result.Grid.GetFilledCoords();
+        outVoxelColors.clear();
+        outVoxelColors.reserve(filledCoords.size());
+
+        for (const auto& coord : filledCoords)
+        {
+            uint64_t idx = result.Grid.CoordToIndex(coord);
+            auto it = colorCountMap.find(idx);
+            if (it != colorCountMap.end() && it->second > 0)
+                outVoxelColors.push_back(colorSumMap[idx] / static_cast<float>(it->second));
+            else
+                outVoxelColors.push_back(Vector3(0.5f, 0.5f, 0.5f));
+        }
+
+        if (settings.CreateGPUMesh)
+        {
+            CB_PROFILE_SCOPE("CreateColoredMeshFromGrid");
+            result.Mesh = CreateColoredMeshFromGrid(result.Grid, outVoxelColors);
+        }
+
+        return result;
+    }
+
+    // ============================================================================
+    // UV Computation
+    // ============================================================================
+
+    void VoxelizerAPI::ComputeVoxelUVs(const voxelizer::VoxelGrid& grid,
+                                        const std::vector<Vertex>& vertices,
+                                        const std::vector<uint32_t>& indices,
+                                        std::unordered_map<uint64_t, Vector2>& uvSumMap,
+                                        std::unordered_map<uint64_t, int>& uvCountMap)
+    {
+        glm::vec3 halfSize = grid.voxelSize * 0.5f;
+        float boxhalfsize[3] = {halfSize.x, halfSize.y, halfSize.z};
+
+        for (size_t i = 0; i + 2 < indices.size(); i += 3)
+        {
+            const Vertex& v0 = vertices[indices[i]];
+            const Vertex& v1 = vertices[indices[i + 1]];
+            const Vertex& v2 = vertices[indices[i + 2]];
+
+            Vector2 centerUV = (v0.TexCoords + v1.TexCoords + v2.TexCoords) / 3.0f;
+
+            glm::vec3 triMin = glm::min(glm::min(v0.Position, v1.Position), v2.Position);
+            glm::vec3 triMax = glm::max(glm::max(v0.Position, v1.Position), v2.Position);
+
+            glm::ivec3 voxMin = grid.WorldToVoxel(triMin);
+            glm::ivec3 voxMax = grid.WorldToVoxel(triMax);
+
+            voxMin = glm::max(voxMin, glm::ivec3(0));
+            voxMax = glm::min(voxMax, grid.size - 1);
+
+            float triverts[3][3] = {
+                {v0.Position.x, v0.Position.y, v0.Position.z},
+                {v1.Position.x, v1.Position.y, v1.Position.z},
+                {v2.Position.x, v2.Position.y, v2.Position.z}
+            };
+
+            for (int x = voxMin.x; x <= voxMax.x; ++x)
+            {
+                for (int y = voxMin.y; y <= voxMax.y; ++y)
+                {
+                    for (int z = voxMin.z; z <= voxMax.z; ++z)
+                    {
+                        uint64_t voxelIdx = grid.CoordToIndex(x, y, z);
+
+                        if (!grid.IsFilled(voxelIdx))
+                            continue;
+
+                        glm::vec3 center = grid.VoxelCenterToWorld(glm::ivec3(x, y, z));
+                        float boxcenter[3] = {center.x, center.y, center.z};
+
+                        if (voxelizer::TriBoxOverlap(boxcenter, boxhalfsize, triverts))
+                        {
+                            uvSumMap[voxelIdx] += centerUV;
+                            uvCountMap[voxelIdx]++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    VoxelMeshData VoxelizerAPI::VoxelizeWithUVs(const std::vector<Vertex>& vertices,
+                                                  const std::vector<uint32_t>& indices,
+                                                  const VoxelizeSettings& settings,
+                                                  std::vector<Vector2>& outVoxelUVs)
+    {
+        CB_PROFILE_FUNCTION();
+
+        if (!s_Initialized)
+            Init();
+
+        VoxelMeshData result;
+
+        std::vector<glm::vec3> positions;
+        positions.reserve(vertices.size());
+        for (const auto& v : vertices)
+            positions.push_back(v.Position);
+
+        voxelizer::Voxelizer vox(settings.GridSize);
+        if (settings.VoxelSize > 0.0f)
+            vox.SetVoxelSize(settings.VoxelSize);
+        vox.SetPadding(settings.Padding);
+
+        {
+            CB_PROFILE_SCOPE("Voxelizer::Voxelize");
+            result.Grid = vox.Voxelize(positions, indices, settings.Solid);
+        }
+
+        result.VoxelCount = result.Grid.CountFilled();
+
+        // Compute per-voxel average UVs
+        std::unordered_map<uint64_t, Vector2> uvSumMap;
+        std::unordered_map<uint64_t, int> uvCountMap;
+
+        {
+            CB_PROFILE_SCOPE("ComputeVoxelUVs");
+            ComputeVoxelUVs(result.Grid, vertices, indices, uvSumMap, uvCountMap);
+        }
+
+        auto filledCoords = result.Grid.GetFilledCoords();
+        outVoxelUVs.clear();
+        outVoxelUVs.reserve(filledCoords.size());
+
+        for (const auto& coord : filledCoords)
+        {
+            uint64_t idx = result.Grid.CoordToIndex(coord);
+            auto it = uvCountMap.find(idx);
+            if (it != uvCountMap.end() && it->second > 0)
+                outVoxelUVs.push_back(uvSumMap[idx] / static_cast<float>(it->second));
+            else
+                outVoxelUVs.push_back(Vector2(0.5f, 0.5f));
+        }
+
+        if (settings.CreateGPUMesh)
+        {
+            CB_PROFILE_SCOPE("CreateMeshFromGrid");
+            result.Mesh = CreateMeshFromGrid(result.Grid);
+        }
+
+        return result;
+    }
+
+    VoxelPaletteData VoxelizerAPI::BuildPaletteFromUVs(const std::vector<Vector2>& voxelUVs,
+                                                        const String& texturePath)
+    {
+        CB_PROFILE_FUNCTION();
+
+        TextureSampler texture;
+        if (!texture.Load(texturePath))
+        {
+            CB_CORE_WARN("VoxelizerAPI::BuildPaletteFromUVs: Failed to load texture {0}", texturePath);
+            return {};
+        }
+
+        // Sample texture at each UV to get colors
+        std::vector<Vector3> colors;
+        colors.reserve(voxelUVs.size());
+        for (const auto& uv : voxelUVs)
+            colors.push_back(texture.SampleBilinear(uv));
+
+        return BuildPaletteFromColors(colors);
+    }
+
+    // ============================================================================
+    // Palette Methods
+    // ============================================================================
+
+    VoxelPaletteData VoxelizerAPI::BuildPaletteFromColors(const std::vector<Vector3>& voxelColors)
+    {
+        CB_PROFILE_FUNCTION();
+
+        VoxelPaletteData data;
+        data.PaletteIndices.reserve(voxelColors.size());
+
+        static constexpr float MatchThreshold = 0.02f * 0.02f; // squared RGB distance
+
+        for (const auto& color : voxelColors)
+        {
+            // Try to find existing close entry
+            uint8_t bestIdx = data.Palette.FindClosestEntry(color);
+            Vector3 diff = data.Palette.GetEntry(bestIdx).Color - color;
+            float dist = glm::dot(diff, diff);
+
+            if (dist <= MatchThreshold || data.Palette.GetUsedCount() >= VoxelPalette::MaxEntries)
+            {
+                data.PaletteIndices.push_back(bestIdx);
+            }
+            else
+            {
+                VoxelPaletteEntry entry;
+                entry.Color = color;
+                uint8_t newIdx = data.Palette.AddEntry(entry);
+                data.PaletteIndices.push_back(newIdx);
+            }
+        }
+
+        return data;
+    }
+
+    Ref<Mesh> VoxelizerAPI::CreatePaletteMeshFromGrid(const voxelizer::VoxelGrid& grid,
+                                                       const std::vector<uint8_t>& paletteIndices)
+    {
+        CB_PROFILE_FUNCTION();
+
+        if (!s_Initialized)
+            Init();
+
+        auto filledCoords = grid.GetFilledCoords();
+
+        if (filledCoords.size() != paletteIndices.size())
+        {
+            CB_CORE_ERROR("VoxelizerAPI: Palette index count mismatch! {0} voxels, {1} indices",
+                          filledCoords.size(), paletteIndices.size());
+            return nullptr;
+        }
+
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+        vertices.reserve(filledCoords.size() * 24);
+        indices.reserve(filledCoords.size() * 36);
+
+        glm::vec3 voxelSize = grid.voxelSize;
+
+        for (size_t i = 0; i < filledCoords.size(); ++i)
+        {
+            const auto& coord = filledCoords[i];
+            float palIdx = static_cast<float>(paletteIndices[i]);
+
+            glm::vec3 center = grid.VoxelCenterToWorld(coord);
+            uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
+
+            for (const auto& cubeVertex : s_UnitCubeVertices)
+            {
+                Vertex v = cubeVertex;
+                v.Position = center + Vector3(cubeVertex.Position) * voxelSize;
+                v.Color = Vector3(1.0f);
+                v.PaletteIndex = palIdx;
+                vertices.push_back(v);
+            }
+
+            for (uint32_t idx : s_UnitCubeIndices)
+                indices.push_back(baseVertex + idx);
+        }
+
+        if (vertices.empty())
+        {
+            CB_CORE_WARN("VoxelizerAPI::CreatePaletteMeshFromGrid: No filled voxels");
+            return nullptr;
+        }
+
+        return CreateRef<Mesh>(vertices, indices);
+    }
+
     // ============================================================================
     // Standard Methods
     // ============================================================================

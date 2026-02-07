@@ -113,7 +113,7 @@ namespace CB
             return nullptr;
         }
         reader >> version;
-        if (version != s_MeshVersion)
+        if (version != 1 && version != 2)
         {
             CB_CORE_ERROR("ProcessedMeshAsset: Unsupported version {0} in {1}", version, filePath.string());
             return nullptr;
@@ -153,7 +153,20 @@ namespace CB
         if (vertexCount > 0)
         {
             asset->Vertices.resize(vertexCount);
-            reader.ReadBytes(asset->Vertices.data(), vertexCount * sizeof(Vertex));
+            if (version == 1)
+            {
+                // v1 Vertex was 68 bytes (no PaletteIndex field)
+                static constexpr size_t OldVertexSize = 68;
+                for (uint32_t i = 0; i < vertexCount; i++)
+                {
+                    reader.ReadBytes(&asset->Vertices[i], OldVertexSize);
+                    asset->Vertices[i].PaletteIndex = 0.0f;
+                }
+            }
+            else
+            {
+                reader.ReadBytes(asset->Vertices.data(), vertexCount * sizeof(Vertex));
+            }
         }
         if (indexCount > 0)
         {
@@ -256,6 +269,24 @@ namespace CB
         writer << VoxelCount;
         writer << GridData.data; // vector<uint64_t> - uses BinaryIO vector serialization
 
+        // Palette data (v2+)
+        writer << (uint8_t)(HasPalette ? 1 : 0);
+        if (HasPalette)
+        {
+            Palette.Serialize(writer);
+            writer << PaletteIndices;
+        }
+
+        // Per-voxel UVs (v3+)
+        writer << (uint8_t)(HasUVs ? 1 : 0);
+        if (HasUVs)
+        {
+            uint32_t uvCount = static_cast<uint32_t>(VoxelUVs.size());
+            writer << uvCount;
+            if (uvCount > 0)
+                writer.WriteBytes(VoxelUVs.data(), uvCount * sizeof(Vector2));
+        }
+
         return true;
     }
 
@@ -280,7 +311,7 @@ namespace CB
             return nullptr;
         }
         reader >> version;
-        if (version != s_VmeshVersion)
+        if (version < 1 || version > 3)
         {
             CB_CORE_ERROR("VoxelMeshAsset: Unsupported version {0} in {1}", version, filePath.string());
             return nullptr;
@@ -337,6 +368,37 @@ namespace CB
         reader >> asset->VoxelCount;
         reader >> asset->GridData.data; // vector<uint64_t>
 
+        // Palette data (v2+)
+        if (version >= 2)
+        {
+            uint8_t hasPalette = 0;
+            reader >> hasPalette;
+            asset->HasPalette = hasPalette != 0;
+            if (asset->HasPalette)
+            {
+                asset->Palette.Deserialize(reader);
+                reader >> asset->PaletteIndices;
+            }
+        }
+
+        // Per-voxel UVs (v3+)
+        if (version >= 3)
+        {
+            uint8_t hasUVs = 0;
+            reader >> hasUVs;
+            asset->HasUVs = hasUVs != 0;
+            if (asset->HasUVs)
+            {
+                uint32_t uvCount = 0;
+                reader >> uvCount;
+                if (uvCount > 0)
+                {
+                    asset->VoxelUVs.resize(uvCount);
+                    reader.ReadBytes(asset->VoxelUVs.data(), uvCount * sizeof(Vector2));
+                }
+            }
+        }
+
         return asset;
     }
 
@@ -358,6 +420,11 @@ namespace CB
         VoxelCount = reloaded->VoxelCount;
         MaterialSlots = reloaded->MaterialSlots;
         TextureSlots = reloaded->TextureSlots;
+        Palette = reloaded->Palette;
+        PaletteIndices = std::move(reloaded->PaletteIndices);
+        HasPalette = reloaded->HasPalette;
+        VoxelUVs = std::move(reloaded->VoxelUVs);
+        HasUVs = reloaded->HasUVs;
         return true;
     }
 }

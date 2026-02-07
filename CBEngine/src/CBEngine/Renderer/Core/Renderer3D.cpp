@@ -43,7 +43,9 @@ namespace CB
     }
 
     void Renderer3D::Submit(const Ref<Shader>& shader, const Ref<Material>& material, const Ref<Mesh>& mesh,
-                            const Mat4& transform, int entityID, bool useVertexColor)
+                            const Mat4& transform, int entityID, bool useVertexColor,
+                            const Ref<Texture2D>& paletteColorTex,
+                            const Ref<Texture2D>& paletteMaterialTex)
     {
         CB_PROFILE_FUNCTION();
         using namespace ShaderUniforms;
@@ -58,8 +60,23 @@ namespace CB
         // Entity ID for picking
         shader->SetInt(EntityID, entityID);
 
-        // Vertex color mode (voxel meshes use baked vertex colors as albedo)
-        shader->SetInt(UseVertexColor, useVertexColor ? 1 : 0);
+        // Palette mode
+        bool usePalette = paletteColorTex && paletteMaterialTex;
+        shader->SetInt(UsePalette, usePalette ? 1 : 0);
+        if (usePalette)
+        {
+            paletteColorTex->Bind(4);
+            paletteMaterialTex->Bind(5);
+            shader->SetInt(PaletteColorMap, 4);
+            shader->SetInt(PaletteMaterialMap, 5);
+            // Palette mode overrides vertex color mode
+            shader->SetInt(UseVertexColor, 0);
+        }
+        else
+        {
+            // Vertex color mode (voxel meshes use baked vertex colors as albedo)
+            shader->SetInt(UseVertexColor, useVertexColor ? 1 : 0);
+        }
 
         // Upload light uniforms
         shader->SetFloat3(LightDirection, s_SceneData->LightDirection);

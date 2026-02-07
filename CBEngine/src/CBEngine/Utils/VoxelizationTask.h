@@ -5,6 +5,7 @@
 #include "CBEngine/Math/CoreMath.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
 #include "VoxelizerAPI.h"
+#include "VoxelPalette.h"
 
 #include <future>
 #include <atomic>
@@ -25,8 +26,14 @@ namespace CB
     {
         voxelizer::VoxelGrid Grid;
         std::vector<Vector3> VoxelColors;
+        std::vector<Vector2> VoxelUVs;
         uint64_t VoxelCount = 0;
         bool HasColors = false;
+        bool HasUVs = false;
+
+        VoxelPalette Palette;
+        std::vector<uint8_t> PaletteIndices;
+        bool HasPalette = false;
     };
 
     class VoxelizationTask
@@ -61,6 +68,7 @@ namespace CB
         // Create mesh from result (main thread only - OpenGL calls)
         Ref<Mesh> CreateMeshFromResult();
         Ref<Mesh> CreateColoredMeshFromResult();
+        Ref<Mesh> CreatePaletteMeshFromResult();
 
         // Cancel a running task
         void Cancel();

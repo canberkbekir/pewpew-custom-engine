@@ -3,6 +3,7 @@
 #include "CBEngine/Renderer/Resources/Shader.h"
 #include "CBEngine/Renderer/Resources/Material.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
+#include "CBEngine/Renderer/Resources/Texture.h"
 
 namespace CB
 {
@@ -17,7 +18,9 @@ namespace CB
 
         // PBR submit with Material
         static void Submit(const Ref<Shader>& shader, const Ref<Material>& material, const Ref<Mesh>& mesh,
-                           const Mat4& transform = Mat4(1.0f), int entityID = -1, bool useVertexColor = false);
+                           const Mat4& transform = Mat4(1.0f), int entityID = -1, bool useVertexColor = false,
+                           const Ref<Texture2D>& paletteColorTex = nullptr,
+                           const Ref<Texture2D>& paletteMaterialTex = nullptr);
 
         // Light configuration
         static void SetDirectionalLight(const Vector3& direction, const Vector3& color, float intensity);

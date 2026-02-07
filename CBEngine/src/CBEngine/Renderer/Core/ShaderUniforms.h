@@ -31,6 +31,11 @@ namespace CB::ShaderUniforms
     // Vertex color mode (voxel meshes with baked colors)
     inline constexpr auto UseVertexColor = "u_UseVertexColor";
 
+    // Palette mode (voxel palette coloring)
+    inline constexpr auto UsePalette = "u_UsePalette";
+    inline constexpr auto PaletteColorMap = "u_PaletteColorMap";
+    inline constexpr auto PaletteMaterialMap = "u_PaletteMaterialMap";
+
     // Material properties
     inline constexpr auto Albedo = "u_Albedo";
     inline constexpr auto Metallic = "u_Metallic";

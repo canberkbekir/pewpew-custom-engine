@@ -9,6 +9,7 @@
 #include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Renderer/Resources/Shader.h"
 #include "CBEngine/Renderer/Resources/Material.h"
+#include "CBEngine/Renderer/Resources/Texture.h"
 #include "CBEngine/Utils/VoxelizationTask.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 
@@ -79,6 +80,11 @@ namespace CB
 		VoxelizationTask m_VoxelTask;
 		VoxelizeSettings m_VoxelSettings;
 		bool m_GenerateVoxelMesh = false;
+
+		// Preview palette textures
+		Ref<Texture2D> m_PreviewPaletteColorTex;
+		Ref<Texture2D> m_PreviewPaletteMaterialTex;
+		bool m_PreviewHasPalette = false;
 
 		// Color texture for voxelization
 		UUID m_ColorTextureUUID;

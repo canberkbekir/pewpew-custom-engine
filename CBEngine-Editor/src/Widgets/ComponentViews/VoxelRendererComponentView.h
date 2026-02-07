@@ -45,20 +45,24 @@ namespace CB
 				if (AssetPicker::DrawVoxelMesh("Voxel Mesh", voxelRenderer.VoxelMeshUUID))
 				{
 					voxelRenderer.MeshAsset = nullptr;
+					voxelRenderer.HasPalette = false;
+					voxelRenderer.PaletteColorTexture = nullptr;
+					voxelRenderer.PaletteMaterialTexture = nullptr;
 					if (voxelRenderer.VoxelMeshUUID.IsValid())
-					{
-						auto vmAsset = AssetManager::GetAsset<VoxelMeshAsset>(voxelRenderer.VoxelMeshUUID);
-						if (vmAsset && vmAsset->VoxelCount > 0)
-						{
-							voxelRenderer.MeshAsset = VoxelizerAPI::CreateMeshFromGrid(vmAsset->GridData);
-							voxelRenderer.VoxelSettings = vmAsset->VoxelSettings;
-						}
-					}
+						voxelRenderer.ResolveAssets();
 				}
 				if (voxelRenderer.MeshAsset)
 				{
 					ImGui::SameLine();
 					ImGui::TextDisabled("(%u tris)", voxelRenderer.MeshAsset->GetIndexCount() / 3);
+				}
+
+				// Color Texture picker (samples UVs to build voxel palette)
+				if (AssetPicker::DrawTexture("Color Texture", voxelRenderer.ColorTextureUUID))
+				{
+					// Re-resolve to rebuild palette from new texture
+					if (voxelRenderer.VoxelMeshUUID.IsValid())
+						voxelRenderer.ResolveAssets();
 				}
 
 				// Material picker

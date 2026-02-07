@@ -8,6 +8,7 @@ namespace CB
     public:
         OpenGLTexture2D(const String& path);
         OpenGLTexture2D(uint32_t width, uint32_t height, uint32_t color);
+        OpenGLTexture2D(uint32_t width, uint32_t height, const void* data, bool nearest);
         ~OpenGLTexture2D() override;
 
         uint32_t GetWidth() const override { return m_Width; }

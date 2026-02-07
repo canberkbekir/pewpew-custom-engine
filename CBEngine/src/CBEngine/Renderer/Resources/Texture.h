@@ -21,6 +21,7 @@ namespace CB
     public:
         static Ref<Texture2D> Create(String path);
         static Ref<Texture2D> Create(uint32_t width, uint32_t height, uint32_t color);
+        static Ref<Texture2D> CreateFromData(uint32_t width, uint32_t height, const void* data, bool nearest = false);
 
         static AssetType GetStaticType() { return AssetType::Texture2D; }
     };

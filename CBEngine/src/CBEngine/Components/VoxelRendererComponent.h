@@ -5,6 +5,7 @@
 #include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Renderer/Resources/Material.h"
 #include "CBEngine/Renderer/Resources/Shader.h"
+#include "CBEngine/Renderer/Resources/Texture.h"
 #include "CBEngine/Utils/VoxelizerAPI.h"
 
 namespace YAML { class Emitter; class Node; }
@@ -25,7 +26,13 @@ namespace CB {
 
 		// Voxel-specific
 		UUID VoxelMeshUUID = UUID(0);  // .vmesh asset UUID
+		UUID ColorTextureUUID = UUID(0); // Texture to sample for voxel colors
 		VoxelizeSettings VoxelSettings;
+
+		// Palette textures (for GPU rendering)
+		Ref<Texture2D> PaletteColorTexture;
+		Ref<Texture2D> PaletteMaterialTexture;
+		bool HasPalette = false;
 
 		bool Visible = true;
 

@@ -17,6 +17,7 @@ namespace CB
         Vector3 Tangent;
         Vector3 Bitangent;
         Vector3 Color = Vector3(1.0f);  // Vertex color (default white)
+        float PaletteIndex = 0.0f;     // Palette index for voxel coloring (0-255)
     };
 
     class Mesh : public Asset

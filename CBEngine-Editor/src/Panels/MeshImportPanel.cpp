@@ -189,7 +189,25 @@ namespace CB
 		// Poll voxel task completion (only create mesh once)
 		if (m_VoxelTask.IsComplete() && !m_VoxelMesh)
 		{
-			m_VoxelMesh = m_VoxelTask.CreateMeshFromResult();
+			const auto& result = m_VoxelTask.GetResult();
+			// Prefer palette mesh if palette data is available
+			if (result.HasPalette)
+			{
+				m_VoxelMesh = m_VoxelTask.CreatePaletteMeshFromResult();
+
+				// Create palette textures for preview
+				std::vector<uint8_t> colorData, materialData;
+				result.Palette.GenerateColorTextureData(colorData);
+				result.Palette.GenerateMaterialTextureData(materialData);
+				m_PreviewPaletteColorTex = Texture2D::CreateFromData(256, 1, colorData.data(), true);
+				m_PreviewPaletteMaterialTex = Texture2D::CreateFromData(256, 1, materialData.data(), true);
+				m_PreviewHasPalette = true;
+			}
+			else
+			{
+				m_VoxelMesh = m_VoxelTask.CreateMeshFromResult();
+				m_PreviewHasPalette = false;
+			}
 		}
 
 		// Update raw camera
@@ -264,7 +282,8 @@ namespace CB
 				m_RawCameraController.GetCamera().GetPosition());
 			Renderer3D::SetDirectionalLight(Vector3(-0.5f, -1.0f, -0.3f), Vector3(1.0f), 1.5f);
 			Renderer3D::SetAmbientLight(Vector3(0.15f));
-			Renderer3D::Submit(m_PreviewShader, m_PreviewMaterial, m_VoxelMesh, rotation);
+			Renderer3D::Submit(m_PreviewShader, m_PreviewMaterial, m_VoxelMesh, rotation,
+				-1, false, m_PreviewPaletteColorTex, m_PreviewPaletteMaterialTex);
 			Renderer3D::EndScene();
 
 			m_VoxelFramebuffer->Unbind();
@@ -585,8 +604,11 @@ namespace CB
 		if (!m_GenerateVoxelMesh)
 			return;
 
-		// Clear old mesh so OnUpdate picks up the new result when ready
+		// Clear old mesh and palette so OnUpdate picks up the new result when ready
 		m_VoxelMesh = nullptr;
+		m_PreviewPaletteColorTex = nullptr;
+		m_PreviewPaletteMaterialTex = nullptr;
+		m_PreviewHasPalette = false;
 
 		CB_CORE_INFO("MeshImportPanel: Starting voxel preview regeneration");
 
@@ -626,6 +648,21 @@ namespace CB
 			const auto& result = m_VoxelTask.GetResult();
 			asset->GridData = result.Grid;
 			asset->VoxelCount = result.VoxelCount;
+
+			// Store palette data
+			if (result.HasPalette)
+			{
+				asset->Palette = result.Palette;
+				asset->PaletteIndices = result.PaletteIndices;
+				asset->HasPalette = true;
+			}
+
+			// Store per-voxel UVs for deferred texture sampling
+			if (result.HasUVs)
+			{
+				asset->VoxelUVs = result.VoxelUVs;
+				asset->HasUVs = true;
+			}
 		}
 
 		if (asset->Save(outputPath))

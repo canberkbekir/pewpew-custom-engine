@@ -127,13 +127,17 @@ namespace CB
                 // Skip GPU mesh creation - no OpenGL context on background thread
                 auto taskSettings = settings;
                 taskSettings.CreateGPUMesh = false;
-                auto data = VoxelizerAPI::Voxelize(vertices, indices, taskSettings);
+
+                std::vector<Vector2> voxelUVs;
+                auto data = VoxelizerAPI::VoxelizeWithUVs(vertices, indices, taskSettings, voxelUVs);
 
                 if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
 
                 m_Result.Grid = data.Grid;
                 m_Result.VoxelCount = data.VoxelCount;
                 m_Result.HasColors = false;
+                m_Result.VoxelUVs = std::move(voxelUVs);
+                m_Result.HasUVs = !m_Result.VoxelUVs.empty();
                 m_Status = VoxelTaskStatus::Completed;
             }
             catch (const std::exception& e)
@@ -159,16 +163,63 @@ namespace CB
         {
             try
             {
+                // Load mesh data first
+                std::vector<Vertex> vertices;
+                std::vector<uint32_t> indices;
+                LoadMeshData(meshPath, vertices, indices);
+
+                if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
+
+                if (vertices.empty())
+                {
+                    CB_CORE_ERROR("VoxelizationTask: No vertices loaded from {0}", meshPath);
+                    m_Status = VoxelTaskStatus::Failed;
+                    return;
+                }
+
                 // Skip GPU mesh creation - no OpenGL context on background thread
                 auto taskSettings = settings;
                 taskSettings.CreateGPUMesh = false;
-                auto data = VoxelizerAPI::VoxelizeFromFileWithColors(meshPath, texturePath, taskSettings);
+
+                std::vector<Vector3> voxelColors;
+                auto data = VoxelizerAPI::VoxelizeWithColorsAndOutput(
+                    vertices, indices, texturePath, taskSettings, voxelColors);
 
                 if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
 
                 m_Result.Grid = data.Grid;
                 m_Result.VoxelCount = data.VoxelCount;
-                m_Result.HasColors = false; // Colors are baked into the mesh by VoxelizerAPI
+                m_Result.VoxelColors = std::move(voxelColors);
+                m_Result.HasColors = !m_Result.VoxelColors.empty();
+
+                // Build palette from colors
+                if (m_Result.HasColors)
+                {
+                    auto paletteData = VoxelizerAPI::BuildPaletteFromColors(m_Result.VoxelColors);
+                    m_Result.Palette = paletteData.Palette;
+                    m_Result.PaletteIndices = std::move(paletteData.PaletteIndices);
+                    m_Result.HasPalette = true;
+                }
+
+                // Also compute UVs for later texture assignment
+                std::unordered_map<uint64_t, Vector2> uvSumMap;
+                std::unordered_map<uint64_t, int> uvCountMap;
+                VoxelizerAPI::ComputeVoxelUVs(data.Grid, vertices, indices, uvSumMap, uvCountMap);
+
+                auto filledCoords = data.Grid.GetFilledCoords();
+                m_Result.VoxelUVs.clear();
+                m_Result.VoxelUVs.reserve(filledCoords.size());
+                for (const auto& coord : filledCoords)
+                {
+                    uint64_t idx = data.Grid.CoordToIndex(coord);
+                    auto it = uvCountMap.find(idx);
+                    if (it != uvCountMap.end() && it->second > 0)
+                        m_Result.VoxelUVs.push_back(uvSumMap[idx] / static_cast<float>(it->second));
+                    else
+                        m_Result.VoxelUVs.push_back(Vector2(0.5f, 0.5f));
+                }
+                m_Result.HasUVs = !m_Result.VoxelUVs.empty();
+
                 m_Status = VoxelTaskStatus::Completed;
             }
             catch (const std::exception& e)
@@ -201,13 +252,17 @@ namespace CB
                 // Skip GPU mesh creation - no OpenGL context on background thread
                 auto taskSettings = settings;
                 taskSettings.CreateGPUMesh = false;
-                auto data = VoxelizerAPI::Voxelize(*verticesCopy, *indicesCopy, taskSettings);
+
+                std::vector<Vector2> voxelUVs;
+                auto data = VoxelizerAPI::VoxelizeWithUVs(*verticesCopy, *indicesCopy, taskSettings, voxelUVs);
 
                 if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
 
                 m_Result.Grid = data.Grid;
                 m_Result.VoxelCount = data.VoxelCount;
                 m_Result.HasColors = false;
+                m_Result.VoxelUVs = std::move(voxelUVs);
+                m_Result.HasUVs = !m_Result.VoxelUVs.empty();
                 m_Status = VoxelTaskStatus::Completed;
             }
             catch (const std::exception& e)
@@ -240,13 +295,46 @@ namespace CB
                 // Skip GPU mesh creation - no OpenGL context on background thread
                 auto taskSettings = settings;
                 taskSettings.CreateGPUMesh = false;
-                auto data = VoxelizerAPI::VoxelizeWithColors(*verticesCopy, *indicesCopy, texturePath, taskSettings);
+
+                std::vector<Vector3> voxelColors;
+                auto data = VoxelizerAPI::VoxelizeWithColorsAndOutput(
+                    *verticesCopy, *indicesCopy, texturePath, taskSettings, voxelColors);
 
                 if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
 
                 m_Result.Grid = data.Grid;
                 m_Result.VoxelCount = data.VoxelCount;
-                m_Result.HasColors = false;
+                m_Result.VoxelColors = std::move(voxelColors);
+                m_Result.HasColors = !m_Result.VoxelColors.empty();
+
+                // Build palette from colors
+                if (m_Result.HasColors)
+                {
+                    auto paletteData = VoxelizerAPI::BuildPaletteFromColors(m_Result.VoxelColors);
+                    m_Result.Palette = paletteData.Palette;
+                    m_Result.PaletteIndices = std::move(paletteData.PaletteIndices);
+                    m_Result.HasPalette = true;
+                }
+
+                // Also compute UVs for later texture assignment
+                std::unordered_map<uint64_t, Vector2> uvSumMap;
+                std::unordered_map<uint64_t, int> uvCountMap;
+                VoxelizerAPI::ComputeVoxelUVs(data.Grid, *verticesCopy, *indicesCopy, uvSumMap, uvCountMap);
+
+                auto filledCoords = data.Grid.GetFilledCoords();
+                m_Result.VoxelUVs.clear();
+                m_Result.VoxelUVs.reserve(filledCoords.size());
+                for (const auto& coord : filledCoords)
+                {
+                    uint64_t idx = data.Grid.CoordToIndex(coord);
+                    auto it = uvCountMap.find(idx);
+                    if (it != uvCountMap.end() && it->second > 0)
+                        m_Result.VoxelUVs.push_back(uvSumMap[idx] / static_cast<float>(it->second));
+                    else
+                        m_Result.VoxelUVs.push_back(Vector2(0.5f, 0.5f));
+                }
+                m_Result.HasUVs = !m_Result.VoxelUVs.empty();
+
                 m_Status = VoxelTaskStatus::Completed;
             }
             catch (const std::exception& e)
@@ -274,5 +362,16 @@ namespace CB
             return VoxelizerAPI::CreateColoredMeshFromGrid(m_Result.Grid, m_Result.VoxelColors);
 
         return VoxelizerAPI::CreateMeshFromGrid(m_Result.Grid);
+    }
+
+    Ref<Mesh> VoxelizationTask::CreatePaletteMeshFromResult()
+    {
+        if (m_Status != VoxelTaskStatus::Completed)
+            return nullptr;
+
+        if (m_Result.HasPalette && !m_Result.PaletteIndices.empty())
+            return VoxelizerAPI::CreatePaletteMeshFromGrid(m_Result.Grid, m_Result.PaletteIndices);
+
+        return CreateMeshFromResult();
     }
 }
