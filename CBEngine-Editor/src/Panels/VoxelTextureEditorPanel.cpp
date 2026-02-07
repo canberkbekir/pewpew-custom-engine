@@ -190,7 +190,7 @@ namespace CB
 			m_SliceY = m_Vtex->GridSize.y - 1;
 		}
 
-		CB_CORE_INFO("VoxelTextureEditorPanel: Opened for vtex (vmesh: {0})", (uint64_t)m_VmeshUUID);
+		CB_CORE_INFO("VoxelTextureEditorPanel: Opened for vtex (vmesh: {0})", static_cast<uint64_t>(m_VmeshUUID));
 	}
 
 	void VoxelTextureEditorPanel::RebuildMaterialMapMesh()
@@ -285,7 +285,7 @@ namespace CB
 
 		ImVec2 avail = ImGui::GetContentRegionAvail();
 		float baseCellSize = glm::min(avail.x / (float)sizeX, avail.y / (float)sizeZ);
-		if (baseCellSize < 1.0f) baseCellSize = 1.0f;
+		baseCellSize = std::max(baseCellSize, 1.0f);
 		float cellSize = baseCellSize * m_GridZoom;
 
 		float gridW = cellSize * sizeX;
@@ -351,8 +351,8 @@ namespace CB
 		if (isHovered)
 		{
 			ImVec2 mousePos = ImGui::GetIO().MousePos;
-			int cx = (int)((mousePos.x - gridOrigin.x) / cellSize);
-			int cz = (int)((mousePos.y - gridOrigin.y) / cellSize);
+			int cx = static_cast<int>((mousePos.x - gridOrigin.x) / cellSize);
+			int cz = static_cast<int>((mousePos.y - gridOrigin.y) / cellSize);
 			if (cx >= 0 && cx < sizeX && cz >= 0 && cz < sizeZ)
 				m_HoveredCell = { cx, cz };
 		}
@@ -371,7 +371,7 @@ namespace CB
 				{
 					// Filled voxel — show material type display color
 					uint8_t palIdx = 0;
-					if (filledIdx < (int32_t)m_Vmesh->PaletteIndices.size())
+					if (filledIdx < static_cast<int32_t>(m_Vmesh->PaletteIndices.size()))
 						palIdx = m_Vmesh->PaletteIndices[filledIdx];
 
 					VoxelMaterialType type = m_Vtex->GetMaterialType(filledIdx, palIdx);
@@ -385,7 +385,7 @@ namespace CB
 						float indicatorSize = glm::min(cellSize * 0.3f, 8.0f);
 						ImVec2 iMax(pMin.x + indicatorSize, pMin.y + indicatorSize);
 						drawList->AddRectFilled(pMin, iMax,
-							IM_COL32((int)(entry.Color.x * 255), (int)(entry.Color.y * 255), (int)(entry.Color.z * 255), 255));
+							IM_COL32(static_cast<int>(entry.Color.x * 255), static_cast<int>(entry.Color.y * 255), static_cast<int>(entry.Color.z * 255), 255));
 					}
 				}
 				else
@@ -441,13 +441,13 @@ namespace CB
 		if (wasClicked && m_HoveredCell.x >= 0 && m_HoveredCell.y >= 0)
 		{
 			int32_t filledIdx = m_SliceLookup[m_HoveredCell.x * sizeZ + m_HoveredCell.y];
-			if (filledIdx >= 0 && filledIdx < (int32_t)m_Vmesh->PaletteIndices.size())
+			if (filledIdx >= 0 && filledIdx < static_cast<int32_t>(m_Vmesh->PaletteIndices.size()))
 			{
 				uint8_t currentPalIdx = m_Vmesh->PaletteIndices[filledIdx];
-				if (currentPalIdx != (uint8_t)m_SelectedBrushIndex)
+				if (currentPalIdx != static_cast<uint8_t>(m_SelectedBrushIndex))
 				{
-					m_Vmesh->PaletteIndices[filledIdx] = (uint8_t)m_SelectedBrushIndex;
-					m_Vtex->PaletteIndexOverrides[(uint32_t)filledIdx] = (uint8_t)m_SelectedBrushIndex;
+					m_Vmesh->PaletteIndices[filledIdx] = static_cast<uint8_t>(m_SelectedBrushIndex);
+					m_Vtex->PaletteIndexOverrides[static_cast<uint32_t>(filledIdx)] = static_cast<uint8_t>(m_SelectedBrushIndex);
 					m_MaterialMapDirty = true;
 				}
 			}
@@ -463,7 +463,7 @@ namespace CB
 			return;
 
 		uint32_t usedCount = m_Vmesh->Palette.GetUsedCount();
-		const float threshold = 0.15f; // Euclidean distance in [0,1] RGB space
+		const float threshold = 0.40f; // Euclidean distance in [0,1] RGB space
 
 		for (uint8_t i = 0; i < usedCount; i++)
 		{
@@ -477,7 +477,7 @@ namespace CB
 			// Try to find an existing group within threshold
 			int bestGroup = -1;
 			float bestDist = threshold;
-			for (int g = 0; g < (int)m_ColorGroups.size(); g++)
+			for (int g = 0; g < static_cast<int>(m_ColorGroups.size()); g++)
 			{
 				float dist = glm::length(m_ColorGroups[g].AverageColor - color);
 				if (dist < bestDist)
@@ -491,7 +491,7 @@ namespace CB
 			{
 				// Add to existing group, update running average
 				auto& group = m_ColorGroups[bestGroup];
-				float n = (float)group.EntryIndices.size();
+				float n = static_cast<float>(group.EntryIndices.size());
 				group.AverageColor = (group.AverageColor * n + color) / (n + 1.0f);
 				group.EntryIndices.push_back(i);
 			}
@@ -537,7 +537,7 @@ namespace CB
 						avgMet += e.Metallic;
 						avgRough += e.Roughness;
 					}
-					float n = (float)group.EntryIndices.size();
+					float n = static_cast<float>(group.EntryIndices.size());
 					group.MaterialType = AutoDetectMaterialType(group.AverageColor, avgMet / n, avgRough / n);
 
 					// Sync group type back to all entries so brush selection is consistent
