@@ -1,17 +1,19 @@
 Scene: SampleScene
 Entities:
-  - Entity: 649376958173459848
+  - Entity: 16816817297846241028
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
-      Position: [3.1, 0, 0]
+      Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [0.001, 0.001, 0.001]
       Parent: 0
-    MeshRendererComponent:
-      MeshUUID: 5025629268144948323
-      MaterialUUID: 1344730489972898971
+    VoxelRendererComponent:
+      VoxelMeshUUID: 7380535402669753821
+      ColorTextureUUID: 0
+      MaterialUUID: 0
       ShaderUUID: 0
+      VoxelTextureUUID: 0
       Visible: true
   - Entity: 1812297280797331399
     TagComponent:
@@ -27,17 +29,16 @@ Entities:
       Intensity: 1
       CastShadows: false
       SourceAngleDegrees: 0.53
-  - Entity: 16816817297846241028
+  - Entity: 649376958173459848
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
-      Position: [0, 0, 0]
+      Position: [3.1, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [0.001, 0.001, 0.001]
       Parent: 0
-    VoxelRendererComponent:
-      VoxelMeshUUID: 15554518246807526972
-      ColorTextureUUID: 16809422737644054689
-      MaterialUUID: 0
+    MeshRendererComponent:
+      MeshUUID: 5025629268144948323
+      MaterialUUID: 1344730489972898971
       ShaderUUID: 0
       Visible: true

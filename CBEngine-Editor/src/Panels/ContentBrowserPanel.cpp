@@ -9,6 +9,8 @@
 #include "CBEngine/Core/Log.h"
 #include "CBEngine/Events/ApplicationEvent.h"
 #include "CBEngine/Renderer/Resources/Material.h"
+#include "CBEngine/Asset/ProcessedMeshAsset.h"
+#include "CBEngine/Asset/VoxelTextureAsset.h"
 #include "../EditorLayer.h"
 
 #include <algorithm>
@@ -757,6 +759,10 @@ namespace CB
 					case AssetType::VoxelMesh:
 						// Select to show in Properties panel (already done above)
 						break;
+					case AssetType::VoxelTexture:
+						if (assetUUID.IsValid())
+							EditorLayer::RequestOpenVoxelTexture(assetUUID);
+						break;
 					case AssetType::Texture2D:
 						// TODO: Open texture in Texture Viewer
 						break;
@@ -820,6 +826,36 @@ namespace CB
 				if (ImGui::MenuItem("Reimport"))
 				{
 					ReimportAsset(path);
+				}
+
+				// Generate VTexture from .vmesh
+				std::string ctxExt = path.extension().string();
+				std::transform(ctxExt.begin(), ctxExt.end(), ctxExt.begin(), ::tolower);
+				if (ctxExt == ".vmesh" && ImGui::MenuItem("Generate VTexture"))
+				{
+					std::filesystem::path relPath = std::filesystem::relative(path, m_BaseDirectory);
+					UUID vmeshUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+					if (vmeshUUID.IsValid())
+					{
+						auto vmesh = AssetManager::GetAsset<VoxelMeshAsset>(vmeshUUID);
+						if (vmesh)
+						{
+							auto vtex = VoxelTextureAsset::GenerateFromVmesh(vmesh);
+							if (vtex)
+							{
+								std::filesystem::path vtexPath = path;
+								vtexPath.replace_extension(".vtex");
+								if (vtex->Save(vtexPath))
+								{
+									std::filesystem::path relVtex = std::filesystem::relative(
+										vtexPath, AssetManager::GetAssetDirectory());
+									UUID vtexUUID = AssetManager::ImportAsset(relVtex);
+									if (vtexUUID.IsValid())
+										EditorLayer::RequestOpenVoxelTexture(vtexUUID);
+								}
+							}
+						}
+					}
 				}
 			}
 

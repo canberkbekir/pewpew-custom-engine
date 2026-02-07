@@ -200,6 +200,11 @@ namespace CB
 			return Draw(label, currentUUID, AssetType::Shader);
 		}
 
+		static bool DrawVoxelTexture(const char* label, UUID& currentUUID)
+		{
+			return Draw(label, currentUUID, AssetType::VoxelTexture);
+		}
+
 	private:
 		static bool MatchesFilter(AssetType type, std::initializer_list<AssetType> filterTypes)
 		{
@@ -215,6 +220,7 @@ namespace CB
 				case AssetType::Mesh:          return "[M]";
 				case AssetType::ProcessedMesh: return "[PM]";
 				case AssetType::VoxelMesh:     return "[VM]";
+				case AssetType::VoxelTexture:  return "[VT]";
 				case AssetType::Texture2D:     return "[T]";
 				case AssetType::Material:      return "[MAT]";
 				case AssetType::Shader:        return "[S]";

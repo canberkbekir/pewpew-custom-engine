@@ -14,6 +14,7 @@ namespace CB
     std::queue<EditorLayer::ImportRequest> EditorLayer::s_PendingImports;
     std::mutex EditorLayer::s_PendingImportsMutex;
     std::queue<EditorLayer::ReimportRequest> EditorLayer::s_PendingReimports;
+    std::queue<UUID> EditorLayer::s_PendingVtexOpens;
 
     EditorLayer::EditorLayer()
         : Layer("EditorLayer"), m_SceneHierarchyPanel(SceneManager::GetActiveScene()) { CB_PROFILE_FUNCTION(); }
@@ -86,6 +87,12 @@ namespace CB
                 s_PendingReimports.pop();
                 m_MeshImportPanel.OpenForReimport(request.AssetUUID);
             }
+            while (!s_PendingVtexOpens.empty())
+            {
+                UUID vtexUUID = s_PendingVtexOpens.front();
+                s_PendingVtexOpens.pop();
+                m_VoxelTextureEditorPanel.OpenForAsset(vtexUUID);
+            }
         }
 
         // Process hot reload queue
@@ -101,6 +108,9 @@ namespace CB
 
         // Update import preview panel
         m_MeshImportPanel.OnUpdate(ts);
+
+        // Update voxel texture editor panel
+        m_VoxelTextureEditorPanel.OnUpdate(ts);
     }
 
     void EditorLayer::OnImGuiRender()
@@ -135,6 +145,7 @@ namespace CB
         m_ProfilerPanel.OnImGuiRender();
         m_ContentBrowserPanel.OnImGuiRender();
         m_MeshImportPanel.OnImGuiRender();
+        m_VoxelTextureEditorPanel.OnImGuiRender();
 
         EndDockspace();
     }
@@ -147,6 +158,9 @@ namespace CB
         if (e.Handled) return;
 
         m_MeshImportPanel.OnEvent(e);
+        if (e.Handled) return;
+
+        m_VoxelTextureEditorPanel.OnEvent(e);
         if (e.Handled) return;
 
         m_ViewportPanel.OnEvent(e);
@@ -165,6 +179,12 @@ namespace CB
     {
         std::lock_guard<std::mutex> lock(s_PendingImportsMutex);
         s_PendingReimports.push({ path, uuid });
+    }
+
+    void EditorLayer::RequestOpenVoxelTexture(UUID vtexUUID)
+    {
+        std::lock_guard<std::mutex> lock(s_PendingImportsMutex);
+        s_PendingVtexOpens.push(vtexUUID);
     }
 
     void EditorLayer::DrawMenuBar()
@@ -221,6 +241,7 @@ namespace CB
             {
                 ImGui::MenuItem("Profiler", "F3", m_ProfilerPanel.GetVisiblePtr());
                 ImGui::MenuItem("Mesh Import", nullptr, m_MeshImportPanel.GetVisiblePtr());
+                ImGui::MenuItem("Voxel Texture Editor", nullptr, m_VoxelTextureEditorPanel.GetVisiblePtr());
                 ImGui::EndMenu();
             }
 

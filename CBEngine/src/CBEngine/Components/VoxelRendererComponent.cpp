@@ -2,6 +2,7 @@
 #include "VoxelRendererComponent.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
+#include "CBEngine/Asset/VoxelTextureAsset.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -13,6 +14,7 @@ namespace CB
 		out << YAML::Key << "ColorTextureUUID" << YAML::Value << (uint64_t)ColorTextureUUID;
 		out << YAML::Key << "MaterialUUID" << YAML::Value << (uint64_t)MaterialUUID;
 		out << YAML::Key << "ShaderUUID" << YAML::Value << (uint64_t)ShaderUUID;
+		out << YAML::Key << "VoxelTextureUUID" << YAML::Value << (uint64_t)VoxelTextureUUID;
 		out << YAML::Key << "Visible" << YAML::Value << Visible;
 	}
 
@@ -23,6 +25,8 @@ namespace CB
 			ColorTextureUUID = UUID(node["ColorTextureUUID"].as<uint64_t>());
 		MaterialUUID = UUID(node["MaterialUUID"].as<uint64_t>());
 		ShaderUUID = UUID(node["ShaderUUID"].as<uint64_t>());
+		if (node["VoxelTextureUUID"])
+			VoxelTextureUUID = UUID(node["VoxelTextureUUID"].as<uint64_t>());
 		Visible = node["Visible"].as<bool>();
 	}
 
@@ -90,5 +94,7 @@ namespace CB
 			MaterialAsset = AssetManager::GetAsset<Material>(MaterialUUID);
 		if (ShaderUUID.IsValid())
 			ShaderAsset = AssetManager::GetAsset<Shader>(ShaderUUID);
+		if (VoxelTextureUUID.IsValid())
+			VoxelTexture = AssetManager::GetAsset<VoxelTextureAsset>(VoxelTextureUUID);
 	}
 }

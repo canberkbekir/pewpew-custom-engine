@@ -12,6 +12,8 @@ namespace YAML { class Emitter; class Node; }
 
 namespace CB {
 
+	class VoxelTextureAsset;
+
 	struct VoxelRendererComponent
 	{
 		// Cached asset references (loaded from UUIDs)
@@ -33,6 +35,10 @@ namespace CB {
 		Ref<Texture2D> PaletteColorTexture;
 		Ref<Texture2D> PaletteMaterialTexture;
 		bool HasPalette = false;
+
+		// Voxel Texture (.vtex) - per-voxel material type data
+		UUID VoxelTextureUUID = UUID(0);
+		Ref<VoxelTextureAsset> VoxelTexture;
 
 		bool Visible = true;
 

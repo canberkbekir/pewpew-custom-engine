@@ -16,7 +16,8 @@ namespace CB
 		Material,
 		Scene,
 		ProcessedMesh,
-		VoxelMesh
+		VoxelMesh,
+		VoxelTexture
 	};
 
 	inline const char* AssetTypeToString(AssetType type)
@@ -31,6 +32,7 @@ namespace CB
 			case AssetType::Scene:         return "Scene";
 			case AssetType::ProcessedMesh: return "ProcessedMesh";
 			case AssetType::VoxelMesh:     return "VoxelMesh";
+			case AssetType::VoxelTexture:  return "VoxelTexture";
 		}
 		return "Unknown";
 	}
@@ -44,6 +46,7 @@ namespace CB
 		if (str == "Scene")         return AssetType::Scene;
 		if (str == "ProcessedMesh") return AssetType::ProcessedMesh;
 		if (str == "VoxelMesh")     return AssetType::VoxelMesh;
+		if (str == "VoxelTexture")  return AssetType::VoxelTexture;
 		return AssetType::None;
 	}
 
@@ -63,6 +66,8 @@ namespace CB
 			return AssetType::ProcessedMesh;
 		if (ext == ".vmesh")
 			return AssetType::VoxelMesh;
+		if (ext == ".vtex")
+			return AssetType::VoxelTexture;
 		return AssetType::None;
 	}
 

@@ -1,6 +1,7 @@
 #include "cbpch.h"
 #include "AssetManager.h"
 #include "ProcessedMeshAsset.h"
+#include "VoxelTextureAsset.h"
 #include "CBEngine/Core/Log.h"
 #include "CBEngine/Renderer/Resources/Texture.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
@@ -456,6 +457,11 @@ namespace CB
 			case AssetType::VoxelMesh:
 			{
 				asset = VoxelMeshAsset::Load(fullPath);
+				break;
+			}
+			case AssetType::VoxelTexture:
+			{
+				asset = VoxelTextureAsset::Load(fullPath);
 				break;
 			}
 			default:

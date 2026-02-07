@@ -11,6 +11,7 @@ typedef unsigned int ImGuiID;
 #include "Panels/ProfilerPanel.h"
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/MeshImportPanel.h"
+#include "Panels/VoxelTextureEditorPanel.h"
 
 #include <queue>
 #include <mutex>
@@ -34,6 +35,7 @@ namespace CB
         // outputDir: where to write .mesh/.vmesh files. Empty = use source file's parent directory.
         static void RequestImportPreview(const std::filesystem::path& path, const std::filesystem::path& outputDir = {});
         static void RequestImportPreviewReimport(const std::filesystem::path& path, UUID uuid);
+        static void RequestOpenVoxelTexture(UUID vtexUUID);
 
     private:
         void BeginDockspace();
@@ -63,6 +65,7 @@ namespace CB
         ProfilerPanel m_ProfilerPanel;
         ContentBrowserPanel m_ContentBrowserPanel;
         MeshImportPanel m_MeshImportPanel;
+        VoxelTextureEditorPanel m_VoxelTextureEditorPanel;
 
         // Pending import queue (thread-safe, for FileWatcher callback)
         struct ImportRequest { std::filesystem::path SourcePath; std::filesystem::path OutputDirectory; };
@@ -72,5 +75,8 @@ namespace CB
         // Pending reimport queue
         struct ReimportRequest { std::filesystem::path Path; UUID AssetUUID; };
         static std::queue<ReimportRequest> s_PendingReimports;
+
+        // Pending vtex editor open requests
+        static std::queue<UUID> s_PendingVtexOpens;
     };
 }
