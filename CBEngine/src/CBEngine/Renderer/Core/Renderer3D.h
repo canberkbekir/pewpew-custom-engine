@@ -17,7 +17,7 @@ namespace CB
 
         // PBR submit with Material
         static void Submit(const Ref<Shader>& shader, const Ref<Material>& material, const Ref<Mesh>& mesh,
-                           const Mat4& transform = Mat4(1.0f));
+                           const Mat4& transform = Mat4(1.0f), int entityID = -1, bool useVertexColor = false);
 
         // Light configuration
         static void SetDirectionalLight(const Vector3& direction, const Vector3& color, float intensity);

@@ -10,7 +10,7 @@ typedef unsigned int ImGuiID;
 #include "Panels/ConsolePanel.h"
 #include "Panels/ProfilerPanel.h"
 #include "Panels/ContentBrowserPanel.h"
-#include "Panels/ImportPreviewPanel.h"
+#include "Panels/MeshImportPanel.h"
 
 #include <queue>
 #include <mutex>
@@ -31,7 +31,8 @@ namespace CB
         void OnEvent(Event& e) override;
 
         // Request import preview for a file (thread-safe, called from FileWatcher or ContentBrowser)
-        static void RequestImportPreview(const std::filesystem::path& path);
+        // outputDir: where to write .mesh/.vmesh files. Empty = use source file's parent directory.
+        static void RequestImportPreview(const std::filesystem::path& path, const std::filesystem::path& outputDir = {});
         static void RequestImportPreviewReimport(const std::filesystem::path& path, UUID uuid);
 
     private:
@@ -61,10 +62,11 @@ namespace CB
         ConsolePanel m_ConsolePanel;
         ProfilerPanel m_ProfilerPanel;
         ContentBrowserPanel m_ContentBrowserPanel;
-        ImportPreviewPanel m_ImportPreviewPanel;
+        MeshImportPanel m_MeshImportPanel;
 
         // Pending import queue (thread-safe, for FileWatcher callback)
-        static std::queue<std::filesystem::path> s_PendingImports;
+        struct ImportRequest { std::filesystem::path SourcePath; std::filesystem::path OutputDirectory; };
+        static std::queue<ImportRequest> s_PendingImports;
         static std::mutex s_PendingImportsMutex;
 
         // Pending reimport queue

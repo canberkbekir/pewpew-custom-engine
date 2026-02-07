@@ -2,6 +2,7 @@
 
 #include "CBEngine/Core/UUID.h"
 #include "CBEngine/Core/String.h"
+#include "CBEngine/Utils/YAMLHelpers.h"
 
 namespace CB
 {
@@ -21,10 +22,22 @@ namespace CB
 	{
 		std::string Tag;
 
+		static constexpr const char* YAMLKey = "TagComponent";
+
 		TagComponent() = default;
 		TagComponent(const TagComponent&) = default;
 		TagComponent(const String& tag) : Tag(tag)
 		{
+		}
+
+		void Serialize(YAML::Emitter& out) const
+		{
+			out << YAML::Key << "Tag" << YAML::Value << Tag;
+		}
+
+		void Deserialize(const YAML::Node& node)
+		{
+			Tag = node["Tag"].as<std::string>();
 		}
 	};
 

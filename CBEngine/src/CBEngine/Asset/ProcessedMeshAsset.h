@@ -4,6 +4,7 @@
 #include "CBEngine/Core/Core.h"
 #include "CBEngine/Core/String.h"
 #include "CBEngine/Core/UUID.h"
+#include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Utils/VoxelizerAPI.h"
 
 #include <Voxelizer.h>
@@ -12,16 +13,25 @@
 
 namespace CB
 {
+    class BinaryWriter;
+    class BinaryReader;
+
     struct MaterialSlot
     {
         String Name;
         UUID MaterialUUID;
+
+        void Serialize(BinaryWriter& writer) const;
+        void Deserialize(BinaryReader& reader);
     };
 
     struct TextureSlot
     {
         String Name;
         UUID TextureUUID;
+
+        void Serialize(BinaryWriter& writer) const;
+        void Deserialize(BinaryReader& reader);
     };
 
     struct MeshImportSettings
@@ -36,6 +46,9 @@ namespace CB
     class ProcessedMeshAsset : public Asset
     {
     public:
+        static constexpr uint32_t s_MeshMagic   = 0x43424D48; // "CBMH"
+        static constexpr uint32_t s_MeshVersion  = 1;
+
         ProcessedMeshAsset();
         ~ProcessedMeshAsset() override = default;
 
@@ -47,6 +60,14 @@ namespace CB
         // Slots
         std::vector<MaterialSlot> MaterialSlots;
         std::vector<TextureSlot> TextureSlots;
+
+        // Embedded geometry (no FBX needed at runtime)
+        std::vector<Vertex> Vertices;
+        std::vector<uint32_t> Indices;
+
+        // Create a renderable Mesh from embedded geometry
+        Ref<Mesh> CreateMesh() const;
+        bool HasGeometryData() const { return !Vertices.empty() && !Indices.empty(); }
 
         // Serialization
         bool Save(const std::filesystem::path& filePath);
@@ -60,6 +81,9 @@ namespace CB
     class VoxelMeshAsset : public Asset
     {
     public:
+        static constexpr uint32_t s_VmeshMagic   = 0x43425648; // "CBVM"
+        static constexpr uint32_t s_VmeshVersion  = 1;
+
         VoxelMeshAsset();
         ~VoxelMeshAsset() override = default;
 
@@ -85,10 +109,5 @@ namespace CB
         bool Reload() override;
 
         static AssetType GetStaticType() { return AssetType::VoxelMesh; }
-
-    private:
-        // Base64 encoding/decoding for voxel grid data
-        static String EncodeVoxelData(const voxelizer::VoxelData& data);
-        static voxelizer::VoxelData DecodeVoxelData(const String& base64);
     };
 }

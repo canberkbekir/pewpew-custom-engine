@@ -1377,13 +1377,13 @@ namespace CB
 		std::filesystem::path relativePath = std::filesystem::relative(path, m_BaseDirectory);
 		UUID uuid = AssetManager::GetRegistry().GetUUIDByPath(relativePath);
 
-		// Check if this is a processed mesh type — route through ImportPreviewPanel
+		// Check if this is a processed mesh type — route through MeshImportPanel
 		std::string ext = path.extension().string();
 		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 		if ((ext == ".mesh" || ext == ".vmesh") && uuid.IsValid())
 		{
 			EditorLayer::RequestImportPreviewReimport(path, uuid);
-			CB_CORE_INFO("Queued reimport via ImportPreviewPanel: {0}", path.string());
+			CB_CORE_INFO("Queued reimport via MeshImportPanel: {0}", path.string());
 		}
 		else if (uuid.IsValid())
 		{
@@ -1421,6 +1421,20 @@ namespace CB
 			{
 				CB_CORE_WARN("File does not exist: {0}", sourcePath);
 				continue;
+			}
+
+			// Raw mesh files: open import preview directly from external path
+			// They are not copied into the assets folder.
+			if (!std::filesystem::is_directory(source))
+			{
+				String ext = source.extension().string();
+				std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+				if (IsRawMeshExtension(ext))
+				{
+					EditorLayer::RequestImportPreview(source, m_CurrentDirectory);
+					CB_CORE_INFO("Opened import preview for: {0}", sourcePath);
+					continue;
+				}
 			}
 
 			std::filesystem::path destPath = m_CurrentDirectory / source.filename();

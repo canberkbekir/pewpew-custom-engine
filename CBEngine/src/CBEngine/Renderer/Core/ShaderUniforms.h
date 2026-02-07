@@ -25,6 +25,12 @@ namespace CB::ShaderUniforms
     inline constexpr auto MetallicMap = "u_MetallicMap";
     inline constexpr auto RoughnessMap = "u_RoughnessMap";
 
+    // Entity picking
+    inline constexpr auto EntityID = "u_EntityID";
+
+    // Vertex color mode (voxel meshes with baked colors)
+    inline constexpr auto UseVertexColor = "u_UseVertexColor";
+
     // Material properties
     inline constexpr auto Albedo = "u_Albedo";
     inline constexpr auto Metallic = "u_Metallic";

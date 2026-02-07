@@ -51,8 +51,8 @@ namespace CB
 	{
 		if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".tga")
 			return AssetType::Texture2D;
-		if (ext == ".fbx" || ext == ".obj" || ext == ".gltf" || ext == ".glb")
-			return AssetType::Mesh;
+		// Raw mesh files (.fbx, .obj, .gltf, .glb) are not registered as assets.
+		// They are processed into .mesh / .vmesh via the MeshImportPanel.
 		if (ext == ".glsl" || ext == ".hlsl")
 			return AssetType::Shader;
 		if (ext == ".mat")
@@ -64,6 +64,11 @@ namespace CB
 		if (ext == ".vmesh")
 			return AssetType::VoxelMesh;
 		return AssetType::None;
+	}
+
+	inline bool IsRawMeshExtension(const std::string& ext)
+	{
+		return ext == ".fbx" || ext == ".obj" || ext == ".gltf" || ext == ".glb";
 	}
 
 	class Asset

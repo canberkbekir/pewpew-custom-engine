@@ -5,12 +5,13 @@
 #include "glm/gtx/quaternion.hpp"
 #include "CBEngine/Math/CoreMath.h"
 #include "CBEngine/Core/UUID.h"
+#include "CBEngine/Utils/YAMLHelpers.h"
 #include <vector>
 
 namespace CB {
 
     struct TransformComponent
-    { 
+    {
         Vector3 Position = Vector3(0, 0, 0);
         Vector3 Rotation = Vector3(0, 0, 0);
         Vector3 Scale = Vector3(1, 1, 1);
@@ -23,16 +24,36 @@ namespace CB {
         Mat4 WorldMatrix{ 1.0f };
         bool Dirty = true;
 
+        static constexpr const char* YAMLKey = "TransformComponent";
+
         TransformComponent() = default;
         TransformComponent(const TransformComponent&) = default;
         TransformComponent(const Vector3& position) : Position(position) {}
- 
+
+        void Serialize(YAML::Emitter& out) const
+        {
+            out << YAML::Key << "Position" << YAML::Value << Position;
+            out << YAML::Key << "Rotation" << YAML::Value << Rotation;
+            out << YAML::Key << "Scale" << YAML::Value << Scale;
+            out << YAML::Key << "Parent" << YAML::Value << (uint64_t)Parent;
+        }
+
+        void Deserialize(const YAML::Node& node)
+        {
+            Position = node["Position"].as<glm::vec3>();
+            Rotation = node["Rotation"].as<glm::vec3>();
+            Scale = node["Scale"].as<glm::vec3>();
+
+            if (node["Parent"])
+                Parent = UUID(node["Parent"].as<uint64_t>());
+        }
+
         Mat4 GetLocalTransform() const
         {
             Mat4 rotation = glm::toMat4(glm::quat(Rotation));
             return glm::translate(Mat4(1.0f), Position) * rotation * glm::scale(Mat4(1.0f), Scale);
         }
- 
+
         Mat4 GetTransform() const
         {
             if (Dirty)
@@ -47,13 +68,13 @@ namespace CB {
                 return Position;
             return Vector3(WorldMatrix[3]);
         }
-        
+
         Vector3 GetForward() const { return glm::normalize(Vector3(WorldMatrix[2])); }
         Vector3 GetRight() const { return glm::normalize(Vector3(WorldMatrix[0])); }
         Vector3 GetUp() const { return glm::normalize(Vector3(WorldMatrix[1])); }
-        
+
         bool HasParent() const { return Parent != 0; }
-        bool HasChildren() const { return !Children.empty(); } 
+        bool HasChildren() const { return !Children.empty(); }
     };
 
 }

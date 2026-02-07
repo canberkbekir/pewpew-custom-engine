@@ -70,8 +70,7 @@ namespace CB
 			// Scope breakdown
 			if (ImGui::CollapsingHeader("Scope Breakdown", ImGuiTreeNodeFlags_DefaultOpen)) { RenderScopeTree(); }
 		}
-		ImGui::End();
-		CB_INFO("Test console logger");
+		ImGui::End(); 
 	}
 
 	void ProfilerPanel::OnEvent(Event& e)

@@ -6,6 +6,8 @@
 #include "CBEngine/Renderer/Resources/Material.h"
 #include "CBEngine/Renderer/Resources/Shader.h"
 
+namespace YAML { class Emitter; class Node; }
+
 namespace CB {
 
 	struct MeshRendererComponent
@@ -22,8 +24,14 @@ namespace CB {
 
 		bool Visible = true;
 
+		static constexpr const char* YAMLKey = "MeshRendererComponent";
+
 		MeshRendererComponent() = default;
 		MeshRendererComponent(const MeshRendererComponent&) = default;
+
+		void Serialize(YAML::Emitter& out) const;
+		void Deserialize(const YAML::Node& node);
+		void ResolveAssets();
 	};
 
 }

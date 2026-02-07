@@ -2,13 +2,22 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <ImGuizmo/ImGuizmo.h>
 
+#include <glm/gtc/type_ptr.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_decompose.hpp>
+
+#include "CBEngine/Components/CoreComponents.h"
+#include "CBEngine/Components/MeshRendererComponent.h"
+#include "CBEngine/Components/VoxelRendererComponent.h"
+#include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Debug/Instrumentor.h"
 #include "CBEngine/Renderer/Core/RenderCommand.h"
-#include "CBEngine/Renderer/Core/Renderer3D.h"
 #include "CBEngine/Scene/SceneManager.h"
 #include "CBEngine/Scene/Entity.h"
-#include "CBEngine/Components/Components.h"
+#include "CBEngine/Selection/Selection.h"
+#include "CBEngine/Systems/RendererSystem.h"
 
 namespace CB
 {
@@ -20,8 +29,9 @@ namespace CB
         : Panel("Viewport", true)
         , m_CameraController(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f)
     {
-        // Create framebuffer
+        // Create framebuffer with entity ID attachment for picking
         FramebufferSpecification fbSpec;
+        fbSpec.Attachments = { { FramebufferTextureFormat::RGBA8 }, { FramebufferTextureFormat::RED_INTEGER }, { FramebufferTextureFormat::Depth } };
         fbSpec.Width = 1280;
         fbSpec.Height = 720;
         m_Framebuffer = Framebuffer::Create(fbSpec);
@@ -34,10 +44,6 @@ namespace CB
         m_DefaultMaterial->SetAlbedo({ 0.8f, 0.8f, 0.8f });
         m_DefaultMaterial->SetRoughness(0.5f);
         m_DefaultMaterial->SetMetallic(0.0f);
-
-        // Set up lighting
-        Renderer3D::SetDirectionalLight(m_LightDirection, m_LightColor, m_LightIntensity);
-        Renderer3D::SetAmbientLight(m_AmbientColor);
     }
 
     //--------------------------------------------------------------------------
@@ -63,8 +69,8 @@ namespace CB
             }
         }
 
-        // Update camera only when focused
-        if (m_Focused)
+        // Update camera only when focused and not using gizmo
+        if (m_Focused && !ImGuizmo::IsUsing())
             m_CameraController.OnUpdate(ts);
 
         // Render to framebuffer
@@ -79,67 +85,21 @@ namespace CB
         RenderCommand::SetClearColor({ 0.15f, 0.15f, 0.18f, 1.0f });
         RenderCommand::Clear();
 
+        // Clear entity ID attachment to -1 (no entity)
+        m_Framebuffer->ClearAttachment(1, -1);
+
         // Wireframe mode
         RenderCommand::SetWireframeMode(m_Wireframe);
 
-        // Begin scene
-        Renderer3D::BeginScene(
-            m_CameraController.GetCamera(),
-            m_CameraController.GetCamera().GetPosition()
-        );
-
-        // Render entities
+        // Render via RendererSystem
         Ref<Scene> scene = SceneManager::GetActiveScene();
-        if (scene)
-        {
-            // Render MeshRendererComponent entities
-            {
-                auto view = scene->GetRegistry().view<TransformComponent, MeshRendererComponent>();
-                for (auto entityID : view)
-                {
-                    auto& transform = view.get<TransformComponent>(entityID);
-                    auto& meshRenderer = view.get<MeshRendererComponent>(entityID);
-
-                    if (!meshRenderer.Visible || !meshRenderer.MeshAsset)
-                        continue;
-
-                    Ref<Shader> shader = meshRenderer.ShaderAsset
-                        ? meshRenderer.ShaderAsset
-                        : m_DefaultShader;
-
-                    Ref<Material> material = meshRenderer.MaterialAsset
-                        ? meshRenderer.MaterialAsset
-                        : m_DefaultMaterial;
-
-                    Renderer3D::Submit(shader, material, meshRenderer.MeshAsset, transform.GetTransform());
-                }
-            }
-
-            // Render VoxelRendererComponent entities
-            {
-                auto view = scene->GetRegistry().view<TransformComponent, VoxelRendererComponent>();
-                for (auto entityID : view)
-                {
-                    auto& transform = view.get<TransformComponent>(entityID);
-                    auto& voxelRenderer = view.get<VoxelRendererComponent>(entityID);
-
-                    if (!voxelRenderer.Visible || !voxelRenderer.MeshAsset)
-                        continue;
-
-                    Ref<Shader> shader = voxelRenderer.ShaderAsset
-                        ? voxelRenderer.ShaderAsset
-                        : m_DefaultShader;
-
-                    Ref<Material> material = voxelRenderer.MaterialAsset
-                        ? voxelRenderer.MaterialAsset
-                        : m_DefaultMaterial;
-
-                    Renderer3D::Submit(shader, material, voxelRenderer.MeshAsset, transform.GetTransform());
-                }
-            }
-        }
-
-        Renderer3D::EndScene();
+        RendererSystem::OnUpdate(
+            scene.get(),
+            m_CameraController.GetCamera(),
+            m_CameraController.GetCamera().GetPosition(),
+            m_DefaultShader,
+            m_DefaultMaterial
+        );
 
         // Restore fill mode
         RenderCommand::SetWireframeMode(false);
@@ -177,6 +137,23 @@ namespace CB
             ImVec2(1, 0)
         );
 
+        // Entity picking (before gizmo so we can check ImGuizmo::IsOver)
+        HandleEntityPicking();
+
+        // Gizmo overlay
+        RenderGizmo();
+
+        // Keyboard shortcuts for gizmo modes (when viewport focused and not typing)
+        if (m_Focused && !ImGui::GetIO().WantTextInput)
+        {
+            if (ImGui::IsKeyPressed(ImGuiKey_W))
+                m_GizmoOperation = ImGuizmo::TRANSLATE;
+            if (ImGui::IsKeyPressed(ImGuiKey_E))
+                m_GizmoOperation = ImGuizmo::ROTATE;
+            if (ImGui::IsKeyPressed(ImGuiKey_R))
+                m_GizmoOperation = ImGuizmo::SCALE;
+        }
+
         // Stats overlay
         if (m_ShowStats)
             RenderStatsOverlay();
@@ -199,6 +176,40 @@ namespace CB
         float contentHeight = ImGui::GetFrameHeight();
         ImGui::SetCursorPosY((toolbarHeight - contentHeight) * 0.5f);
         ImGui::SetCursorPosX(8.0f);
+
+        // Gizmo mode buttons
+        if (ImGui::Selectable("T", m_GizmoOperation == ImGuizmo::TRANSLATE, 0, ImVec2(20, 0)))
+            m_GizmoOperation = ImGuizmo::TRANSLATE;
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Translate (W)");
+
+        ImGui::SameLine();
+        if (ImGui::Selectable("R", m_GizmoOperation == ImGuizmo::ROTATE, 0, ImVec2(20, 0)))
+            m_GizmoOperation = ImGuizmo::ROTATE;
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Rotate (E)");
+
+        ImGui::SameLine();
+        if (ImGui::Selectable("S", m_GizmoOperation == ImGuizmo::SCALE, 0, ImVec2(20, 0)))
+            m_GizmoOperation = ImGuizmo::SCALE;
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Scale (R)");
+
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::SameLine();
+
+        // Transform space toggle
+        bool isLocal = (m_GizmoMode == ImGuizmo::LOCAL);
+        if (ImGui::Selectable("Local", isLocal, 0, ImVec2(40, 0)))
+            m_GizmoMode = ImGuizmo::LOCAL;
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Local space");
+
+        ImGui::SameLine();
+        if (ImGui::Selectable("World", !isLocal, 0, ImVec2(40, 0)))
+            m_GizmoMode = ImGuizmo::WORLD;
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("World space");
+
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::SameLine();
 
         // Camera Speed
         ImGui::Text("Speed");
@@ -314,12 +325,176 @@ namespace CB
     }
 
     //--------------------------------------------------------------------------
+    // Entity Picking
+    //--------------------------------------------------------------------------
+
+    void ViewportPanel::HandleEntityPicking()
+    {
+        // Only pick on left-click, when viewport is hovered, and not using gizmo
+        if (!m_Hovered)
+            return;
+        if (!ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            return;
+        if (ImGuizmo::IsOver())
+            return;
+
+        // Compute mouse position relative to the framebuffer image
+        ImVec2 mousePos = ImGui::GetMousePos();
+        ImVec2 imageMin = ImGui::GetItemRectMin();
+        ImVec2 imageSize = ImGui::GetItemRectSize();
+
+        float mx = mousePos.x - imageMin.x;
+        float my = mousePos.y - imageMin.y;
+
+        // Flip Y for OpenGL (bottom-left origin)
+        my = imageSize.y - my;
+
+        int mouseX = (int)mx;
+        int mouseY = (int)my;
+
+        auto spec = m_Framebuffer->GetSpecification();
+        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)spec.Width && mouseY < (int)spec.Height)
+        {
+            m_Framebuffer->Bind();
+            int pixelData = m_Framebuffer->ReadPixel(1, mouseX, mouseY);
+            m_Framebuffer->Unbind();
+
+            if (pixelData >= 0)
+            {
+                Ref<Scene> scene = SceneManager::GetActiveScene();
+                if (scene)
+                {
+                    auto& registry = scene->GetRegistry();
+                    entt::entity entityHandle = (entt::entity)(uint32_t)pixelData;
+
+                    if (registry.valid(entityHandle) && registry.all_of<IDComponent>(entityHandle))
+                    {
+                        UUID uuid = registry.get<IDComponent>(entityHandle).ID;
+                        Selection::Select(Selectable::Entity(uuid));
+                    }
+                }
+            }
+            else
+            {
+                Selection::Clear();
+            }
+        }
+    }
+
+    //--------------------------------------------------------------------------
+    // Gizmo
+    //--------------------------------------------------------------------------
+
+    void ViewportPanel::RenderGizmo()
+    {
+        if (!Selection::HasEntitySelected())
+            return;
+
+        Ref<Scene> scene = SceneManager::GetActiveScene();
+        if (!scene)
+            return;
+
+        UUID entityUUID = Selection::GetPrimarySelection().ID;
+        Entity entity = scene->GetEntityByUUID(entityUUID);
+        if (!entity || !entity.HasComponent<TransformComponent>())
+            return;
+
+        auto& tc = entity.GetComponent<TransformComponent>();
+
+        // Camera matrices
+        const Mat4& viewMatrix = m_CameraController.GetCamera().GetViewMatrix();
+        const Mat4& projMatrix = m_CameraController.GetCamera().GetProjectionMatrix();
+
+        // Setup ImGuizmo for this window
+        ImGuizmo::SetOrthographic(false);
+        ImGuizmo::SetDrawlist();
+
+        ImVec2 imageMin = ImGui::GetItemRectMin();
+        ImVec2 imageSize = ImGui::GetItemRectSize();
+        ImGuizmo::SetRect(imageMin.x, imageMin.y, imageSize.x, imageSize.y);
+
+        // Build entity transform matrix (world space for parented entities)
+        Mat4 transformMatrix = tc.HasParent() ? tc.WorldMatrix : tc.GetLocalTransform();
+
+        // Snap values
+        float snapValues[3] = { 0.0f, 0.0f, 0.0f };
+        bool useSnap = ImGui::GetIO().KeyCtrl;
+        if (useSnap)
+        {
+            if (m_GizmoOperation == ImGuizmo::TRANSLATE)
+                snapValues[0] = snapValues[1] = snapValues[2] = 0.5f;
+            else if (m_GizmoOperation == ImGuizmo::ROTATE)
+                snapValues[0] = snapValues[1] = snapValues[2] = 15.0f;
+            else if (m_GizmoOperation == ImGuizmo::SCALE)
+                snapValues[0] = snapValues[1] = snapValues[2] = 0.1f;
+        }
+
+        // Manipulate
+        ImGuizmo::Manipulate(
+            glm::value_ptr(viewMatrix),
+            glm::value_ptr(projMatrix),
+            m_GizmoOperation,
+            m_GizmoOperation == ImGuizmo::SCALE ? ImGuizmo::LOCAL : m_GizmoMode,
+            glm::value_ptr(transformMatrix),
+            nullptr,
+            useSnap ? snapValues : nullptr
+        );
+
+        if (ImGuizmo::IsUsing())
+        {
+            // If entity has a parent, convert world-space matrix back to local space
+            if (tc.HasParent())
+            {
+                Entity parent = entity.GetParent();
+                if (parent && parent.HasComponent<TransformComponent>())
+                {
+                    Mat4 parentWorldMatrix = parent.GetComponent<TransformComponent>().WorldMatrix;
+                    transformMatrix = glm::inverse(parentWorldMatrix) * transformMatrix;
+                }
+            }
+
+            // Only update the component relevant to the current operation
+            // to avoid euler angle roundtrip instability
+            if (m_GizmoOperation == ImGuizmo::TRANSLATE)
+            {
+                tc.Position = Vector3(transformMatrix[3]);
+            }
+            else if (m_GizmoOperation == ImGuizmo::ROTATE)
+            {
+                Vector3 decomposedScale, skew;
+                Vector4 perspective;
+                Quaternion rotation;
+                Vector3 translation;
+                glm::decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
+                tc.Rotation = glm::eulerAngles(rotation);
+            }
+            else if (m_GizmoOperation == ImGuizmo::SCALE)
+            {
+                Vector3 decomposedScale, skew;
+                Vector4 perspective;
+                Quaternion rotation;
+                Vector3 translation;
+                glm::decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
+                tc.Scale = decomposedScale;
+            }
+
+            tc.Dirty = true;
+        }
+    }
+
+    //--------------------------------------------------------------------------
     // Events
     //--------------------------------------------------------------------------
 
     void ViewportPanel::OnEvent(Event& e)
     {
         if (m_Hovered)
+        {
+            // Only block camera events when a gizmo is actually visible and hovered
+            if (Selection::HasEntitySelected() && ImGuizmo::IsOver())
+                return;
+
             m_CameraController.OnEvent(e);
+        }
     }
 }

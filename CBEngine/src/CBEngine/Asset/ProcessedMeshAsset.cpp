@@ -1,114 +1,40 @@
 #include "cbpch.h"
 #include "ProcessedMeshAsset.h"
 #include "CBEngine/Core/Log.h"
-
-#include <yaml-cpp/yaml.h>
-#include <fstream>
+#include "CBEngine/Utils/BinaryIO.h"
 
 namespace CB
 {
     // ============================================================================
-    // Base64 Encoding/Decoding for voxel grid data
+    // MaterialSlot / TextureSlot serialization
     // ============================================================================
 
-    static const char Base64Chars[] =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    static inline bool IsBase64(unsigned char c)
+    void MaterialSlot::Serialize(BinaryWriter& writer) const
     {
-        return (isalnum(c) || (c == '+') || (c == '/'));
+        writer << Name;
+        writer << (uint64_t)MaterialUUID;
     }
 
-    static String Base64Encode(const unsigned char* bytes, size_t length)
+    void MaterialSlot::Deserialize(BinaryReader& reader)
     {
-        String result;
-        result.reserve(((length + 2) / 3) * 4);
-
-        int i = 0;
-        unsigned char array3[3];
-        unsigned char array4[4];
-
-        while (length--)
-        {
-            array3[i++] = *(bytes++);
-            if (i == 3)
-            {
-                array4[0] = (array3[0] & 0xfc) >> 2;
-                array4[1] = ((array3[0] & 0x03) << 4) + ((array3[1] & 0xf0) >> 4);
-                array4[2] = ((array3[1] & 0x0f) << 2) + ((array3[2] & 0xc0) >> 6);
-                array4[3] = array3[2] & 0x3f;
-
-                for (i = 0; i < 4; i++)
-                    result += Base64Chars[array4[i]];
-                i = 0;
-            }
-        }
-
-        if (i)
-        {
-            for (int j = i; j < 3; j++)
-                array3[j] = '\0';
-
-            array4[0] = (array3[0] & 0xfc) >> 2;
-            array4[1] = ((array3[0] & 0x03) << 4) + ((array3[1] & 0xf0) >> 4);
-            array4[2] = ((array3[1] & 0x0f) << 2) + ((array3[2] & 0xc0) >> 6);
-            array4[3] = array3[2] & 0x3f;
-
-            for (int j = 0; j < (i + 1); j++)
-                result += Base64Chars[array4[j]];
-
-            while (i++ < 3)
-                result += '=';
-        }
-
-        return result;
+        reader >> Name;
+        uint64_t uuid = 0;
+        reader >> uuid;
+        MaterialUUID = UUID(uuid);
     }
 
-    static std::vector<unsigned char> Base64Decode(const String& encoded)
+    void TextureSlot::Serialize(BinaryWriter& writer) const
     {
-        size_t length = encoded.size();
-        int i = 0;
-        int in_ = 0;
-        unsigned char array4[4], array3[3];
-        std::vector<unsigned char> result;
+        writer << Name;
+        writer << (uint64_t)TextureUUID;
+    }
 
-        while (length-- && (encoded[in_] != '=') && IsBase64(encoded[in_]))
-        {
-            array4[i++] = encoded[in_]; in_++;
-            if (i == 4)
-            {
-                for (i = 0; i < 4; i++)
-                    array4[i] = static_cast<unsigned char>(
-                        String(Base64Chars).find(array4[i]));
-
-                array3[0] = (array4[0] << 2) + ((array4[1] & 0x30) >> 4);
-                array3[1] = ((array4[1] & 0xf) << 4) + ((array4[2] & 0x3c) >> 2);
-                array3[2] = ((array4[2] & 0x3) << 6) + array4[3];
-
-                for (i = 0; i < 3; i++)
-                    result.push_back(array3[i]);
-                i = 0;
-            }
-        }
-
-        if (i)
-        {
-            for (int j = i; j < 4; j++)
-                array4[j] = 0;
-
-            for (int j = 0; j < 4; j++)
-                array4[j] = static_cast<unsigned char>(
-                    String(Base64Chars).find(array4[j]));
-
-            array3[0] = (array4[0] << 2) + ((array4[1] & 0x30) >> 4);
-            array3[1] = ((array4[1] & 0xf) << 4) + ((array4[2] & 0x3c) >> 2);
-            array3[2] = ((array4[2] & 0x3) << 6) + array4[3];
-
-            for (int j = 0; j < (i - 1); j++)
-                result.push_back(array3[j]);
-        }
-
-        return result;
+    void TextureSlot::Deserialize(BinaryReader& reader)
+    {
+        reader >> Name;
+        uint64_t uuid = 0;
+        reader >> uuid;
+        TextureUUID = UUID(uuid);
     }
 
     // ============================================================================
@@ -122,126 +48,131 @@ namespace CB
 
     bool ProcessedMeshAsset::Save(const std::filesystem::path& filePath)
     {
-        YAML::Emitter out;
-        out << YAML::BeginMap;
-
-        out << YAML::Key << "version" << YAML::Value << 1;
-
-        // Source
-        out << YAML::Key << "source" << YAML::Value << YAML::BeginMap;
-        out << YAML::Key << "path" << YAML::Value << SourceFilePath;
-        out << YAML::Key << "uuid" << YAML::Value << (uint64_t)SourceMeshUUID;
-        out << YAML::EndMap;
-
-        // Import settings
-        out << YAML::Key << "import_settings" << YAML::Value << YAML::BeginMap;
-        out << YAML::Key << "scale" << YAML::Value << ImportSettings.Scale;
-        out << YAML::Key << "generate_normals" << YAML::Value << ImportSettings.GenerateNormals;
-        out << YAML::Key << "calc_tangents" << YAML::Value << ImportSettings.CalcTangents;
-        out << YAML::Key << "join_identical_vertices" << YAML::Value << ImportSettings.JoinIdenticalVertices;
-        out << YAML::Key << "pre_transform_vertices" << YAML::Value << ImportSettings.PreTransformVertices;
-        out << YAML::EndMap;
-
-        // Material slots
-        out << YAML::Key << "material_slots" << YAML::Value << YAML::BeginSeq;
-        for (const auto& slot : MaterialSlots)
-        {
-            out << YAML::BeginMap;
-            out << YAML::Key << "name" << YAML::Value << slot.Name;
-            out << YAML::Key << "material" << YAML::Value << (uint64_t)slot.MaterialUUID;
-            out << YAML::EndMap;
-        }
-        out << YAML::EndSeq;
-
-        // Texture slots
-        out << YAML::Key << "texture_slots" << YAML::Value << YAML::BeginSeq;
-        for (const auto& slot : TextureSlots)
-        {
-            out << YAML::BeginMap;
-            out << YAML::Key << "name" << YAML::Value << slot.Name;
-            out << YAML::Key << "texture" << YAML::Value << (uint64_t)slot.TextureUUID;
-            out << YAML::EndMap;
-        }
-        out << YAML::EndSeq;
-
-        out << YAML::EndMap;
-
-        std::ofstream fout(filePath);
-        if (!fout.is_open())
+        FileStream stream(filePath.string().c_str(), "wb");
+        if (!stream.IsOpen())
         {
             CB_CORE_ERROR("ProcessedMeshAsset: Failed to save to {0}", filePath.string());
             return false;
         }
 
-        fout << out.c_str();
+        BinaryWriter writer(stream);
+
+        // Header
+        writer << s_MeshMagic;
+        writer << s_MeshVersion;
+        uint32_t flags = 0;
+        writer << flags;
+
+        // Source
+        writer << SourceFilePath;
+        writer << (uint64_t)SourceMeshUUID;
+
+        // Import settings
+        writer << (uint8_t)ImportSettings.GenerateNormals;
+        writer << (uint8_t)ImportSettings.CalcTangents;
+        writer << (uint8_t)ImportSettings.JoinIdenticalVertices;
+        writer << (uint8_t)ImportSettings.PreTransformVertices;
+        writer << ImportSettings.Scale;
+
+        // Slots
+        writer << MaterialSlots;
+        writer << TextureSlots;
+
+        // Geometry
+        uint32_t vertexCount = static_cast<uint32_t>(Vertices.size());
+        uint32_t indexCount = static_cast<uint32_t>(Indices.size());
+        writer << vertexCount;
+        writer << indexCount;
+
+        if (vertexCount > 0)
+            writer.WriteBytes(Vertices.data(), vertexCount * sizeof(Vertex));
+        if (indexCount > 0)
+            writer.WriteBytes(Indices.data(), indexCount * sizeof(uint32_t));
+
         return true;
     }
 
     Ref<ProcessedMeshAsset> ProcessedMeshAsset::Load(const std::filesystem::path& filePath)
     {
-        std::ifstream fin(filePath);
-        if (!fin.is_open())
+        FileStream stream(filePath.string().c_str(), "rb");
+        if (!stream.IsOpen())
         {
             CB_CORE_ERROR("ProcessedMeshAsset: Failed to open {0}", filePath.string());
             return nullptr;
         }
 
-        YAML::Node data;
-        try
+        BinaryReader reader(stream);
+
+        // Header
+        uint32_t magic = 0, version = 0, flags = 0;
+        reader >> magic;
+        if (magic != s_MeshMagic)
         {
-            data = YAML::Load(fin);
-        }
-        catch (const YAML::ParserException& e)
-        {
-            CB_CORE_ERROR("ProcessedMeshAsset: YAML parse error in {0}: {1}", filePath.string(), e.what());
+            CB_CORE_ERROR("ProcessedMeshAsset: Invalid magic in {0} (expected 0x{1:08X}, got 0x{2:08X})",
+                filePath.string(), s_MeshMagic, magic);
             return nullptr;
         }
+        reader >> version;
+        if (version != s_MeshVersion)
+        {
+            CB_CORE_ERROR("ProcessedMeshAsset: Unsupported version {0} in {1}", version, filePath.string());
+            return nullptr;
+        }
+        reader >> flags;
 
         auto asset = CreateRef<ProcessedMeshAsset>();
         asset->m_Path = filePath;
 
         // Source
-        if (auto source = data["source"])
-        {
-            asset->SourceFilePath = source["path"].as<std::string>("");
-            asset->SourceMeshUUID = UUID(source["uuid"].as<uint64_t>(0));
-        }
+        reader >> asset->SourceFilePath;
+        uint64_t sourceUUID = 0;
+        reader >> sourceUUID;
+        asset->SourceMeshUUID = UUID(sourceUUID);
 
         // Import settings
-        if (auto settings = data["import_settings"])
-        {
-            asset->ImportSettings.Scale = settings["scale"].as<float>(1.0f);
-            asset->ImportSettings.GenerateNormals = settings["generate_normals"].as<bool>(true);
-            asset->ImportSettings.CalcTangents = settings["calc_tangents"].as<bool>(true);
-            asset->ImportSettings.JoinIdenticalVertices = settings["join_identical_vertices"].as<bool>(true);
-            asset->ImportSettings.PreTransformVertices = settings["pre_transform_vertices"].as<bool>(true);
-        }
+        uint8_t genNormals = 0, calcTangents = 0, joinVerts = 0, preTransform = 0;
+        reader >> genNormals;
+        reader >> calcTangents;
+        reader >> joinVerts;
+        reader >> preTransform;
+        reader >> asset->ImportSettings.Scale;
+        asset->ImportSettings.GenerateNormals = genNormals != 0;
+        asset->ImportSettings.CalcTangents = calcTangents != 0;
+        asset->ImportSettings.JoinIdenticalVertices = joinVerts != 0;
+        asset->ImportSettings.PreTransformVertices = preTransform != 0;
 
-        // Material slots
-        if (auto slots = data["material_slots"])
-        {
-            for (const auto& slotNode : slots)
-            {
-                MaterialSlot slot;
-                slot.Name = slotNode["name"].as<std::string>("");
-                slot.MaterialUUID = UUID(slotNode["material"].as<uint64_t>(0));
-                asset->MaterialSlots.push_back(slot);
-            }
-        }
+        // Slots
+        reader >> asset->MaterialSlots;
+        reader >> asset->TextureSlots;
 
-        // Texture slots
-        if (auto slots = data["texture_slots"])
+        // Geometry
+        uint32_t vertexCount = 0, indexCount = 0;
+        reader >> vertexCount;
+        reader >> indexCount;
+
+        if (vertexCount > 0)
         {
-            for (const auto& slotNode : slots)
-            {
-                TextureSlot slot;
-                slot.Name = slotNode["name"].as<std::string>("");
-                slot.TextureUUID = UUID(slotNode["texture"].as<uint64_t>(0));
-                asset->TextureSlots.push_back(slot);
-            }
+            asset->Vertices.resize(vertexCount);
+            reader.ReadBytes(asset->Vertices.data(), vertexCount * sizeof(Vertex));
+        }
+        if (indexCount > 0)
+        {
+            asset->Indices.resize(indexCount);
+            reader.ReadBytes(asset->Indices.data(), indexCount * sizeof(uint32_t));
         }
 
         return asset;
+    }
+
+    Ref<Mesh> ProcessedMeshAsset::CreateMesh() const
+    {
+        if (!HasGeometryData())
+        {
+            CB_CORE_WARN("ProcessedMeshAsset::CreateMesh: No geometry data embedded");
+            return nullptr;
+        }
+
+        return CreateRef<Mesh>(Vertices, Indices);
     }
 
     bool ProcessedMeshAsset::Reload()
@@ -258,6 +189,8 @@ namespace CB
         ImportSettings = reloaded->ImportSettings;
         MaterialSlots = reloaded->MaterialSlots;
         TextureSlots = reloaded->TextureSlots;
+        Vertices = std::move(reloaded->Vertices);
+        Indices = std::move(reloaded->Indices);
         return true;
     }
 
@@ -270,197 +203,139 @@ namespace CB
         m_Type = AssetType::VoxelMesh;
     }
 
-    String VoxelMeshAsset::EncodeVoxelData(const voxelizer::VoxelData& data)
-    {
-        if (data.empty())
-            return "";
-
-        const unsigned char* bytes = reinterpret_cast<const unsigned char*>(data.data());
-        size_t byteCount = data.size() * sizeof(uint64_t);
-        return Base64Encode(bytes, byteCount);
-    }
-
-    voxelizer::VoxelData VoxelMeshAsset::DecodeVoxelData(const String& base64)
-    {
-        if (base64.empty())
-            return {};
-
-        auto decoded = Base64Decode(base64);
-        size_t count = decoded.size() / sizeof(uint64_t);
-        voxelizer::VoxelData result(count);
-        memcpy(result.data(), decoded.data(), count * sizeof(uint64_t));
-        return result;
-    }
-
     bool VoxelMeshAsset::Save(const std::filesystem::path& filePath)
     {
-        YAML::Emitter out;
-        out << YAML::BeginMap;
-
-        out << YAML::Key << "version" << YAML::Value << 1;
-
-        // Source
-        out << YAML::Key << "source" << YAML::Value << YAML::BeginMap;
-        out << YAML::Key << "path" << YAML::Value << SourceFilePath;
-        out << YAML::Key << "uuid" << YAML::Value << (uint64_t)SourceMeshUUID;
-        out << YAML::EndMap;
-
-        // Voxel settings
-        out << YAML::Key << "voxel_settings" << YAML::Value << YAML::BeginMap;
-        out << YAML::Key << "grid_size" << YAML::Value << VoxelSettings.GridSize;
-        out << YAML::Key << "solid" << YAML::Value << VoxelSettings.Solid;
-        out << YAML::Key << "padding" << YAML::Value << VoxelSettings.Padding;
-        out << YAML::Key << "voxel_size" << YAML::Value << VoxelSettings.VoxelSize;
-        out << YAML::EndMap;
-
-        out << YAML::Key << "color_texture" << YAML::Value << (uint64_t)ColorTextureUUID;
-
-        // Material slots
-        out << YAML::Key << "material_slots" << YAML::Value << YAML::BeginSeq;
-        for (const auto& slot : MaterialSlots)
-        {
-            out << YAML::BeginMap;
-            out << YAML::Key << "name" << YAML::Value << slot.Name;
-            out << YAML::Key << "material" << YAML::Value << (uint64_t)slot.MaterialUUID;
-            out << YAML::EndMap;
-        }
-        out << YAML::EndSeq;
-
-        // Texture slots
-        out << YAML::Key << "texture_slots" << YAML::Value << YAML::BeginSeq;
-        for (const auto& slot : TextureSlots)
-        {
-            out << YAML::BeginMap;
-            out << YAML::Key << "name" << YAML::Value << slot.Name;
-            out << YAML::Key << "texture" << YAML::Value << (uint64_t)slot.TextureUUID;
-            out << YAML::EndMap;
-        }
-        out << YAML::EndSeq;
-
-        // Voxel grid data
-        out << YAML::Key << "voxel_grid" << YAML::Value << YAML::BeginMap;
-        out << YAML::Key << "dimensions" << YAML::Value << YAML::Flow
-            << YAML::BeginSeq << GridData.size.x << GridData.size.y << GridData.size.z << YAML::EndSeq;
-        out << YAML::Key << "origin" << YAML::Value << YAML::Flow
-            << YAML::BeginSeq << GridData.origin.x << GridData.origin.y << GridData.origin.z << YAML::EndSeq;
-        out << YAML::Key << "cell_size" << YAML::Value << YAML::Flow
-            << YAML::BeginSeq << GridData.voxelSize.x << GridData.voxelSize.y << GridData.voxelSize.z << YAML::EndSeq;
-        out << YAML::Key << "voxel_count" << YAML::Value << VoxelCount;
-        out << YAML::Key << "data" << YAML::Value << EncodeVoxelData(GridData.data);
-        out << YAML::EndMap;
-
-        out << YAML::EndMap;
-
-        std::ofstream fout(filePath);
-        if (!fout.is_open())
+        FileStream stream(filePath.string().c_str(), "wb");
+        if (!stream.IsOpen())
         {
             CB_CORE_ERROR("VoxelMeshAsset: Failed to save to {0}", filePath.string());
             return false;
         }
 
-        fout << out.c_str();
+        BinaryWriter writer(stream);
+
+        // Header
+        writer << s_VmeshMagic;
+        writer << s_VmeshVersion;
+        uint32_t flags = 0;
+        writer << flags;
+
+        // Source
+        writer << SourceFilePath;
+        writer << (uint64_t)SourceMeshUUID;
+
+        // Import settings
+        writer << (uint8_t)ImportSettings.GenerateNormals;
+        writer << (uint8_t)ImportSettings.CalcTangents;
+        writer << (uint8_t)ImportSettings.JoinIdenticalVertices;
+        writer << (uint8_t)ImportSettings.PreTransformVertices;
+        writer << ImportSettings.Scale;
+
+        // Voxel settings
+        writer << VoxelSettings.GridSize;
+        writer << VoxelSettings.VoxelSize;
+        writer << (uint8_t)VoxelSettings.Solid;
+        writer << VoxelSettings.Padding;
+        writer << (uint64_t)ColorTextureUUID;
+
+        // Slots
+        writer << MaterialSlots;
+        writer << TextureSlots;
+
+        // Grid data
+        writer << GridData.size.x;
+        writer << GridData.size.y;
+        writer << GridData.size.z;
+        writer << GridData.origin.x;
+        writer << GridData.origin.y;
+        writer << GridData.origin.z;
+        writer << GridData.voxelSize.x;
+        writer << GridData.voxelSize.y;
+        writer << GridData.voxelSize.z;
+        writer << GridData.totalVoxels;
+        writer << VoxelCount;
+        writer << GridData.data; // vector<uint64_t> - uses BinaryIO vector serialization
+
         return true;
     }
 
     Ref<VoxelMeshAsset> VoxelMeshAsset::Load(const std::filesystem::path& filePath)
     {
-        std::ifstream fin(filePath);
-        if (!fin.is_open())
+        FileStream stream(filePath.string().c_str(), "rb");
+        if (!stream.IsOpen())
         {
             CB_CORE_ERROR("VoxelMeshAsset: Failed to open {0}", filePath.string());
             return nullptr;
         }
 
-        YAML::Node data;
-        try
+        BinaryReader reader(stream);
+
+        // Header
+        uint32_t magic = 0, version = 0, flags = 0;
+        reader >> magic;
+        if (magic != s_VmeshMagic)
         {
-            data = YAML::Load(fin);
-        }
-        catch (const YAML::ParserException& e)
-        {
-            CB_CORE_ERROR("VoxelMeshAsset: YAML parse error in {0}: {1}", filePath.string(), e.what());
+            CB_CORE_ERROR("VoxelMeshAsset: Invalid magic in {0} (expected 0x{1:08X}, got 0x{2:08X})",
+                filePath.string(), s_VmeshMagic, magic);
             return nullptr;
         }
+        reader >> version;
+        if (version != s_VmeshVersion)
+        {
+            CB_CORE_ERROR("VoxelMeshAsset: Unsupported version {0} in {1}", version, filePath.string());
+            return nullptr;
+        }
+        reader >> flags;
 
         auto asset = CreateRef<VoxelMeshAsset>();
         asset->m_Path = filePath;
 
         // Source
-        if (auto source = data["source"])
-        {
-            asset->SourceFilePath = source["path"].as<std::string>("");
-            asset->SourceMeshUUID = UUID(source["uuid"].as<uint64_t>(0));
-        }
+        reader >> asset->SourceFilePath;
+        uint64_t sourceUUID = 0;
+        reader >> sourceUUID;
+        asset->SourceMeshUUID = UUID(sourceUUID);
+
+        // Import settings
+        uint8_t genNormals = 0, calcTangents = 0, joinVerts = 0, preTransform = 0;
+        reader >> genNormals;
+        reader >> calcTangents;
+        reader >> joinVerts;
+        reader >> preTransform;
+        reader >> asset->ImportSettings.Scale;
+        asset->ImportSettings.GenerateNormals = genNormals != 0;
+        asset->ImportSettings.CalcTangents = calcTangents != 0;
+        asset->ImportSettings.JoinIdenticalVertices = joinVerts != 0;
+        asset->ImportSettings.PreTransformVertices = preTransform != 0;
 
         // Voxel settings
-        if (auto settings = data["voxel_settings"])
-        {
-            asset->VoxelSettings.GridSize = settings["grid_size"].as<int>(32);
-            asset->VoxelSettings.Solid = settings["solid"].as<bool>(true);
-            asset->VoxelSettings.Padding = settings["padding"].as<float>(0.01f);
-            asset->VoxelSettings.VoxelSize = settings["voxel_size"].as<float>(0.0f);
-        }
+        reader >> asset->VoxelSettings.GridSize;
+        reader >> asset->VoxelSettings.VoxelSize;
+        uint8_t solid = 0;
+        reader >> solid;
+        asset->VoxelSettings.Solid = solid != 0;
+        reader >> asset->VoxelSettings.Padding;
+        uint64_t colorTexUUID = 0;
+        reader >> colorTexUUID;
+        asset->ColorTextureUUID = UUID(colorTexUUID);
 
-        asset->ColorTextureUUID = UUID(data["color_texture"].as<uint64_t>(0));
+        // Slots
+        reader >> asset->MaterialSlots;
+        reader >> asset->TextureSlots;
 
-        // Material slots
-        if (auto slots = data["material_slots"])
-        {
-            for (const auto& slotNode : slots)
-            {
-                MaterialSlot slot;
-                slot.Name = slotNode["name"].as<std::string>("");
-                slot.MaterialUUID = UUID(slotNode["material"].as<uint64_t>(0));
-                asset->MaterialSlots.push_back(slot);
-            }
-        }
-
-        // Texture slots
-        if (auto slots = data["texture_slots"])
-        {
-            for (const auto& slotNode : slots)
-            {
-                TextureSlot slot;
-                slot.Name = slotNode["name"].as<std::string>("");
-                slot.TextureUUID = UUID(slotNode["texture"].as<uint64_t>(0));
-                asset->TextureSlots.push_back(slot);
-            }
-        }
-
-        // Voxel grid
-        if (auto grid = data["voxel_grid"])
-        {
-            auto dims = grid["dimensions"];
-            if (dims && dims.IsSequence() && dims.size() == 3)
-            {
-                asset->GridData.size.x = dims[0].as<int>(0);
-                asset->GridData.size.y = dims[1].as<int>(0);
-                asset->GridData.size.z = dims[2].as<int>(0);
-            }
-
-            auto origin = grid["origin"];
-            if (origin && origin.IsSequence() && origin.size() == 3)
-            {
-                asset->GridData.origin.x = origin[0].as<float>(0.0f);
-                asset->GridData.origin.y = origin[1].as<float>(0.0f);
-                asset->GridData.origin.z = origin[2].as<float>(0.0f);
-            }
-
-            auto cellSize = grid["cell_size"];
-            if (cellSize && cellSize.IsSequence() && cellSize.size() == 3)
-            {
-                asset->GridData.voxelSize.x = cellSize[0].as<float>(0.0f);
-                asset->GridData.voxelSize.y = cellSize[1].as<float>(0.0f);
-                asset->GridData.voxelSize.z = cellSize[2].as<float>(0.0f);
-            }
-
-            asset->VoxelCount = grid["voxel_count"].as<uint64_t>(0);
-            asset->GridData.totalVoxels = static_cast<uint64_t>(
-                asset->GridData.size.x) * asset->GridData.size.y * asset->GridData.size.z;
-
-            String encodedData = grid["data"].as<std::string>("");
-            asset->GridData.data = DecodeVoxelData(encodedData);
-        }
+        // Grid data
+        reader >> asset->GridData.size.x;
+        reader >> asset->GridData.size.y;
+        reader >> asset->GridData.size.z;
+        reader >> asset->GridData.origin.x;
+        reader >> asset->GridData.origin.y;
+        reader >> asset->GridData.origin.z;
+        reader >> asset->GridData.voxelSize.x;
+        reader >> asset->GridData.voxelSize.y;
+        reader >> asset->GridData.voxelSize.z;
+        reader >> asset->GridData.totalVoxels;
+        reader >> asset->VoxelCount;
+        reader >> asset->GridData.data; // vector<uint64_t>
 
         return asset;
     }
@@ -476,6 +351,7 @@ namespace CB
 
         SourceFilePath = reloaded->SourceFilePath;
         SourceMeshUUID = reloaded->SourceMeshUUID;
+        ImportSettings = reloaded->ImportSettings;
         VoxelSettings = reloaded->VoxelSettings;
         ColorTextureUUID = reloaded->ColorTextureUUID;
         GridData = reloaded->GridData;

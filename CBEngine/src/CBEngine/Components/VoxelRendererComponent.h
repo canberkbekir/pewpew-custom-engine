@@ -7,6 +7,8 @@
 #include "CBEngine/Renderer/Resources/Shader.h"
 #include "CBEngine/Utils/VoxelizerAPI.h"
 
+namespace YAML { class Emitter; class Node; }
+
 namespace CB {
 
 	struct VoxelRendererComponent
@@ -27,8 +29,14 @@ namespace CB {
 
 		bool Visible = true;
 
+		static constexpr const char* YAMLKey = "VoxelRendererComponent";
+
 		VoxelRendererComponent() = default;
 		VoxelRendererComponent(const VoxelRendererComponent&) = default;
+
+		void Serialize(YAML::Emitter& out) const;
+		void Deserialize(const YAML::Node& node);
+		void ResolveAssets();
 	};
 
 }

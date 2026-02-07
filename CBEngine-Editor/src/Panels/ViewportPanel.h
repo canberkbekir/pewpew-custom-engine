@@ -8,6 +8,8 @@
 #include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Renderer/Resources/Shader.h"
 #include "CBEngine/Renderer/Resources/Material.h"
+#include <imgui.h>
+#include <ImGuizmo/ImGuizmo.h>
 
 namespace CB
 {
@@ -24,6 +26,9 @@ namespace CB
 		void RenderToolbar();
 		void RenderStatsOverlay();
 		void RenderScene();
+		void RenderGizmo();
+
+		void HandleEntityPicking();
 
 	private:
 		// Rendering
@@ -43,10 +48,9 @@ namespace CB
 		bool m_Wireframe = false;
 		bool m_ShowStats = true;
 
-		// Lighting
-		Vector3 m_LightDirection = { -0.2f, -1.0f, -0.3f };
-		Vector3 m_LightColor = { 1.0f, 1.0f, 1.0f };
-		float m_LightIntensity = 1.0f;
-		Vector3 m_AmbientColor = { 0.1f, 0.1f, 0.1f };
+		// Gizmo state
+		ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::TRANSLATE;
+		ImGuizmo::MODE m_GizmoMode = ImGuizmo::LOCAL;
+
 	};
 }

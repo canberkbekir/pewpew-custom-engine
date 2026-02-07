@@ -13,6 +13,8 @@
 #include <cstring>
 #include <vector>
 
+#include "CBEngine/Components/DirectionalLightComponent.h"
+
 namespace CB
 {
     template<typename Component>
@@ -55,6 +57,19 @@ namespace CB
         if (m_Context != activeScene)
         {
             m_Context = activeScene;
+            m_SelectionContext = {};
+        }
+
+        // Sync selection from the global Selection system (e.g. viewport picking)
+        if (m_Context && Selection::HasEntitySelected())
+        {
+            UUID selectedUUID = Selection::GetPrimarySelection().ID;
+            Entity selectedEntity = m_Context->GetEntityByUUID(selectedUUID);
+            if (selectedEntity && selectedEntity != m_SelectionContext)
+                m_SelectionContext = selectedEntity;
+        }
+        else if (m_Context && !Selection::HasSelection() && m_SelectionContext)
+        {
             m_SelectionContext = {};
         }
 
@@ -532,6 +547,7 @@ namespace CB
             if (ImGui::MenuItem("Directional Light"))
             {
                 Entity entity = m_Context->CreateEntity("Directional Light");
+                entity.AddComponent<DirectionalLightComponent>();
                 m_SelectionContext = entity;
                 Selection::Select(Selectable::Entity(entity.GetUUID()));
             }

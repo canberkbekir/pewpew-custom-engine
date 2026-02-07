@@ -1,5 +1,53 @@
 Scene: SampleScene
 Entities:
+  - Entity: 1166786294710210493
+    TagComponent:
+      Tag: Directional Light
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [-2.7227137, -0.16929694, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    DirectionalLightComponent:
+      Visible: true
+      Color: [1, 1, 1]
+      Intensity: 1
+      CastShadows: false
+      SourceAngleDegrees: 0.53
+  - Entity: 11611691697583805860
+    TagComponent:
+      Tag: Child
+    TransformComponent:
+      Position: [-0.20392066, -3.695488e-06, -0.20272541]
+      Rotation: [0, 0, 0]
+      Scale: [0.001, 0.001, 0.001]
+      Parent: 3584612647765517781
+    VoxelRendererComponent:
+      VoxelMeshUUID: 4027609971223986444
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 3584612647765517781
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [0, 0.09581402, 2.4156966]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1.0923504, 1]
+      Parent: 0
+  - Entity: 7914719244330789713
+    TagComponent:
+      Tag: Child
+    TransformComponent:
+      Position: [1.2666838, -3.2002163e-07, -0.28395793]
+      Rotation: [0, 0, 0]
+      Scale: [0.001, 0.001, 0.001]
+      Parent: 10584827706656117993
+    MeshRendererComponent:
+      MeshUUID: 11577590312992148125
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
   - Entity: 10584827706656117993
     TagComponent:
       Tag: Empty Entity
@@ -8,37 +56,3 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
       Parent: 0
-  - Entity: 7914719244330789713
-    TagComponent:
-      Tag: Child
-    TransformComponent:
-      Position: [1.1, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 10584827706656117993
-    MeshRendererComponent:
-      MeshUUID: 9822671189742086249
-      MaterialUUID: 1344730489972898971
-      ShaderUUID: 0
-      Visible: true
-  - Entity: 3584612647765517781
-    TagComponent:
-      Tag: Empty Entity
-    TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Parent: 0
-  - Entity: 11611691697583805860
-    TagComponent:
-      Tag: Child
-    TransformComponent:
-      Position: [-1.5, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [0.001, 0.001, 0.001]
-      Parent: 3584612647765517781
-    VoxelRendererComponent:
-      VoxelMeshUUID: 10850478245900889218
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true

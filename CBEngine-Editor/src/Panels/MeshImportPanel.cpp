@@ -1,4 +1,4 @@
-#include "ImportPreviewPanel.h"
+#include "MeshImportPanel.h"
 
 #include <imgui.h>
 
@@ -17,8 +17,8 @@
 
 namespace CB
 {
-	ImportPreviewPanel::ImportPreviewPanel()
-		: Panel("Import Preview", false)
+	MeshImportPanel::MeshImportPanel()
+		: Panel("Mesh Import", false)
 		, m_RawCameraController(45.0f, 4.0f / 3.0f, 0.1f, 100.0f)
 	{
 		// Create framebuffers for dual viewports
@@ -45,11 +45,12 @@ namespace CB
 		m_TextureSlots.push_back({ "Albedo", UUID(0) });
 	}
 
-	void ImportPreviewPanel::OpenForFile(const std::filesystem::path& filePath)
+	void MeshImportPanel::OpenForFile(const std::filesystem::path& filePath, const std::filesystem::path& outputDirectory)
 	{
 		CB_PROFILE_FUNCTION();
 
 		m_SourceFilePath = filePath;
+		m_OutputDirectory = outputDirectory.empty() ? filePath.parent_path() : outputDirectory;
 		m_IsOpen = true;
 		m_Visible = true;
 		m_IsReimport = false;
@@ -79,24 +80,24 @@ namespace CB
 
 		if (!m_RawMesh)
 		{
-			CB_CORE_ERROR("ImportPreviewPanel: Failed to load mesh: {0}", filePath.string());
+			CB_CORE_ERROR("MeshImportPanel: Failed to load mesh: {0}", filePath.string());
 			Close();
 			return;
 		}
 
 		FitCameraToMesh();
 
-		CB_CORE_INFO("ImportPreviewPanel: Opened for {0}", filePath.string());
+		CB_CORE_INFO("MeshImportPanel: Opened for {0}", filePath.string());
 	}
 
-	void ImportPreviewPanel::OpenForReimport(UUID assetUUID)
+	void MeshImportPanel::OpenForReimport(UUID assetUUID)
 	{
 		CB_PROFILE_FUNCTION();
 
 		const AssetMetadata* metadata = AssetManager::GetRegistry().GetMetadata(assetUUID);
 		if (!metadata)
 		{
-			CB_CORE_ERROR("ImportPreviewPanel: Asset not found for reimport");
+			CB_CORE_ERROR("MeshImportPanel: Asset not found for reimport");
 			return;
 		}
 
@@ -142,11 +143,15 @@ namespace CB
 		m_IsOpen = true;
 		m_Visible = true;
 
+		// Output directory: same folder as the existing asset
+		std::filesystem::path assetFullPath = AssetManager::GetAssetDirectory() / metadata->FilePath;
+		m_OutputDirectory = assetFullPath.parent_path();
+
 		// Load raw mesh
 		m_RawMesh = Mesh::Load(m_SourceFilePath.string(), true);
 		if (!m_RawMesh)
 		{
-			CB_CORE_ERROR("ImportPreviewPanel: Failed to load source mesh: {0}", m_SourceFilePath.string());
+			CB_CORE_ERROR("MeshImportPanel: Failed to load source mesh: {0}", m_SourceFilePath.string());
 			Close();
 			return;
 		}
@@ -159,10 +164,10 @@ namespace CB
 			RegenVoxelPreview();
 		}
 
-		CB_CORE_INFO("ImportPreviewPanel: Opened for reimport of {0}", m_SourceFilePath.string());
+		CB_CORE_INFO("MeshImportPanel: Opened for reimport of {0}", m_SourceFilePath.string());
 	}
 
-	void ImportPreviewPanel::OnUpdate(Timestep ts)
+	void MeshImportPanel::OnUpdate(Timestep ts)
 	{
 		if (!m_IsOpen || !m_Visible)
 			return;
@@ -181,8 +186,8 @@ namespace CB
 			}
 		}
 
-		// Poll voxel task completion
-		if (m_VoxelTask.IsComplete())
+		// Poll voxel task completion (only create mesh once)
+		if (m_VoxelTask.IsComplete() && !m_VoxelMesh)
 		{
 			m_VoxelMesh = m_VoxelTask.CreateMeshFromResult();
 		}
@@ -191,10 +196,10 @@ namespace CB
 		if (m_RawViewportHovered)
 			m_RawCameraController.OnUpdate(ts);
 
-		// Auto-rotate voxel preview
-		m_VoxelAutoRotationAngle += ts * 30.0f; // 30 degrees per second
-		if (m_VoxelAutoRotationAngle >= 360.0f)
-			m_VoxelAutoRotationAngle -= 360.0f;
+		// Auto-rotate previews
+		m_AutoRotationAngle += ts * 30.0f; // 30 degrees per second
+		if (m_AutoRotationAngle >= 360.0f)
+			m_AutoRotationAngle -= 360.0f;
 
 		// Resize raw framebuffer
 		{
@@ -227,6 +232,8 @@ namespace CB
 			}
 		}
 
+		Mat4 rotation = glm::rotate(Mat4(1.0f), glm::radians(m_AutoRotationAngle), Vector3(0.0f, 1.0f, 0.0f));
+
 		// Render raw mesh to FBO
 		if (m_RawMesh)
 		{
@@ -237,7 +244,9 @@ namespace CB
 			Renderer3D::BeginScene(
 				m_RawCameraController.GetCamera(),
 				m_RawCameraController.GetCamera().GetPosition());
-			Renderer3D::Submit(m_PreviewShader, m_PreviewMaterial, m_RawMesh, Mat4(1.0f));
+			Renderer3D::SetDirectionalLight(Vector3(-0.5f, -1.0f, -0.3f), Vector3(1.0f), 1.5f);
+			Renderer3D::SetAmbientLight(Vector3(0.15f));
+			Renderer3D::Submit(m_PreviewShader, m_PreviewMaterial, m_RawMesh, rotation);
 			Renderer3D::EndScene();
 
 			m_RawFramebuffer->Unbind();
@@ -250,12 +259,11 @@ namespace CB
 			RenderCommand::SetClearColor({ 0.12f, 0.12f, 0.15f, 1.0f });
 			RenderCommand::Clear();
 
-			// Use raw camera's view/projection but with auto-rotation on the model
-			Mat4 rotation = glm::rotate(Mat4(1.0f), glm::radians(m_VoxelAutoRotationAngle), Vector3(0.0f, 1.0f, 0.0f));
-
 			Renderer3D::BeginScene(
 				m_RawCameraController.GetCamera(),
 				m_RawCameraController.GetCamera().GetPosition());
+			Renderer3D::SetDirectionalLight(Vector3(-0.5f, -1.0f, -0.3f), Vector3(1.0f), 1.5f);
+			Renderer3D::SetAmbientLight(Vector3(0.15f));
 			Renderer3D::Submit(m_PreviewShader, m_PreviewMaterial, m_VoxelMesh, rotation);
 			Renderer3D::EndScene();
 
@@ -263,7 +271,7 @@ namespace CB
 		}
 	}
 
-	void ImportPreviewPanel::OnImGuiRender()
+	void MeshImportPanel::OnImGuiRender()
 	{
 		if (!m_IsOpen || !m_Visible)
 			return;
@@ -325,7 +333,7 @@ namespace CB
 		ImGui::End();
 	}
 
-	void ImportPreviewPanel::RenderRawViewport()
+	void MeshImportPanel::RenderRawViewport()
 	{
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		m_RawViewportSize = { size.x, size.y };
@@ -343,7 +351,7 @@ namespace CB
 		}
 	}
 
-	void ImportPreviewPanel::RenderVoxelViewport()
+	void MeshImportPanel::RenderVoxelViewport()
 	{
 		ImVec2 size = ImGui::GetContentRegionAvail();
 		m_VoxelViewportSize = { size.x, size.y };
@@ -367,7 +375,7 @@ namespace CB
 		}
 	}
 
-	void ImportPreviewPanel::RenderSettings()
+	void MeshImportPanel::RenderSettings()
 	{
 		if (ImGui::CollapsingHeader("Voxel Settings", ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -447,7 +455,7 @@ namespace CB
 		}
 	}
 
-	void ImportPreviewPanel::RenderMaterialSlots()
+	void MeshImportPanel::RenderMaterialSlots()
 	{
 		if (ImGui::CollapsingHeader("Material Slots"))
 		{
@@ -490,7 +498,7 @@ namespace CB
 		}
 	}
 
-	void ImportPreviewPanel::RenderTextureSlots()
+	void MeshImportPanel::RenderTextureSlots()
 	{
 		if (ImGui::CollapsingHeader("Texture Slots"))
 		{
@@ -536,7 +544,7 @@ namespace CB
 		}
 	}
 
-	void ImportPreviewPanel::RenderOutputSection()
+	void MeshImportPanel::RenderOutputSection()
 	{
 		// Output name
 		ImGui::Text("Output:");
@@ -569,7 +577,7 @@ namespace CB
 		ImGui::PopStyleColor(2);
 	}
 
-	void ImportPreviewPanel::RegenVoxelPreview()
+	void MeshImportPanel::RegenVoxelPreview()
 	{
 		if (!m_RawMesh || !m_RawMesh->HasCPUData())
 			return;
@@ -577,7 +585,10 @@ namespace CB
 		if (!m_GenerateVoxelMesh)
 			return;
 
-		CB_CORE_INFO("ImportPreviewPanel: Starting voxel preview regeneration");
+		// Clear old mesh so OnUpdate picks up the new result when ready
+		m_VoxelMesh = nullptr;
+
+		CB_CORE_INFO("MeshImportPanel: Starting voxel preview regeneration");
 
 		if (m_ColorTexturePath.empty())
 		{
@@ -596,7 +607,7 @@ namespace CB
 		}
 	}
 
-	void ImportPreviewPanel::GenerateVoxelMeshAsset(String outputName,std::filesystem::path sourceDir,std::filesystem::path relativeSourcePath,UUID sourceMeshUUID)
+	void MeshImportPanel::GenerateVoxelMeshAsset(String outputName,std::filesystem::path sourceDir,std::filesystem::path relativeSourcePath,UUID sourceMeshUUID)
 	{
 		String extension = ".vmesh";
 		std::filesystem::path outputPath = sourceDir / (outputName + extension);
@@ -636,10 +647,10 @@ namespace CB
 			if (importedUUID.IsValid() && !deps.empty())
 				AssetManager::GetRegistry().UpdateDependencies(importedUUID, deps);
 
-			CB_CORE_INFO("ImportPreviewPanel: Exported .vmesh to {0}", outputPath.string());
+			CB_CORE_INFO("MeshImportPanel: Exported .vmesh to {0}", outputPath.string());
 		}
 	}
-	void ImportPreviewPanel::GenerateProccessedMeshAsset(String outputName,std::filesystem::path sourceDir,std::filesystem::path relativeSourcePath,UUID sourceMeshUUID)
+	void MeshImportPanel::GenerateProccessedMeshAsset(String outputName,std::filesystem::path sourceDir,std::filesystem::path relativeSourcePath,UUID sourceMeshUUID)
 	{
 		String extension = ".mesh";
 		std::filesystem::path outputPath = sourceDir / (outputName + extension);
@@ -649,6 +660,13 @@ namespace CB
 		asset->SourceMeshUUID = sourceMeshUUID;
 		asset->MaterialSlots = m_MaterialSlots;
 		asset->TextureSlots = m_TextureSlots;
+
+		// Embed vertex/index data so the FBX is not needed at runtime
+		if (m_RawMesh && m_RawMesh->HasCPUData())
+		{
+			asset->Vertices = m_RawMesh->GetVertices();
+			asset->Indices = m_RawMesh->GetIndices();
+		}
 
 		if (asset->Save(outputPath))
 		{
@@ -667,10 +685,10 @@ namespace CB
 			if (importedUUID.IsValid() && !deps.empty())
 				AssetManager::GetRegistry().UpdateDependencies(importedUUID, deps);
 
-			CB_CORE_INFO("ImportPreviewPanel: Exported .mesh to {0}", outputPath.string());
+			CB_CORE_INFO("MeshImportPanel: Exported .mesh to {0}", outputPath.string());
 		}
 	}
-	void ImportPreviewPanel::ConfirmImport()
+	void MeshImportPanel::ConfirmImport()
 	{
 		CB_PROFILE_FUNCTION();
 
@@ -678,8 +696,8 @@ namespace CB
 		if (outputName.empty())
 			outputName = m_SourceFilePath.stem().string();
 
-		// Determine output path relative to source file location
-		std::filesystem::path sourceDir = m_SourceFilePath.parent_path();
+		// Use the configured output directory for .mesh/.vmesh files
+		std::filesystem::path sourceDir = m_OutputDirectory;
 
 		// Get relative source path for serialization
 		std::filesystem::path relativeSourcePath = std::filesystem::relative(
@@ -703,7 +721,7 @@ namespace CB
 		Close();
 	}
 
-	void ImportPreviewPanel::Close()
+	void MeshImportPanel::Close()
 	{
 		m_IsOpen = false;
 		m_Visible = false;
@@ -720,7 +738,7 @@ namespace CB
 		m_VoxelMesh = nullptr;
 	}
 
-	void ImportPreviewPanel::FitCameraToMesh()
+	void MeshImportPanel::FitCameraToMesh()
 	{
 		if (!m_RawMesh || !m_RawMesh->HasCPUData())
 		{
@@ -776,7 +794,7 @@ namespace CB
 		m_RawCameraController.SetFarClip(farClip);
 	}
 
-	void ImportPreviewPanel::OnEvent(Event& e)
+	void MeshImportPanel::OnEvent(Event& e)
 	{
 		if (m_IsOpen && m_RawViewportHovered)
 			m_RawCameraController.OnEvent(e);

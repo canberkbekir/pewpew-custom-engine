@@ -1,50 +1,13 @@
 #include "cbpch.h"
 #include "SceneSerializer.h"
 #include "Entity.h"
-#include "CBEngine/Components/Components.h"
-#include "CBEngine/Asset/AssetManager.h"
-#include "CBEngine/Asset/ProcessedMeshAsset.h"
+#include "ComponentRegistry.h"
 
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 
-namespace YAML
-{
-	template<>
-	struct convert<glm::vec3>
-	{
-		static Node encode(const glm::vec3& rhs)
-		{
-			Node node;
-			node.push_back(rhs.x);
-			node.push_back(rhs.y);
-			node.push_back(rhs.z);
-			node.SetStyle(EmitterStyle::Flow);
-			return node;
-		}
-
-		static bool decode(const Node& node, glm::vec3& rhs)
-		{
-			if (!node.IsSequence() || node.size() != 3)
-				return false;
-
-			rhs.x = node[0].as<float>();
-			rhs.y = node[1].as<float>();
-			rhs.z = node[2].as<float>();
-			return true;
-		}
-	};
-}
-
 namespace CB
 {
-	static YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v)
-	{
-		out << YAML::Flow;
-		out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
-		return out;
-	}
-
 	SceneSerializer::SceneSerializer(const Ref<Scene>& ActiveScene)
 		: m_Scene(ActiveScene)
 	{
@@ -54,57 +17,11 @@ namespace CB
 	{
 		out << YAML::BeginMap;
 
-		// Entity UUID
+		// Entity UUID (special case — not a component block)
 		out << YAML::Key << "Entity" << YAML::Value << (uint64_t)entity.GetUUID();
 
-		// TagComponent
-		if (entity.HasComponent<TagComponent>())
-		{
-			out << YAML::Key << "TagComponent";
-			out << YAML::BeginMap;
-			auto& tag = entity.GetComponent<TagComponent>();
-			out << YAML::Key << "Tag" << YAML::Value << tag.Tag;
-			out << YAML::EndMap;
-		}
-
-		// TransformComponent
-		if (entity.HasComponent<TransformComponent>())
-		{
-			out << YAML::Key << "TransformComponent";
-			out << YAML::BeginMap;
-			auto& tc = entity.GetComponent<TransformComponent>();
-			out << YAML::Key << "Position" << YAML::Value << tc.Position;
-			out << YAML::Key << "Rotation" << YAML::Value << tc.Rotation;
-			out << YAML::Key << "Scale" << YAML::Value << tc.Scale;
-			out << YAML::Key << "Parent" << YAML::Value << (uint64_t)tc.Parent;
-			out << YAML::EndMap;
-		}
-
-		// MeshRendererComponent
-		if (entity.HasComponent<MeshRendererComponent>())
-		{
-			out << YAML::Key << "MeshRendererComponent";
-			out << YAML::BeginMap;
-			auto& mrc = entity.GetComponent<MeshRendererComponent>();
-			out << YAML::Key << "MeshUUID" << YAML::Value << (uint64_t)mrc.MeshUUID;
-			out << YAML::Key << "MaterialUUID" << YAML::Value << (uint64_t)mrc.MaterialUUID;
-			out << YAML::Key << "ShaderUUID" << YAML::Value << (uint64_t)mrc.ShaderUUID;
-			out << YAML::Key << "Visible" << YAML::Value << mrc.Visible;
-			out << YAML::EndMap;
-		}
-
-		// VoxelRendererComponent
-		if (entity.HasComponent<VoxelRendererComponent>())
-		{
-			out << YAML::Key << "VoxelRendererComponent";
-			out << YAML::BeginMap;
-			auto& vrc = entity.GetComponent<VoxelRendererComponent>();
-			out << YAML::Key << "VoxelMeshUUID" << YAML::Value << (uint64_t)vrc.VoxelMeshUUID;
-			out << YAML::Key << "MaterialUUID" << YAML::Value << (uint64_t)vrc.MaterialUUID;
-			out << YAML::Key << "ShaderUUID" << YAML::Value << (uint64_t)vrc.ShaderUUID;
-			out << YAML::Key << "Visible" << YAML::Value << vrc.Visible;
-			out << YAML::EndMap;
-		}
+		// Serialize all registered components via fold expression
+		SerializeAll(out, entity);
 
 		out << YAML::EndMap;
 	}
@@ -193,6 +110,7 @@ namespace CB
 		{
 			uint64_t uuid = entityNode["Entity"].as<uint64_t>();
 
+			// Read name before creating entity (CreateEntityWithUUID needs it)
 			String name = "Entity";
 			auto tagComponent = entityNode["TagComponent"];
 			if (tagComponent)
@@ -200,63 +118,11 @@ namespace CB
 
 			Entity entity = m_Scene->CreateEntityWithUUID(UUID(uuid), name);
 
-			// TransformComponent (already added by CreateEntityWithUUID)
-			auto transformComponent = entityNode["TransformComponent"];
-			if (transformComponent)
-			{
-				auto& tc = entity.GetComponent<TransformComponent>();
-				tc.Position = transformComponent["Position"].as<glm::vec3>();
-				tc.Rotation = transformComponent["Rotation"].as<glm::vec3>();
-				tc.Scale = transformComponent["Scale"].as<glm::vec3>();
+			// Deserialize all registered components via fold expression
+			DeserializeAll(entityNode, entity);
 
-				if (transformComponent["Parent"])
-					tc.Parent = UUID(transformComponent["Parent"].as<uint64_t>());
-			}
-
-			// MeshRendererComponent
-			auto meshRendererComponent = entityNode["MeshRendererComponent"];
-			if (meshRendererComponent)
-			{
-				auto& mrc = entity.AddComponent<MeshRendererComponent>();
-				mrc.MeshUUID = UUID(meshRendererComponent["MeshUUID"].as<uint64_t>());
-				mrc.MaterialUUID = UUID(meshRendererComponent["MaterialUUID"].as<uint64_t>());
-				mrc.ShaderUUID = UUID(meshRendererComponent["ShaderUUID"].as<uint64_t>());
-				mrc.Visible = meshRendererComponent["Visible"].as<bool>();
-
-				// Resolve UUIDs to loaded asset references
-				if (mrc.MeshUUID.IsValid())
-					mrc.MeshAsset = AssetManager::GetAsset<Mesh>(mrc.MeshUUID);
-				if (mrc.MaterialUUID.IsValid())
-					mrc.MaterialAsset = AssetManager::GetAsset<Material>(mrc.MaterialUUID);
-				if (mrc.ShaderUUID.IsValid())
-					mrc.ShaderAsset = AssetManager::GetAsset<Shader>(mrc.ShaderUUID);
-			}
-
-			// VoxelRendererComponent
-			auto voxelRendererComponent = entityNode["VoxelRendererComponent"];
-			if (voxelRendererComponent)
-			{
-				auto& vrc = entity.AddComponent<VoxelRendererComponent>();
-				vrc.VoxelMeshUUID = UUID(voxelRendererComponent["VoxelMeshUUID"].as<uint64_t>());
-				vrc.MaterialUUID = UUID(voxelRendererComponent["MaterialUUID"].as<uint64_t>());
-				vrc.ShaderUUID = UUID(voxelRendererComponent["ShaderUUID"].as<uint64_t>());
-				vrc.Visible = voxelRendererComponent["Visible"].as<bool>();
-
-				// Resolve VoxelMesh UUID: load asset and create renderable mesh from grid
-				if (vrc.VoxelMeshUUID.IsValid())
-				{
-					auto vmAsset = AssetManager::GetAsset<VoxelMeshAsset>(vrc.VoxelMeshUUID);
-					if (vmAsset && vmAsset->VoxelCount > 0)
-					{
-						vrc.MeshAsset = VoxelizerAPI::CreateMeshFromGrid(vmAsset->GridData);
-						vrc.VoxelSettings = vmAsset->VoxelSettings;
-					}
-				}
-				if (vrc.MaterialUUID.IsValid())
-					vrc.MaterialAsset = AssetManager::GetAsset<Material>(vrc.MaterialUUID);
-				if (vrc.ShaderUUID.IsValid())
-					vrc.ShaderAsset = AssetManager::GetAsset<Shader>(vrc.ShaderUUID);
-			}
+			// Resolve asset UUIDs to loaded assets
+			ResolveAssetsAll(entity);
 		}
 
 		// Rebuild Children lists from Parent references

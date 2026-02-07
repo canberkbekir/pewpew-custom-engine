@@ -20,6 +20,7 @@ IncludeDir["glm"] = "CBEngine/vendor/glm"
 IncludeDir["stb_image"] = "CBEngine/vendor/stb_image"
 IncludeDir["assimp"] = "CBEngine/vendor/assimp/include"
 IncludeDir["voxelizer"] = "CBEngine/vendor/voxelizer"
+IncludeDir["ImGuizmo"] = "CBEngine/vendor/ImGuizmo"
 IncludeDir["entt"] = "CBEngine/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "CBEngine/vendor/yaml-cpp/include"
 
@@ -53,6 +54,10 @@ project "CBEngine"
 		-- voxelizer
 		"%{prj.name}/vendor/voxelizer/**.h",
 		"%{prj.name}/vendor/voxelizer/**.cpp",
+
+		-- ImGuizmo
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
+		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp",
 
 		-- Glad (embedded)
 		"%{prj.name}/vendor/Glad/include/glad/glad.h",
@@ -120,6 +125,7 @@ project "CBEngine"
 		"%{IncludeDir.voxelizer}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.ImGuizmo}",
 	}
 
 	libdirs

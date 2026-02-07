@@ -8,17 +8,13 @@
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "AssetPicker.h"
+#include "../EditorLayer.h"
 
 #include <algorithm>
 #include <filesystem>
 
 namespace CB
 {
-	// Bridge functions to avoid circular dependency with EditorLayer
-	// These are defined in MeshEditorBridge.cpp
-	void RequestImportPreviewFromWidget(const std::filesystem::path& path);
-	void RequestReimportFromWidget(UUID uuid);
-
 	class MeshEditor
 	{
 	public:
@@ -79,7 +75,7 @@ namespace CB
 					ImGui::TextDisabled("CPU data released (GPU only)");
 			}
 
-			// Process button — opens ImportPreviewPanel
+			// Process button — opens MeshImportPanel
 			ImGui::Separator();
 			if (ImGui::Button("Process...", ImVec2(-1, 0)))
 			{
@@ -89,7 +85,7 @@ namespace CB
 
 				// Use the static function from EditorLayer
 				// (included transitively through the editor build)
-				RequestImportPreviewFromWidget(fullPath);
+				EditorLayer::RequestImportPreview(fullPath);
 			}
 			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip("Open Import Preview to create .mesh or .vmesh");
@@ -170,7 +166,7 @@ namespace CB
 			// Re-import button
 			if (ImGui::Button("Re-import"))
 			{
-				RequestReimportFromWidget(assetUUID);
+				EditorLayer::RequestImportPreviewReimport({}, assetUUID);
 			}
 			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip("Open Import Preview with current settings");
@@ -297,7 +293,7 @@ namespace CB
 			// Re-import button
 			if (ImGui::Button("Re-import"))
 			{
-				RequestReimportFromWidget(assetUUID);
+				EditorLayer::RequestImportPreviewReimport({}, assetUUID);
 			}
 			if (ImGui::IsItemHovered())
 				ImGui::SetTooltip("Open Import Preview with current settings");

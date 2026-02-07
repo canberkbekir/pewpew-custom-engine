@@ -5,3 +5,4 @@
 #include "MeshRendererComponent.h"
 #include "VoxelComponent.h"
 #include "VoxelRendererComponent.h"
+#include "DirectionalLightComponent.h"

@@ -11,7 +11,7 @@
 namespace CB
 {
     // Static member definitions
-    std::queue<std::filesystem::path> EditorLayer::s_PendingImports;
+    std::queue<EditorLayer::ImportRequest> EditorLayer::s_PendingImports;
     std::mutex EditorLayer::s_PendingImportsMutex;
     std::queue<EditorLayer::ReimportRequest> EditorLayer::s_PendingReimports;
 
@@ -42,12 +42,13 @@ namespace CB
             }
             else if (event.Action == FileAction::Added)
             {
-                // Check if it's a mesh file — queue for import preview
+                // Check if it's a raw mesh file — queue for import preview
                 std::string ext = event.FilePath.extension().string();
                 std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-                if (ext == ".fbx" || ext == ".obj" || ext == ".gltf" || ext == ".glb")
+                if (IsRawMeshExtension(ext))
                 {
-                    RequestImportPreview(event.FilePath);
+                    // Output .mesh/.vmesh next to the source file
+                    RequestImportPreview(event.FilePath, event.FilePath.parent_path());
                 }
             }
         });
@@ -75,15 +76,15 @@ namespace CB
             std::lock_guard<std::mutex> lock(s_PendingImportsMutex);
             while (!s_PendingImports.empty())
             {
-                auto path = s_PendingImports.front();
+                auto request = s_PendingImports.front();
                 s_PendingImports.pop();
-                m_ImportPreviewPanel.OpenForFile(path);
+                m_MeshImportPanel.OpenForFile(request.SourcePath, request.OutputDirectory);
             }
             while (!s_PendingReimports.empty())
             {
                 auto request = s_PendingReimports.front();
                 s_PendingReimports.pop();
-                m_ImportPreviewPanel.OpenForReimport(request.AssetUUID);
+                m_MeshImportPanel.OpenForReimport(request.AssetUUID);
             }
         }
 
@@ -99,7 +100,7 @@ namespace CB
         m_ViewportPanel.OnUpdate(ts);
 
         // Update import preview panel
-        m_ImportPreviewPanel.OnUpdate(ts);
+        m_MeshImportPanel.OnUpdate(ts);
     }
 
     void EditorLayer::OnImGuiRender()
@@ -133,7 +134,7 @@ namespace CB
         m_ConsolePanel.OnImGuiRender();
         m_ProfilerPanel.OnImGuiRender();
         m_ContentBrowserPanel.OnImGuiRender();
-        m_ImportPreviewPanel.OnImGuiRender();
+        m_MeshImportPanel.OnImGuiRender();
 
         EndDockspace();
     }
@@ -145,7 +146,7 @@ namespace CB
         m_ProfilerPanel.OnEvent(e);
         if (e.Handled) return;
 
-        m_ImportPreviewPanel.OnEvent(e);
+        m_MeshImportPanel.OnEvent(e);
         if (e.Handled) return;
 
         m_ViewportPanel.OnEvent(e);
@@ -154,10 +155,10 @@ namespace CB
         m_ContentBrowserPanel.OnEvent(e);
     }
 
-    void EditorLayer::RequestImportPreview(const std::filesystem::path& path)
+    void EditorLayer::RequestImportPreview(const std::filesystem::path& path, const std::filesystem::path& outputDir)
     {
         std::lock_guard<std::mutex> lock(s_PendingImportsMutex);
-        s_PendingImports.push(path);
+        s_PendingImports.push({ path, outputDir });
     }
 
     void EditorLayer::RequestImportPreviewReimport(const std::filesystem::path& path, UUID uuid)
@@ -219,7 +220,7 @@ namespace CB
             if (ImGui::BeginMenu("Tools"))
             {
                 ImGui::MenuItem("Profiler", "F3", m_ProfilerPanel.GetVisiblePtr());
-                ImGui::MenuItem("Import Preview", nullptr, m_ImportPreviewPanel.GetVisiblePtr());
+                ImGui::MenuItem("Mesh Import", nullptr, m_MeshImportPanel.GetVisiblePtr());
                 ImGui::EndMenu();
             }
 

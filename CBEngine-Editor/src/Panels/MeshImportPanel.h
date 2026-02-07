@@ -17,17 +17,17 @@
 
 namespace CB
 {
-	class ImportPreviewPanel : public Panel
+	class MeshImportPanel : public Panel
 	{
 	public:
-		ImportPreviewPanel();
+		MeshImportPanel();
 
 		void OnUpdate(Timestep ts);
 		void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
 
-		// Open for a new file
-		void OpenForFile(const std::filesystem::path& filePath);
+		// Open for a new file. outputDirectory: where .mesh/.vmesh go (empty = source file's parent).
+		void OpenForFile(const std::filesystem::path& filePath, const std::filesystem::path& outputDirectory = {});
 
 		// Open for reimport of an existing processed asset
 		void OpenForReimport(UUID assetUUID);
@@ -56,6 +56,7 @@ namespace CB
 	private:
 		bool m_IsOpen = false;
 		std::filesystem::path m_SourceFilePath;
+		std::filesystem::path m_OutputDirectory; // Where .mesh/.vmesh are written
 		String m_OutputName;
 
 		// Framebuffers
@@ -64,7 +65,7 @@ namespace CB
 
 		// Cameras
 		PerspectiveCameraController m_RawCameraController;
-		float m_VoxelAutoRotationAngle = 0.0f;
+		float m_AutoRotationAngle = 0.0f;
 
 		// Rendering
 		Ref<Shader> m_PreviewShader;

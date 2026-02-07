@@ -43,7 +43,7 @@ namespace CB
     }
 
     void Renderer3D::Submit(const Ref<Shader>& shader, const Ref<Material>& material, const Ref<Mesh>& mesh,
-                            const Mat4& transform)
+                            const Mat4& transform, int entityID, bool useVertexColor)
     {
         CB_PROFILE_FUNCTION();
         using namespace ShaderUniforms;
@@ -54,6 +54,12 @@ namespace CB
         shader->SetMat4(ViewProjection, s_SceneData->ViewProjectionMatrix);
         shader->SetMat4(Transform, transform);
         shader->SetFloat3(CameraPosition, s_SceneData->CameraPosition);
+
+        // Entity ID for picking
+        shader->SetInt(EntityID, entityID);
+
+        // Vertex color mode (voxel meshes use baked vertex colors as albedo)
+        shader->SetInt(UseVertexColor, useVertexColor ? 1 : 0);
 
         // Upload light uniforms
         shader->SetFloat3(LightDirection, s_SceneData->LightDirection);
