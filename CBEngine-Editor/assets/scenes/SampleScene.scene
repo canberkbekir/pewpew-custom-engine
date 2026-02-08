@@ -4,16 +4,16 @@ Entities:
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [0.001, 0.001, 0.001]
+      Position: [0, -7.450581e-09, 0]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
       Parent: 0
     VoxelRendererComponent:
-      VoxelMeshUUID: 7380535402669753821
+      VoxelMeshUUID: 16725038486124727391
       ColorTextureUUID: 0
       MaterialUUID: 0
       ShaderUUID: 0
-      VoxelTextureUUID: 0
+      VoxelTextureUUID: 2879451016976322528
       Visible: true
   - Entity: 1812297280797331399
     TagComponent:
@@ -34,11 +34,11 @@ Entities:
       Tag: Empty Entity
     TransformComponent:
       Position: [3.1, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [0.001, 0.001, 0.001]
+      Rotation: [6.6069945e-09, 1.1077523, 7.4001836e-09]
+      Scale: [0.01, 0.01, 0.01]
       Parent: 0
     MeshRendererComponent:
-      MeshUUID: 5025629268144948323
-      MaterialUUID: 1344730489972898971
+      MeshUUID: 14354534839807604147
+      MaterialUUID: 10679708688162182362
       ShaderUUID: 0
       Visible: true

@@ -538,7 +538,7 @@ namespace CB
 						avgRough += e.Roughness;
 					}
 					float n = static_cast<float>(group.EntryIndices.size());
-					group.MaterialType = AutoDetectMaterialType(group.AverageColor, avgMet / n, avgRough / n);
+					group.MaterialType = AutoDetectMaterialType(group.AverageColor);
 
 					// Sync group type back to all entries so brush selection is consistent
 					for (uint8_t idx : group.EntryIndices)
@@ -919,12 +919,7 @@ namespace CB
 			ImGui::TextDisabled("No material map");
 			m_MaterialMapViewportHovered = false;
 		}
-	}
-
-	void VoxelTextureEditorPanel::RenderSliceView()
-	{
-		// Not used anymore - layer view now uses the 3D viewport with sliced mesh
-	}
+	} 
 
 	void VoxelTextureEditorPanel::RenderPaletteEditor()
 	{
@@ -936,7 +931,7 @@ namespace CB
 
 		// Material type names for combo
 		static const char* materialTypeNames[] = { "Stone", "Wood", "Metal", "Glass", "Marble" };
-		static_assert(sizeof(materialTypeNames) / sizeof(materialTypeNames[0]) == (int)VoxelMaterialType::Count);
+		static_assert(std::size(materialTypeNames) == static_cast<int>(VoxelMaterialType::Count));
 
 		// Row 1: Auto-Detect + Save
 		if (ImGui::Button("Auto-Detect All"))
@@ -948,7 +943,7 @@ namespace CB
 				for (uint8_t i = 0; i < usedCount; i++)
 				{
 					const auto& entry = m_Vmesh->Palette.GetEntry(i);
-					m_Vtex->PaletteMapping[i] = AutoDetectMaterialType(entry.Color, entry.Metallic, entry.Roughness);
+					m_Vtex->PaletteMapping[i] = AutoDetectMaterialType(entry.Color);
 				}
 				m_MaterialMapDirty = true;
 				m_ColorGroupsDirty = true;

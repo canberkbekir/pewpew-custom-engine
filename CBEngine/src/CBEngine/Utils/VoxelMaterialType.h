@@ -54,26 +54,18 @@ namespace CB
 	}
 
 	// Auto-detect material type from voxel visual properties
-	inline VoxelMaterialType AutoDetectMaterialType(const Vector3& color, float metallic, float roughness)
+	inline VoxelMaterialType AutoDetectMaterialType(const Vector3& color)
 	{
-		// Metal: high metallic
-		if (metallic > 0.5f)
-			return VoxelMaterialType::Metal;
-
-		// Glass: very smooth, non-metallic
-		if (roughness < 0.15f && metallic < 0.3f)
-			return VoxelMaterialType::Glass;
-
 		// Luminance for light/dark detection
 		float luminance = 0.2126f * color.r + 0.7152f * color.g + 0.0722f * color.b;
 
 		// Wood: warm/brown hues, rough
-		if (roughness > 0.4f && color.r > color.b && color.r > 0.3f
+		if (color.r > color.b && color.r > 0.3f
 			&& color.g < color.r && color.g > color.b)
 			return VoxelMaterialType::Wood;
 
 		// Marble: light color, medium roughness, non-metallic
-		if (luminance > 0.7f && roughness >= 0.2f && roughness <= 0.6f && metallic < 0.2f)
+		if (luminance > 0.7f)
 			return VoxelMaterialType::Marble;
 
 		// Default: Stone

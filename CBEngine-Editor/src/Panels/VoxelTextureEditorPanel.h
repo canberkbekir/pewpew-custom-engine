@@ -35,8 +35,7 @@ namespace CB
 	private:
 		void RenderModelPreview();
 		void RenderMaterialMapView();
-		void RenderPaletteEditor();
-		void RenderSliceView();
+		void RenderPaletteEditor(); 
 
 		void RebuildMaterialMapMesh();
 		void FitCameraToMesh();

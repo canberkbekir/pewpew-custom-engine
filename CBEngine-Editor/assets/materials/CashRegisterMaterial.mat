@@ -1,0 +1,9 @@
+# CBEngine Material File
+albedo=1,1,1
+metallic=0
+roughness=0.5
+smoothShading=1
+albedoMap=../textures/Cash_Register.jpg
+normalMap=../textures/Cash_Register_NoAO_NRM.jpg
+metallicMap=../textures/Cash_Register_NoAO_SPEC.jpg
+roughnessMap=../textures/Cash_Register_NoAO_Roughness.jpg

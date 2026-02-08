@@ -42,10 +42,10 @@ namespace CB
 		m_FileTypeIcons[".hlsl"] = Texture2D::Create("resources/icons/shader.png");
 
 		// Material icon (uses shader icon as fallback if material.png doesn't exist)
-		if (std::filesystem::exists("resources/icons/material.png"))
-			m_FileTypeIcons[".mat"] = Texture2D::Create("resources/icons/material.png");
+		if (std::filesystem::exists("resources/icons/mat.png"))
+			m_FileTypeIcons[".mat"] = Texture2D::Create("resources/icons/mat.png");
 		else
-			m_FileTypeIcons[".mat"] = Texture2D::Create("resources/icons/shader.png");
+			m_FileTypeIcons[".mat"] = m_FileIcon;
 
 		// Processed mesh icons
 		if (std::filesystem::exists("resources/icons/mesh.png"))
@@ -57,6 +57,16 @@ namespace CB
 			m_FileTypeIcons[".vmesh"] = Texture2D::Create("resources/icons/vmesh.png");
 		else
 			m_FileTypeIcons[".vmesh"] = m_FileIcon;
+
+		if (std::filesystem::exists("resources/icons/vtex.png"))
+			m_FileTypeIcons[".vtex"] = Texture2D::Create("resources/icons/vtex.png");
+		else
+			m_FileTypeIcons[".vtex"] = m_FileIcon;
+
+		if (std::filesystem::exists("resources/icons/scene.png"))
+			m_FileTypeIcons[".scene"] = Texture2D::Create("resources/icons/scene.png");
+		else
+			m_FileTypeIcons[".scene"] = m_FileIcon;
 	}
 
 	void ContentBrowserPanel::OnImGuiRender()

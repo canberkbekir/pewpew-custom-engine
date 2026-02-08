@@ -54,8 +54,7 @@ namespace CB
 			for (uint8_t i = 0; i < usedCount; i++)
 			{
 				const auto& entry = vmesh->Palette.GetEntry(i);
-				VoxelMaterialType detected = AutoDetectMaterialType(
-					entry.Color, entry.Metallic, entry.Roughness);
+				VoxelMaterialType detected = AutoDetectMaterialType(entry.Color);
 				vtex->PaletteMapping[i] = detected;
 			}
 		}
@@ -112,7 +111,7 @@ namespace CB
 				float metallic = vmesh->Palette.GetEntry(i).Metallic;
 				float roughness = vmesh->Palette.GetEntry(i).Roughness;
 
-				PaletteMapping[i] = AutoDetectMaterialType(avgColor, metallic, roughness);
+				PaletteMapping[i] = AutoDetectMaterialType(avgColor);
 			}
 		}
 		else if (vmesh->HasPalette)
@@ -122,7 +121,7 @@ namespace CB
 			for (uint8_t i = 0; i < paletteCount; i++)
 			{
 				const auto& entry = vmesh->Palette.GetEntry(i);
-				PaletteMapping[i] = AutoDetectMaterialType(entry.Color, entry.Metallic, entry.Roughness);
+				PaletteMapping[i] = AutoDetectMaterialType(entry.Color);
 			}
 			CB_CORE_WARN("VoxelTextureAsset: VMesh has no UVs, falling back to palette-based detection");
 		}
