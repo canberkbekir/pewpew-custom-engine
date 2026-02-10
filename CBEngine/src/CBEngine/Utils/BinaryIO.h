@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <type_traits>
-#include <limits> 
+#include <limits>
 
 #include "CBEngine/Core/String.h"
 
@@ -22,10 +22,13 @@ namespace CB
         virtual size_t Read(void* data, size_t size) = 0;
 
         virtual uint64_t Tell() const = 0;
-        virtual bool  Seek(uint64_t pos) = 0;
+        virtual bool Seek(uint64_t pos) = 0;
 
-        virtual bool  IsOpen() const = 0;
-        virtual void  Flush() {}
+        virtual bool IsOpen() const = 0;
+
+        virtual void Flush()
+        {
+        }
     };
 
     // ------------------------------------------------------------
@@ -101,7 +104,7 @@ namespace CB
             const size_t written = std::fwrite(data, 1, size, m_File);
             if (written != size)
             {
-                CB_CORE_ERROR("FileStream: fwrite wrote {} / {} bytes", static_cast<uint64_t>(written), static_cast<uint64_t>(size));
+                CB_CORE_ERROR("FileStream: fwrite wrote {} / {} bytes", static_cast<uint64_t>(written), size);
             }
             return written;
         }
@@ -115,7 +118,8 @@ namespace CB
             if (read != size)
             {
                 if (std::ferror(m_File))
-                    CB_CORE_ERROR("FileStream: fread read {} / {} bytes (ferror set)", static_cast<uint64_t>(read), static_cast<uint64_t>(size));
+                    CB_CORE_ERROR("FileStream: fread read {} / {} bytes (ferror set)", static_cast<uint64_t>(read),
+                              size);
             }
             return read;
         }
@@ -130,7 +134,7 @@ namespace CB
         bool Seek(uint64_t pos) override
         {
             if (!m_File) return false;
-            const bool ok = _fseeki64(m_File, (long long)pos, SEEK_SET) == 0;
+            const bool ok = _fseeki64(m_File, static_cast<long long>(pos), SEEK_SET) == 0;
             if (!ok)
                 CB_CORE_ERROR("FileStream: seek failed (pos={})", pos);
             return ok;
@@ -148,22 +152,24 @@ namespace CB
     class BinaryWriter
     {
     public:
-        explicit BinaryWriter(BinaryStream& s) : m_Stream(s) {}
+        explicit BinaryWriter(BinaryStream& s) : m_Stream(s)
+        {
+        }
 
         bool IsValid() const { return m_Stream.IsOpen(); }
 
         uint64_t Tell() const { return m_Stream.Tell(); }
-        bool  Seek(uint64_t pos) { return m_Stream.Seek(pos); }
+        bool Seek(uint64_t pos) { return m_Stream.Seek(pos); }
 
         void WriteBytes(const void* data, size_t size)
         {
             if (size == 0) return;
             const size_t written = m_Stream.Write(data, size);
             if (written != size)
-                CB_CORE_ERROR("BinaryWriter: failed to write {} bytes", static_cast<uint64_t>(size));
+                CB_CORE_ERROR("BinaryWriter: failed to write {} bytes", size);
         }
 
-        template<typename T>
+        template <typename T>
         void Write(const T& v)
         {
             if constexpr (std::is_trivially_copyable_v<T>)
@@ -185,22 +191,24 @@ namespace CB
     class BinaryReader
     {
     public:
-        explicit BinaryReader(BinaryStream& s) : m_Stream(s) {}
+        explicit BinaryReader(BinaryStream& s) : m_Stream(s)
+        {
+        }
 
         bool IsValid() const { return m_Stream.IsOpen(); }
 
         uint64_t Tell() const { return m_Stream.Tell(); }
-        bool  Seek(uint64_t pos) { return m_Stream.Seek(pos); }
+        bool Seek(uint64_t pos) { return m_Stream.Seek(pos); }
 
         void ReadBytes(void* data, size_t size)
         {
             if (size == 0) return;
             const size_t read = m_Stream.Read(data, size);
             if (read != size)
-                CB_CORE_ERROR("BinaryReader: failed to read {} bytes", static_cast<uint64_t>(size));
+                CB_CORE_ERROR("BinaryReader: failed to read {} bytes", size);
         }
 
-        template<typename T>
+        template <typename T>
         void Read(T& v)
         {
             if constexpr (std::is_trivially_copyable_v<T>)
@@ -222,15 +230,15 @@ namespace CB
     // ------------------------------------------------------------
     // Operators (generic)
     // ------------------------------------------------------------
-    template<typename T>
-    inline BinaryWriter& operator<<(BinaryWriter& ar, const T& v)
+    template <typename T>
+    BinaryWriter& operator<<(BinaryWriter& ar, const T& v)
     {
         ar.Write(v);
         return ar;
     }
 
-    template<typename T>
-    inline BinaryReader& operator>>(BinaryReader& ar, T& v)
+    template <typename T>
+    BinaryReader& operator>>(BinaryReader& ar, T& v)
     {
         ar.Read(v);
         return ar;
@@ -239,8 +247,8 @@ namespace CB
     // ------------------------------------------------------------
     // std::vector serialization (count + elements)
     // ------------------------------------------------------------
-    template<typename T>
-    inline BinaryWriter& operator<<(BinaryWriter& ar, const std::vector<T>& arr)
+    template <typename T>
+    BinaryWriter& operator<<(BinaryWriter& ar, const std::vector<T>& arr)
     {
         const uint64_t count64 = static_cast<uint64_t>(arr.size());
         if (count64 > std::numeric_limits<uint32_t>::max())
@@ -270,14 +278,14 @@ namespace CB
         return ar;
     }
 
-    template<typename T>
-    inline BinaryReader& operator>>(BinaryReader& ar, std::vector<T>& arr)
+    template <typename T>
+    BinaryReader& operator>>(BinaryReader& ar, std::vector<T>& arr)
     {
         uint32_t count = 0;
         ar >> count;
 
         arr.clear();
-        arr.resize((size_t)count);
+        arr.resize(static_cast<size_t>(count));
 
         if (count == 0) return ar;
 
@@ -299,7 +307,7 @@ namespace CB
     // ------------------------------------------------------------
     inline BinaryWriter& operator<<(BinaryWriter& ar, const String& s)
     {
-        const uint64_t len64 = (uint64_t)s.length();
+        const uint64_t len64 = s.length();
         if (len64 > std::numeric_limits<uint32_t>::max())
         {
             CB_CORE_ERROR("BinaryWriter: String too large to serialize (len={})", len64);

@@ -7,7 +7,7 @@ namespace CB
     class Texture : public Asset
     {
     public:
-        virtual ~Texture() = default;
+        ~Texture() override = default;
 
         virtual uint32_t GetWidth() const = 0;
         virtual uint32_t GetHeight() const = 0;

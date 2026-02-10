@@ -10,7 +10,7 @@ namespace CB
     VoxelPalette::VoxelPalette()
     {
         // Entry 0 = default white
-        m_Entries[0] = { Vector3(1.0f), 0.0f, 0.5f, 0.0f };
+        m_Entries[0] = {Vector3(1.0f), 0.0f, 0.5f, 0.0f};
     }
 
     uint8_t VoxelPalette::FindClosestEntry(const Vector3& color) const
@@ -21,7 +21,7 @@ namespace CB
         for (uint32_t i = 0; i < m_UsedCount; i++)
         {
             Vector3 diff = m_Entries[i].Color - color;
-            float dist = glm::dot(diff, diff);
+            float dist = dot(diff, diff);
             if (dist < bestDist)
             {
                 bestDist = dist;

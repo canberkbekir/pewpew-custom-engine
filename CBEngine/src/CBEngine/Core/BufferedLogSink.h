@@ -5,7 +5,7 @@
 
 namespace CB
 {
-    template<typename Mutex>
+    template <typename Mutex>
     class BufferedLogSink : public spdlog::sinks::base_sink<Mutex>
     {
     protected:
@@ -17,13 +17,19 @@ namespace CB
             auto level = LogLevel::Info;
             switch (msg.level)
             {
-                case spdlog::level::trace:    level = LogLevel::Trace; break;
-                case spdlog::level::debug:    level = LogLevel::Debug; break;
-                case spdlog::level::info:     level = LogLevel::Info; break;
-                case spdlog::level::warn:     level = LogLevel::Warn; break;
-                case spdlog::level::err:      level = LogLevel::Error; break;
-                case spdlog::level::critical: level = LogLevel::Critical; break;
-                default: break;
+            case spdlog::level::trace: level = LogLevel::Trace;
+                break;
+            case spdlog::level::debug: level = LogLevel::Debug;
+                break;
+            case spdlog::level::info: level = LogLevel::Info;
+                break;
+            case spdlog::level::warn: level = LogLevel::Warn;
+                break;
+            case spdlog::level::err: level = LogLevel::Error;
+                break;
+            case spdlog::level::critical: level = LogLevel::Critical;
+                break;
+            default: break;
             }
 
             LogBuffer::Get().AddMessage(
@@ -33,7 +39,9 @@ namespace CB
             );
         }
 
-        void flush_() override {}
+        void flush_() override
+        {
+        }
     };
 
     using BufferedLogSink_mt = BufferedLogSink<std::mutex>;

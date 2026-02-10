@@ -37,7 +37,7 @@ namespace CB
         void AddMessage(const String& message, LogLevel level, const String& loggerName)
         {
             std::lock_guard<std::mutex> lock(m_Mutex);
-            m_Messages.push_back({ message, level, loggerName });
+            m_Messages.push_back({message, level, loggerName});
 
             // Keep max 1000 messages
             if (m_Messages.size() > 5000)

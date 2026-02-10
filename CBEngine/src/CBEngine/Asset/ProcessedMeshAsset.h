@@ -47,8 +47,8 @@ namespace CB
     class ProcessedMeshAsset : public Asset
     {
     public:
-        static constexpr uint32_t s_MeshMagic   = 0x43424D48; // "CBMH"
-        static constexpr uint32_t s_MeshVersion  = 2;
+        static constexpr uint32_t s_MeshMagic = 0x43424D48; // "CBMH"
+        static constexpr uint32_t s_MeshVersion = 2;
 
         ProcessedMeshAsset();
         ~ProcessedMeshAsset() override = default;
@@ -82,8 +82,8 @@ namespace CB
     class VoxelMeshAsset : public Asset
     {
     public:
-        static constexpr uint32_t s_VmeshMagic   = 0x43425648; // "CBVM"
-        static constexpr uint32_t s_VmeshVersion  = 3;
+        static constexpr uint32_t s_VmeshMagic = 0x43425648; // "CBVM"
+        static constexpr uint32_t s_VmeshVersion = 3;
 
         VoxelMeshAsset();
         ~VoxelMeshAsset() override = default;

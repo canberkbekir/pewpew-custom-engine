@@ -49,11 +49,12 @@ namespace CB
         void StartWithColors(const String& meshPath, const String& texturePath, const VoxelizeSettings& settings);
 
         // Start voxelization from CPU vertex/index data
-        void StartFromData(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const VoxelizeSettings& settings);
+        void StartFromData(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
+                           const VoxelizeSettings& settings);
 
         // Start voxelization from CPU data with texture coloring
         void StartFromDataWithColors(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
-                                      const String& texturePath, const VoxelizeSettings& settings);
+                                     const String& texturePath, const VoxelizeSettings& settings);
 
         // Poll status
         bool IsComplete() const { return m_Status == VoxelTaskStatus::Completed; }
@@ -76,8 +77,8 @@ namespace CB
     private:
         void WaitForCompletion();
 
-        std::atomic<VoxelTaskStatus> m_Status{ VoxelTaskStatus::Idle };
-        std::atomic<bool> m_CancelRequested{ false };
+        std::atomic<VoxelTaskStatus> m_Status{VoxelTaskStatus::Idle};
+        std::atomic<bool> m_CancelRequested{false};
         std::future<void> m_Future;
         VoxelTaskResult m_Result;
     };

@@ -27,7 +27,7 @@ namespace CB
         {
             s_RendererAPI->SetWireframeMode(enabled);
         }
-        
+
         static void Clear()
         {
             s_RendererAPI->Clear();

@@ -12,7 +12,7 @@ namespace CB
     void MaterialSlot::Serialize(BinaryWriter& writer) const
     {
         writer << Name;
-        writer << (uint64_t)MaterialUUID;
+        writer << static_cast<uint64_t>(MaterialUUID);
     }
 
     void MaterialSlot::Deserialize(BinaryReader& reader)
@@ -26,7 +26,7 @@ namespace CB
     void TextureSlot::Serialize(BinaryWriter& writer) const
     {
         writer << Name;
-        writer << (uint64_t)TextureUUID;
+        writer << static_cast<uint64_t>(TextureUUID);
     }
 
     void TextureSlot::Deserialize(BinaryReader& reader)
@@ -65,13 +65,13 @@ namespace CB
 
         // Source
         writer << SourceFilePath;
-        writer << (uint64_t)SourceMeshUUID;
+        writer << static_cast<uint64_t>(SourceMeshUUID);
 
         // Import settings
-        writer << (uint8_t)ImportSettings.GenerateNormals;
-        writer << (uint8_t)ImportSettings.CalcTangents;
-        writer << (uint8_t)ImportSettings.JoinIdenticalVertices;
-        writer << (uint8_t)ImportSettings.PreTransformVertices;
+        writer << static_cast<uint8_t>(ImportSettings.GenerateNormals);
+        writer << static_cast<uint8_t>(ImportSettings.CalcTangents);
+        writer << static_cast<uint8_t>(ImportSettings.JoinIdenticalVertices);
+        writer << static_cast<uint8_t>(ImportSettings.PreTransformVertices);
         writer << ImportSettings.Scale;
 
         // Slots
@@ -109,7 +109,7 @@ namespace CB
         if (magic != s_MeshMagic)
         {
             CB_CORE_ERROR("ProcessedMeshAsset: Invalid magic in {0} (expected 0x{1:08X}, got 0x{2:08X})",
-                filePath.string(), s_MeshMagic, magic);
+                          filePath.string(), s_MeshMagic, magic);
             return nullptr;
         }
         reader >> version;
@@ -235,21 +235,21 @@ namespace CB
 
         // Source
         writer << SourceFilePath;
-        writer << (uint64_t)SourceMeshUUID;
+        writer << static_cast<uint64_t>(SourceMeshUUID);
 
         // Import settings
-        writer << (uint8_t)ImportSettings.GenerateNormals;
-        writer << (uint8_t)ImportSettings.CalcTangents;
-        writer << (uint8_t)ImportSettings.JoinIdenticalVertices;
-        writer << (uint8_t)ImportSettings.PreTransformVertices;
+        writer << static_cast<uint8_t>(ImportSettings.GenerateNormals);
+        writer << static_cast<uint8_t>(ImportSettings.CalcTangents);
+        writer << static_cast<uint8_t>(ImportSettings.JoinIdenticalVertices);
+        writer << static_cast<uint8_t>(ImportSettings.PreTransformVertices);
         writer << ImportSettings.Scale;
 
         // Voxel settings
         writer << VoxelSettings.GridSize;
         writer << VoxelSettings.VoxelSize;
-        writer << (uint8_t)VoxelSettings.Solid;
+        writer << static_cast<uint8_t>(VoxelSettings.Solid);
         writer << VoxelSettings.Padding;
-        writer << (uint64_t)ColorTextureUUID;
+        writer << static_cast<uint64_t>(ColorTextureUUID);
 
         // Slots
         writer << MaterialSlots;
@@ -270,7 +270,7 @@ namespace CB
         writer << GridData.data; // vector<uint64_t> - uses BinaryIO vector serialization
 
         // Palette data (v2+)
-        writer << (uint8_t)(HasPalette ? 1 : 0);
+        writer << static_cast<uint8_t>(HasPalette ? 1 : 0);
         if (HasPalette)
         {
             Palette.Serialize(writer);
@@ -278,7 +278,7 @@ namespace CB
         }
 
         // Per-voxel UVs (v3+)
-        writer << (uint8_t)(HasUVs ? 1 : 0);
+        writer << static_cast<uint8_t>(HasUVs ? 1 : 0);
         if (HasUVs)
         {
             uint32_t uvCount = static_cast<uint32_t>(VoxelUVs.size());
@@ -307,7 +307,7 @@ namespace CB
         if (magic != s_VmeshMagic)
         {
             CB_CORE_ERROR("VoxelMeshAsset: Invalid magic in {0} (expected 0x{1:08X}, got 0x{2:08X})",
-                filePath.string(), s_VmeshMagic, magic);
+                          filePath.string(), s_VmeshMagic, magic);
             return nullptr;
         }
         reader >> version;

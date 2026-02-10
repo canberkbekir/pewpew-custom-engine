@@ -6,32 +6,35 @@
 #include "CBEngine/Renderer/Resources/Material.h"
 #include "CBEngine/Renderer/Resources/Shader.h"
 
-namespace YAML { class Emitter; class Node; }
+namespace YAML
+{
+    class Emitter;
+    class Node;
+}
 
-namespace CB {
+namespace CB
+{
+    struct MeshRendererComponent
+    {
+        // Cached asset references (loaded from UUIDs)
+        Ref<Mesh> MeshAsset;
+        Ref<Material> MaterialAsset;
+        Ref<Shader> ShaderAsset;
 
-	struct MeshRendererComponent
-	{
-		// Cached asset references (loaded from UUIDs)
-		Ref<Mesh> MeshAsset;
-		Ref<Material> MaterialAsset;
-		Ref<Shader> ShaderAsset;
+        // Asset UUIDs for serialization and picker
+        UUID MeshUUID = UUID(0);
+        UUID MaterialUUID = UUID(0);
+        UUID ShaderUUID = UUID(0);
 
-		// Asset UUIDs for serialization and picker
-		UUID MeshUUID = UUID(0);
-		UUID MaterialUUID = UUID(0);
-		UUID ShaderUUID = UUID(0);
+        bool Visible = true;
 
-		bool Visible = true;
+        static constexpr auto YAMLKey = "MeshRendererComponent";
 
-		static constexpr const char* YAMLKey = "MeshRendererComponent";
+        MeshRendererComponent() = default;
+        MeshRendererComponent(const MeshRendererComponent&) = default;
 
-		MeshRendererComponent() = default;
-		MeshRendererComponent(const MeshRendererComponent&) = default;
-
-		void Serialize(YAML::Emitter& out) const;
-		void Deserialize(const YAML::Node& node);
-		void ResolveAssets();
-	};
-
+        void Serialize(YAML::Emitter& out) const;
+        void Deserialize(const YAML::Node& node);
+        void ResolveAssets();
+    };
 }

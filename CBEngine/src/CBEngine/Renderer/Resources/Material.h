@@ -12,7 +12,7 @@ namespace CB
     {
     public:
         Material();
-        ~Material() = default;
+        ~Material() override = default;
 
         // Asset interface
         bool Reload() override;
@@ -32,10 +32,29 @@ namespace CB
         void SetRoughnessMap(const Ref<Texture2D>& texture) { m_RoughnessMap = texture; }
 
         // Texture setters with path (for Save() support)
-        void SetAlbedoMap(const Ref<Texture2D>& texture, const String& path) { m_AlbedoMap = texture; m_AlbedoMapPath = path; }
-        void SetNormalMap(const Ref<Texture2D>& texture, const String& path) { m_NormalMap = texture; m_NormalMapPath = path; }
-        void SetMetallicMap(const Ref<Texture2D>& texture, const String& path) { m_MetallicMap = texture; m_MetallicMapPath = path; }
-        void SetRoughnessMap(const Ref<Texture2D>& texture, const String& path) { m_RoughnessMap = texture; m_RoughnessMapPath = path; }
+        void SetAlbedoMap(const Ref<Texture2D>& texture, const String& path)
+        {
+            m_AlbedoMap = texture;
+            m_AlbedoMapPath = path;
+        }
+
+        void SetNormalMap(const Ref<Texture2D>& texture, const String& path)
+        {
+            m_NormalMap = texture;
+            m_NormalMapPath = path;
+        }
+
+        void SetMetallicMap(const Ref<Texture2D>& texture, const String& path)
+        {
+            m_MetallicMap = texture;
+            m_MetallicMapPath = path;
+        }
+
+        void SetRoughnessMap(const Ref<Texture2D>& texture, const String& path)
+        {
+            m_RoughnessMap = texture;
+            m_RoughnessMapPath = path;
+        }
 
         // Scalar property setters
         void SetAlbedo(const Vector3& color) { m_Albedo = color; }
@@ -65,7 +84,6 @@ namespace CB
     private:
         bool LoadFromFile(const String& filePath);
 
-    private:
         // Textures
         Ref<Texture2D> m_AlbedoMap;
         Ref<Texture2D> m_NormalMap;

@@ -4,31 +4,31 @@
 
 namespace CB
 {
-	class PlayModeEnterEvent : public Event
-	{
-	public:
-		PlayModeEnterEvent() = default;
+    class PlayModeEnterEvent : public Event
+    {
+    public:
+        PlayModeEnterEvent() = default;
 
-		std::string ToString() const override
-		{
-			return "PlayModeEnterEvent";
-		}
+        std::string ToString() const override
+        {
+            return "PlayModeEnterEvent";
+        }
 
-		EVENT_CLASS_TYPE(PlayModeEnter)
-		EVENT_CLASS_CATEGORY(EventCategoryEditor)
-	};
+        EVENT_CLASS_TYPE(PlayModeEnter)
+        EVENT_CLASS_CATEGORY(EventCategoryEditor)
+    };
 
-	class PlayModeExitEvent : public Event
-	{
-	public:
-		PlayModeExitEvent() = default;
+    class PlayModeExitEvent : public Event
+    {
+    public:
+        PlayModeExitEvent() = default;
 
-		std::string ToString() const override
-		{
-			return "PlayModeExitEvent";
-		}
+        std::string ToString() const override
+        {
+            return "PlayModeExitEvent";
+        }
 
-		EVENT_CLASS_TYPE(PlayModeExit)
-		EVENT_CLASS_CATEGORY(EventCategoryEditor)
-	};
+        EVENT_CLASS_TYPE(PlayModeExit)
+        EVENT_CLASS_CATEGORY(EventCategoryEditor)
+    };
 }

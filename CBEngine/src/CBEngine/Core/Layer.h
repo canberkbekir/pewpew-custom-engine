@@ -1,7 +1,7 @@
 #pragma once
 #include "String.h"
 #include "TimeStep.h"
-#include "CBEngine/Events/Event.h" 
+#include "CBEngine/Events/Event.h"
 
 namespace CB
 {
@@ -12,7 +12,7 @@ namespace CB
         virtual ~Layer() = default;
 
         virtual void OnAttach()
-        { 
+        {
         }
 
         virtual void OnDetach()

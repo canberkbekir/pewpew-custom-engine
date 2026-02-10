@@ -32,7 +32,7 @@ namespace CB
             if (event.Action == FileAction::Modified)
             {
                 // Get relative path
-                std::filesystem::path relativePath = std::filesystem::relative(event.FilePath, "assets");
+                std::filesystem::path relativePath = relative(event.FilePath, "assets");
                 UUID uuid = AssetManager::GetRegistry().GetUUIDByPath(relativePath);
 
                 if (uuid.IsValid())
@@ -45,7 +45,7 @@ namespace CB
             {
                 // Check if it's a raw mesh file — queue for import preview
                 std::string ext = event.FilePath.extension().string();
-                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
                 if (IsRawMeshExtension(ext))
                 {
                     // Output .mesh/.vmesh next to the source file
@@ -172,13 +172,13 @@ namespace CB
     void EditorLayer::RequestImportPreview(const std::filesystem::path& path, const std::filesystem::path& outputDir)
     {
         std::lock_guard<std::mutex> lock(s_PendingImportsMutex);
-        s_PendingImports.push({ path, outputDir });
+        s_PendingImports.push({path, outputDir});
     }
 
     void EditorLayer::RequestImportPreviewReimport(const std::filesystem::path& path, UUID uuid)
     {
         std::lock_guard<std::mutex> lock(s_PendingImportsMutex);
-        s_PendingReimports.push({ path, uuid });
+        s_PendingReimports.push({path, uuid});
     }
 
     void EditorLayer::RequestOpenVoxelTexture(UUID vtexUUID)
@@ -219,8 +219,12 @@ namespace CB
 
             if (ImGui::BeginMenu("Edit"))
             {
-                if (ImGui::MenuItem("Undo", "Ctrl+Z")) {}
-                if (ImGui::MenuItem("Redo", "Ctrl+Y")) {}
+                if (ImGui::MenuItem("Undo", "Ctrl+Z"))
+                {
+                }
+                if (ImGui::MenuItem("Redo", "Ctrl+Y"))
+                {
+                }
                 ImGui::EndMenu();
             }
 
@@ -265,7 +269,8 @@ namespace CB
             ImGui::SetNextWindowViewport(viewport->ID);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-            window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+            window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_NoMove;
             window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
         }
 
@@ -351,13 +356,15 @@ namespace CB
         // Split the dockspace into regions
         // First, split off the bottom area for Content Browser and Console
         ImGuiID dock_main_id = dockspace_id;
-        ImGuiID dock_bottom_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.25f, nullptr, &dock_main_id);
+        ImGuiID dock_bottom_id =
+            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Down, 0.25f, nullptr, &dock_main_id);
 
         // Split the remaining area: left for Scene Hierarchy
         ImGuiID dock_left_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Left, 0.18f, nullptr, &dock_main_id);
 
         // Split the remaining area: right for Properties
-        ImGuiID dock_right_id = ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.20f, nullptr, &dock_main_id);
+        ImGuiID dock_right_id =
+            ImGui::DockBuilderSplitNode(dock_main_id, ImGuiDir_Right, 0.20f, nullptr, &dock_main_id);
 
         // The remaining dock_main_id is the center area for Viewport
 

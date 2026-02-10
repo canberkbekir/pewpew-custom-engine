@@ -15,11 +15,11 @@ namespace CB
     {
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(filePath,
-            aiProcess_Triangulate |
-            aiProcess_GenSmoothNormals |
-            aiProcess_CalcTangentSpace |
-            aiProcess_JoinIdenticalVertices |
-            aiProcess_PreTransformVertices
+                                                 aiProcess_Triangulate |
+                                                 aiProcess_GenSmoothNormals |
+                                                 aiProcess_CalcTangentSpace |
+                                                 aiProcess_JoinIdenticalVertices |
+                                                 aiProcess_PreTransformVertices
         );
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
@@ -39,20 +39,20 @@ namespace CB
                 for (unsigned int j = 0; j < mesh->mNumVertices; j++)
                 {
                     Vertex vertex{};
-                    vertex.Position = { mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z };
+                    vertex.Position = {mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z};
 
                     if (mesh->HasNormals())
-                        vertex.Normal = { mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z };
+                        vertex.Normal = {mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z};
                     else
-                        vertex.Normal = { 0.0f, 1.0f, 0.0f };
+                        vertex.Normal = {0.0f, 1.0f, 0.0f};
 
                     if (mesh->mTextureCoords[0])
-                        vertex.TexCoords = { mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y };
+                        vertex.TexCoords = {mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y};
 
                     if (mesh->HasTangentsAndBitangents())
                     {
-                        vertex.Tangent = { mesh->mTangents[j].x, mesh->mTangents[j].y, mesh->mTangents[j].z };
-                        vertex.Bitangent = { mesh->mBitangents[j].x, mesh->mBitangents[j].y, mesh->mBitangents[j].z };
+                        vertex.Tangent = {mesh->mTangents[j].x, mesh->mTangents[j].y, mesh->mTangents[j].z};
+                        vertex.Bitangent = {mesh->mBitangents[j].x, mesh->mBitangents[j].y, mesh->mBitangents[j].z};
                     }
 
                     vertices.push_back(vertex);
@@ -115,7 +115,11 @@ namespace CB
                 std::vector<uint32_t> indices;
                 LoadMeshData(meshPath, vertices, indices);
 
-                if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
+                if (m_CancelRequested)
+                {
+                    m_Status = VoxelTaskStatus::Cancelled;
+                    return;
+                }
 
                 if (vertices.empty())
                 {
@@ -131,7 +135,11 @@ namespace CB
                 std::vector<Vector2> voxelUVs;
                 auto data = VoxelizerAPI::VoxelizeWithUVs(vertices, indices, taskSettings, voxelUVs);
 
-                if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
+                if (m_CancelRequested)
+                {
+                    m_Status = VoxelTaskStatus::Cancelled;
+                    return;
+                }
 
                 m_Result.Grid = data.Grid;
                 m_Result.VoxelCount = data.VoxelCount;
@@ -148,7 +156,8 @@ namespace CB
         });
     }
 
-    void VoxelizationTask::StartWithColors(const String& meshPath, const String& texturePath, const VoxelizeSettings& settings)
+    void VoxelizationTask::StartWithColors(const String& meshPath, const String& texturePath,
+                                           const VoxelizeSettings& settings)
     {
         if (m_Status == VoxelTaskStatus::Running)
         {
@@ -168,7 +177,11 @@ namespace CB
                 std::vector<uint32_t> indices;
                 LoadMeshData(meshPath, vertices, indices);
 
-                if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
+                if (m_CancelRequested)
+                {
+                    m_Status = VoxelTaskStatus::Cancelled;
+                    return;
+                }
 
                 if (vertices.empty())
                 {
@@ -185,7 +198,11 @@ namespace CB
                 auto data = VoxelizerAPI::VoxelizeWithColorsAndOutput(
                     vertices, indices, texturePath, taskSettings, voxelColors);
 
-                if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
+                if (m_CancelRequested)
+                {
+                    m_Status = VoxelTaskStatus::Cancelled;
+                    return;
+                }
 
                 m_Result.Grid = data.Grid;
                 m_Result.VoxelCount = data.VoxelCount;
@@ -230,7 +247,8 @@ namespace CB
         });
     }
 
-    void VoxelizationTask::StartFromData(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, const VoxelizeSettings& settings)
+    void VoxelizationTask::StartFromData(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
+                                         const VoxelizeSettings& settings)
     {
         if (m_Status == VoxelTaskStatus::Running)
         {
@@ -256,7 +274,11 @@ namespace CB
                 std::vector<Vector2> voxelUVs;
                 auto data = VoxelizerAPI::VoxelizeWithUVs(*verticesCopy, *indicesCopy, taskSettings, voxelUVs);
 
-                if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
+                if (m_CancelRequested)
+                {
+                    m_Status = VoxelTaskStatus::Cancelled;
+                    return;
+                }
 
                 m_Result.Grid = data.Grid;
                 m_Result.VoxelCount = data.VoxelCount;
@@ -273,8 +295,9 @@ namespace CB
         });
     }
 
-    void VoxelizationTask::StartFromDataWithColors(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices,
-                                                    const String& texturePath, const VoxelizeSettings& settings)
+    void VoxelizationTask::StartFromDataWithColors(const std::vector<Vertex>& vertices,
+                                                   const std::vector<uint32_t>& indices,
+                                                   const String& texturePath, const VoxelizeSettings& settings)
     {
         if (m_Status == VoxelTaskStatus::Running)
         {
@@ -300,7 +323,11 @@ namespace CB
                 auto data = VoxelizerAPI::VoxelizeWithColorsAndOutput(
                     *verticesCopy, *indicesCopy, texturePath, taskSettings, voxelColors);
 
-                if (m_CancelRequested) { m_Status = VoxelTaskStatus::Cancelled; return; }
+                if (m_CancelRequested)
+                {
+                    m_Status = VoxelTaskStatus::Cancelled;
+                    return;
+                }
 
                 m_Result.Grid = data.Grid;
                 m_Result.VoxelCount = data.VoxelCount;

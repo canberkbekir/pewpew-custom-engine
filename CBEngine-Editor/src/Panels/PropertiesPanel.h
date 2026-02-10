@@ -8,30 +8,35 @@
 
 namespace CB
 {
-	class PropertiesPanel : public Panel
-	{
-	public:
-		PropertiesPanel()
-			: Panel("Properties", true)
-		{
-			m_LockIcon = Texture2D::Create("resources/icons/lock.png"); 
-		}
+    class PropertiesPanel : public Panel
+    {
+    public:
+        PropertiesPanel()
+            : Panel("Properties", true)
+        {
+            m_LockIcon = Texture2D::Create("resources/icons/lock.png");
+        }
 
-		void OnImGuiRender() override;
+        void OnImGuiRender() override;
 
-		// Lock the panel to current selection
-		void Lock() { m_Locked = true; m_LockedSelection = GetCurrentSelection(); }
-		void Unlock() { m_Locked = false; }
-		bool IsLocked() const { return m_Locked; }
+        // Lock the panel to current selection
+        void Lock()
+        {
+            m_Locked = true;
+            m_LockedSelection = GetCurrentSelection();
+        }
 
-	private:
-		void DrawAssetProperties(UUID assetUUID);
-		Selectable GetCurrentSelection() const;
+        void Unlock() { m_Locked = false; }
+        bool IsLocked() const { return m_Locked; }
 
-		bool m_Locked = false;
-		Selectable m_LockedSelection;
+    private:
+        void DrawAssetProperties(UUID assetUUID);
+        Selectable GetCurrentSelection() const;
 
-		//Icons
-		Ref<Texture2D> m_LockIcon;
-	};
+        bool m_Locked = false;
+        Selectable m_LockedSelection;
+
+        //Icons
+        Ref<Texture2D> m_LockIcon;
+    };
 }

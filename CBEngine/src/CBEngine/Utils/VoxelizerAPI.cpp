@@ -53,7 +53,7 @@ namespace CB
         m_Channels = channels;
 
         CB_CORE_INFO("TextureSampler: Loaded {0} ({1}x{2}, {3} channels)",
-                      filePath, m_Width, m_Height, m_Channels);
+                     filePath, m_Width, m_Height, m_Channels);
         return true;
     }
 
@@ -101,7 +101,8 @@ namespace CB
         float sx = fx - x0;
         float sy = fy - y0;
 
-        auto getPixel = [this](uint32_t x, uint32_t y) -> Vector3 {
+        auto getPixel = [this](uint32_t x, uint32_t y) -> Vector3
+        {
             size_t idx = (y * m_Width + x) * m_Channels;
             float r = m_Data[idx] / 255.0f;
             float g = (m_Channels > 1) ? m_Data[idx + 1] / 255.0f : r;
@@ -114,10 +115,10 @@ namespace CB
         Vector3 c01 = getPixel(x0, y1);
         Vector3 c11 = getPixel(x1, y1);
 
-        Vector3 c0 = glm::mix(c00, c10, sx);
-        Vector3 c1 = glm::mix(c01, c11, sx);
+        Vector3 c0 = mix(c00, c10, sx);
+        Vector3 c1 = mix(c01, c11, sx);
 
-        return glm::mix(c0, c1, sy);
+        return mix(c0, c1, sy);
     }
 
     // ============================================================================
@@ -155,40 +156,112 @@ namespace CB
         // Each face has its own vertices for proper normals
 
         // Front face (Z+)
-        vertices.push_back({{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{-0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
+        vertices.push_back({
+            {-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, -0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
 
         // Back face (Z-)
-        vertices.push_back({{ 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{-0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
+        vertices.push_back({
+            {0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {-0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
 
         // Top face (Y+)
-        vertices.push_back({{-0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}});
+        vertices.push_back({
+            {-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
 
         // Bottom face (Y-)
-        vertices.push_back({{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{-0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f, 1.0f}});
+        vertices.push_back({
+            {-0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, -0.5f, -0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, -0.5f, 0.5f}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {-0.5f, -0.5f, 0.5f}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, -1.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
 
         // Right face (X+)
-        vertices.push_back({{ 0.5f, -0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f,  0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
+        vertices.push_back({
+            {0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, 0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {0.5f, 0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
 
         // Left face (X-)
-        vertices.push_back({{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{-0.5f, -0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
-        vertices.push_back({{-0.5f,  0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f}});
+        vertices.push_back({
+            {-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {-0.5f, -0.5f, 0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {-0.5f, 0.5f, 0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
+        vertices.push_back({
+            {-0.5f, 0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f},
+            {1.0f, 1.0f, 1.0f}
+        });
 
         // Indices for 6 faces (2 triangles per face)
         for (uint32_t face = 0; face < 6; ++face)
@@ -204,16 +277,16 @@ namespace CB
     }
 
     VoxelMeshData VoxelizerAPI::Voxelize(const Ref<Mesh>& mesh,
-                                          const std::vector<Vertex>& vertices,
-                                          const std::vector<uint32_t>& indices,
-                                          const VoxelizeSettings& settings)
+                                         const std::vector<Vertex>& vertices,
+                                         const std::vector<uint32_t>& indices,
+                                         const VoxelizeSettings& settings)
     {
         return Voxelize(vertices, indices, settings);
     }
 
     VoxelMeshData VoxelizerAPI::Voxelize(const std::vector<Vertex>& vertices,
-                                          const std::vector<uint32_t>& indices,
-                                          const VoxelizeSettings& settings)
+                                         const std::vector<uint32_t>& indices,
+                                         const VoxelizeSettings& settings)
     {
         CB_PROFILE_FUNCTION();
 
@@ -250,7 +323,7 @@ namespace CB
         result.VoxelCount = result.Grid.CountFilled();
 
         CB_CORE_INFO("Voxelized mesh: {0} voxels, grid size: ({1}, {2}, {3})",
-                      result.VoxelCount, result.Grid.size.x, result.Grid.size.y, result.Grid.size.z);
+                     result.VoxelCount, result.Grid.size.x, result.Grid.size.y, result.Grid.size.z);
 
         // Create renderable mesh (only on main thread with GL context)
         if (settings.CreateGPUMesh)
@@ -264,16 +337,16 @@ namespace CB
 
     // Helper to load mesh from file
     static void LoadMeshFromFile(const String& filePath,
-                                  std::vector<Vertex>& vertices,
-                                  std::vector<uint32_t>& indices)
+                                 std::vector<Vertex>& vertices,
+                                 std::vector<uint32_t>& indices)
     {
         Assimp::Importer importer;
         const aiScene* scene = importer.ReadFile(filePath,
-            aiProcess_Triangulate |
-            aiProcess_GenSmoothNormals |
-            aiProcess_CalcTangentSpace |
-            aiProcess_JoinIdenticalVertices |
-            aiProcess_PreTransformVertices
+                                                 aiProcess_Triangulate |
+                                                 aiProcess_GenSmoothNormals |
+                                                 aiProcess_CalcTangentSpace |
+                                                 aiProcess_JoinIdenticalVertices |
+                                                 aiProcess_PreTransformVertices
         );
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
@@ -357,11 +430,11 @@ namespace CB
     // ============================================================================
 
     void VoxelizerAPI::ComputeVoxelColors(const voxelizer::VoxelGrid& grid,
-                                           const std::vector<Vertex>& vertices,
-                                           const std::vector<uint32_t>& indices,
-                                           const TextureSampler& texture,
-                                           std::unordered_map<uint64_t, Vector3>& colorSumMap,
-                                           std::unordered_map<uint64_t, int>& colorCountMap)
+                                          const std::vector<Vertex>& vertices,
+                                          const std::vector<uint32_t>& indices,
+                                          const TextureSampler& texture,
+                                          std::unordered_map<uint64_t, Vector3>& colorSumMap,
+                                          std::unordered_map<uint64_t, int>& colorCountMap)
     {
         glm::vec3 halfSize = grid.voxelSize * 0.5f;
         float boxhalfsize[3] = {halfSize.x, halfSize.y, halfSize.z};
@@ -378,15 +451,15 @@ namespace CB
             Vector3 triColor = texture.SampleBilinear(centerUV);
 
             // Compute triangle AABB
-            glm::vec3 triMin = glm::min(glm::min(v0.Position, v1.Position), v2.Position);
-            glm::vec3 triMax = glm::max(glm::max(v0.Position, v1.Position), v2.Position);
+            glm::vec3 triMin = min(min(v0.Position, v1.Position), v2.Position);
+            glm::vec3 triMax = max(max(v0.Position, v1.Position), v2.Position);
 
             // Convert to voxel coordinates (with bounds clamping)
             glm::ivec3 voxMin = grid.WorldToVoxel(triMin);
             glm::ivec3 voxMax = grid.WorldToVoxel(triMax);
 
-            voxMin = glm::max(voxMin, glm::ivec3(0));
-            voxMax = glm::min(voxMax, grid.size - 1);
+            voxMin = max(voxMin, glm::ivec3(0));
+            voxMax = min(voxMax, grid.size - 1);
 
             // Prepare triangle vertices for collision test
             float triverts[3][3] = {
@@ -423,9 +496,9 @@ namespace CB
     }
 
     VoxelMeshData VoxelizerAPI::VoxelizeWithColors(const std::vector<Vertex>& vertices,
-                                                    const std::vector<uint32_t>& indices,
-                                                    const String& texturePath,
-                                                    const VoxelizeSettings& settings)
+                                                   const std::vector<uint32_t>& indices,
+                                                   const String& texturePath,
+                                                   const VoxelizeSettings& settings)
     {
         CB_PROFILE_FUNCTION();
 
@@ -497,7 +570,7 @@ namespace CB
         }
 
         CB_CORE_INFO("Voxelized mesh with colors: {0} voxels, grid size: ({1}, {2}, {3})",
-                      result.VoxelCount, result.Grid.size.x, result.Grid.size.y, result.Grid.size.z);
+                     result.VoxelCount, result.Grid.size.x, result.Grid.size.y, result.Grid.size.z);
 
         // Create colored mesh (only on main thread with GL context)
         if (settings.CreateGPUMesh)
@@ -526,7 +599,7 @@ namespace CB
     }
 
     Ref<Mesh> VoxelizerAPI::CreateColoredMeshFromGrid(const voxelizer::VoxelGrid& grid,
-                                                       const std::vector<Vector3>& voxelColors)
+                                                      const std::vector<Vector3>& voxelColors)
     {
         CB_PROFILE_FUNCTION();
 
@@ -586,10 +659,10 @@ namespace CB
     }
 
     VoxelMeshData VoxelizerAPI::VoxelizeWithColorsAndOutput(const std::vector<Vertex>& vertices,
-                                                              const std::vector<uint32_t>& indices,
-                                                              const String& texturePath,
-                                                              const VoxelizeSettings& settings,
-                                                              std::vector<Vector3>& outVoxelColors)
+                                                            const std::vector<uint32_t>& indices,
+                                                            const String& texturePath,
+                                                            const VoxelizeSettings& settings,
+                                                            std::vector<Vector3>& outVoxelColors)
     {
         CB_PROFILE_FUNCTION();
 
@@ -658,10 +731,10 @@ namespace CB
     // ============================================================================
 
     void VoxelizerAPI::ComputeVoxelUVs(const voxelizer::VoxelGrid& grid,
-                                        const std::vector<Vertex>& vertices,
-                                        const std::vector<uint32_t>& indices,
-                                        std::unordered_map<uint64_t, Vector2>& uvSumMap,
-                                        std::unordered_map<uint64_t, int>& uvCountMap)
+                                       const std::vector<Vertex>& vertices,
+                                       const std::vector<uint32_t>& indices,
+                                       std::unordered_map<uint64_t, Vector2>& uvSumMap,
+                                       std::unordered_map<uint64_t, int>& uvCountMap)
     {
         glm::vec3 halfSize = grid.voxelSize * 0.5f;
         float boxhalfsize[3] = {halfSize.x, halfSize.y, halfSize.z};
@@ -674,14 +747,14 @@ namespace CB
 
             Vector2 centerUV = (v0.TexCoords + v1.TexCoords + v2.TexCoords) / 3.0f;
 
-            glm::vec3 triMin = glm::min(glm::min(v0.Position, v1.Position), v2.Position);
-            glm::vec3 triMax = glm::max(glm::max(v0.Position, v1.Position), v2.Position);
+            glm::vec3 triMin = min(min(v0.Position, v1.Position), v2.Position);
+            glm::vec3 triMax = max(max(v0.Position, v1.Position), v2.Position);
 
             glm::ivec3 voxMin = grid.WorldToVoxel(triMin);
             glm::ivec3 voxMax = grid.WorldToVoxel(triMax);
 
-            voxMin = glm::max(voxMin, glm::ivec3(0));
-            voxMax = glm::min(voxMax, grid.size - 1);
+            voxMin = max(voxMin, glm::ivec3(0));
+            voxMax = min(voxMax, grid.size - 1);
 
             float triverts[3][3] = {
                 {v0.Position.x, v0.Position.y, v0.Position.z},
@@ -715,9 +788,9 @@ namespace CB
     }
 
     VoxelMeshData VoxelizerAPI::VoxelizeWithUVs(const std::vector<Vertex>& vertices,
-                                                  const std::vector<uint32_t>& indices,
-                                                  const VoxelizeSettings& settings,
-                                                  std::vector<Vector2>& outVoxelUVs)
+                                                const std::vector<uint32_t>& indices,
+                                                const VoxelizeSettings& settings,
+                                                std::vector<Vector2>& outVoxelUVs)
     {
         CB_PROFILE_FUNCTION();
 
@@ -776,7 +849,7 @@ namespace CB
     }
 
     VoxelPaletteData VoxelizerAPI::BuildPaletteFromUVs(const std::vector<Vector2>& voxelUVs,
-                                                        const String& texturePath)
+                                                       const String& texturePath)
     {
         CB_PROFILE_FUNCTION();
 
@@ -814,7 +887,7 @@ namespace CB
             // Try to find existing close entry
             uint8_t bestIdx = data.Palette.FindClosestEntry(color);
             Vector3 diff = data.Palette.GetEntry(bestIdx).Color - color;
-            float dist = glm::dot(diff, diff);
+            float dist = dot(diff, diff);
 
             if (dist <= MatchThreshold || data.Palette.GetUsedCount() >= VoxelPalette::MaxEntries)
             {
@@ -833,7 +906,7 @@ namespace CB
     }
 
     Ref<Mesh> VoxelizerAPI::CreatePaletteMeshFromGrid(const voxelizer::VoxelGrid& grid,
-                                                       const std::vector<uint8_t>& paletteIndices)
+                                                      const std::vector<uint8_t>& paletteIndices)
     {
         CB_PROFILE_FUNCTION();
 
@@ -859,7 +932,7 @@ namespace CB
         for (size_t i = 0; i < filledCoords.size(); ++i)
         {
             const auto& coord = filledCoords[i];
-            float palIdx = static_cast<float>(paletteIndices[i]);
+            float palIdx = paletteIndices[i];
 
             glm::vec3 center = grid.VoxelCenterToWorld(coord);
             uint32_t baseVertex = static_cast<uint32_t>(vertices.size());

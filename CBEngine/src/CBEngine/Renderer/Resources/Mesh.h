@@ -16,15 +16,15 @@ namespace CB
         Vector2 TexCoords;
         Vector3 Tangent;
         Vector3 Bitangent;
-        Vector3 Color = Vector3(1.0f);  // Vertex color (default white)
-        float PaletteIndex = 0.0f;     // Palette index for voxel coloring (0-255)
+        Vector3 Color = Vector3(1.0f); // Vertex color (default white)
+        float PaletteIndex = 0.0f; // Palette index for voxel coloring (0-255)
     };
 
     class Mesh : public Asset
     {
     public:
         Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool retainCPUData = false);
-        ~Mesh() = default;
+        ~Mesh() override = default;
 
         static Ref<Mesh> Load(const String& filePath);
         static Ref<Mesh> Load(const String& filePath, bool retainCPUData);
@@ -39,7 +39,14 @@ namespace CB
         bool HasCPUData() const { return !m_Vertices.empty(); }
         const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
         const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
-        void ReleaseCPUData() { m_Vertices.clear(); m_Vertices.shrink_to_fit(); m_Indices.clear(); m_Indices.shrink_to_fit(); }
+
+        void ReleaseCPUData()
+        {
+            m_Vertices.clear();
+            m_Vertices.shrink_to_fit();
+            m_Indices.clear();
+            m_Indices.shrink_to_fit();
+        }
 
         bool Reload() override;
 
@@ -48,7 +55,6 @@ namespace CB
     private:
         bool LoadFromFile(const String& filePath);
 
-    private:
         Ref<VertexArray> m_VertexArray;
         uint32_t m_IndexCount = 0;
         uint32_t m_VertexCount = 0;

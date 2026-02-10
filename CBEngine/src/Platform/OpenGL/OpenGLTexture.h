@@ -22,7 +22,6 @@ namespace CB
     private:
         bool LoadFromFile(const String& path);
 
-    private:
         String m_Path;
         uint32_t m_Width = 0;
         uint32_t m_Height = 0;

@@ -13,44 +13,44 @@
 
 namespace CB
 {
-	CB::String FileDialogs::OpenFile(const char* filter)
-	{
-		OPENFILENAMEA ofn;
-		CHAR szFile[260] = { 0 };
-		ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
-		ofn.lStructSize = sizeof(OPENFILENAMEA);
-		ofn.hwndOwner = glfwGetWin32Window(
-			static_cast<GLFWwindow*>(CB::Application::Get().GetWindow().GetNativeWindow()));
-		ofn.lpstrFile = szFile;
-		ofn.nMaxFile = sizeof(szFile);
-		ofn.lpstrFilter = filter;
-		ofn.nFilterIndex = 1;
-		ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+    String FileDialogs::OpenFile(const char* filter)
+    {
+        OPENFILENAMEA ofn;
+        CHAR szFile[260] = {0};
+        ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
+        ofn.lStructSize = sizeof(OPENFILENAMEA);
+        ofn.hwndOwner = glfwGetWin32Window(
+            static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow()));
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = sizeof(szFile);
+        ofn.lpstrFilter = filter;
+        ofn.nFilterIndex = 1;
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
-		if (GetOpenFileNameA(&ofn) == TRUE)
-			return ofn.lpstrFile;
+        if (GetOpenFileNameA(&ofn) == TRUE)
+            return ofn.lpstrFile;
 
-		return CB::String();
-	}
+        return String();
+    }
 
-	CB::String FileDialogs::SaveFile(const char* filter)
-	{
-		OPENFILENAMEA ofn;
-		CHAR szFile[260] = { 0 };
-		ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
-		ofn.lStructSize = sizeof(OPENFILENAMEA);
-		ofn.hwndOwner = glfwGetWin32Window(
-			static_cast<GLFWwindow*>(CB::Application::Get().GetWindow().GetNativeWindow()));
-		ofn.lpstrFile = szFile;
-		ofn.nMaxFile = sizeof(szFile);
-		ofn.lpstrFilter = filter;
-		ofn.nFilterIndex = 1;
-		ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
-		ofn.lpstrDefExt = "scene";
+    String FileDialogs::SaveFile(const char* filter)
+    {
+        OPENFILENAMEA ofn;
+        CHAR szFile[260] = {0};
+        ZeroMemory(&ofn, sizeof(OPENFILENAMEA));
+        ofn.lStructSize = sizeof(OPENFILENAMEA);
+        ofn.hwndOwner = glfwGetWin32Window(
+            static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow()));
+        ofn.lpstrFile = szFile;
+        ofn.nMaxFile = sizeof(szFile);
+        ofn.lpstrFilter = filter;
+        ofn.nFilterIndex = 1;
+        ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
+        ofn.lpstrDefExt = "scene";
 
-		if (GetSaveFileNameA(&ofn) == TRUE)
-			return ofn.lpstrFile;
+        if (GetSaveFileNameA(&ofn) == TRUE)
+            return ofn.lpstrFile;
 
-		return CB::String();
-	}
+        return String();
+    }
 }

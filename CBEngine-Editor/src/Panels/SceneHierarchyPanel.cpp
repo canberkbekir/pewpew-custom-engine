@@ -17,7 +17,7 @@
 
 namespace CB
 {
-    template<typename Component>
+    template <typename Component>
     static void CopyComponentIfExists(Entity src, Entity dst)
     {
         if (src.HasComponent<Component>())
@@ -98,7 +98,7 @@ namespace CB
                 ImGui::SetTooltip("Create Entity");
 
             ImGui::SameLine();
-            ImGui::TextDisabled("(%d entities)", (int)entityCount);
+            ImGui::TextDisabled("(%d entities)", static_cast<int>(entityCount));
 
             if (ImGui::BeginPopup("CreateEntityPopup"))
             {
@@ -122,12 +122,12 @@ namespace CB
             if (availRegion.y > 0)
             {
                 ImGui::InvisibleButton("##RootDropZone", ImVec2(-1, availRegion.y));
-                
+
                 if (ImGui::BeginDragDropTarget())
                 {
                     if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY"))
                     {
-                        UUID droppedUUID = *(UUID*)payload->Data;
+                        UUID droppedUUID = *static_cast<UUID*>(payload->Data);
                         Entity droppedEntity = m_Context->GetEntityByUUID(droppedUUID);
                         if (droppedEntity && droppedEntity.HasParent())
                         {
@@ -146,7 +146,8 @@ namespace CB
             }
 
             // Right-click context menu
-            if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+            if (ImGui::BeginPopupContextWindow(
+                nullptr, ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
             {
                 DrawCreateEntityMenu();
                 ImGui::EndPopup();
@@ -185,9 +186,9 @@ namespace CB
 
         for (auto entityID : view)
         {
-            Entity entity{ entityID, m_Context.get() };
+            Entity entity{entityID, m_Context.get()};
             auto& transform = entity.GetComponent<TransformComponent>();
-            
+
             // Only process root entities here
             if (!transform.HasParent())
             {
@@ -197,8 +198,8 @@ namespace CB
                     String tag = entity.GetComponent<TagComponent>().Tag;
                     String lowerTag = tag;
                     String lowerSearch = m_SearchBuffer;
-                    std::transform(lowerTag.begin(), lowerTag.end(), lowerTag.begin(), ::tolower);
-                    std::transform(lowerSearch.begin(), lowerSearch.end(), lowerSearch.begin(), ::tolower);
+                    std::transform(lowerTag.begin(), lowerTag.end(), lowerTag.begin(), tolower);
+                    std::transform(lowerSearch.begin(), lowerSearch.end(), lowerSearch.begin(), tolower);
 
                     // When searching, show all matching entities regardless of hierarchy
                     // Skip non-matching roots (but their children might still match)
@@ -215,7 +216,8 @@ namespace CB
         }
 
         // Sort by name for consistent ordering
-        std::sort(rootEntities.begin(), rootEntities.end(), [](Entity a, Entity b) {
+        std::sort(rootEntities.begin(), rootEntities.end(), [](Entity a, Entity b)
+        {
             return a.GetComponent<TagComponent>().Tag < b.GetComponent<TagComponent>().Tag;
         });
 
@@ -230,7 +232,7 @@ namespace CB
     {
         String tag = entity.GetComponent<TagComponent>().Tag;
         auto& transform = entity.GetComponent<TransformComponent>();
-        
+
         bool isSelected = m_SelectionContext == entity;
         bool isRenaming = m_RenamingEntity == entity;
         bool hasChildren = transform.HasChildren();
@@ -250,7 +252,7 @@ namespace CB
         // Use DefaultOpen for better UX
         flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
-        ImGui::PushID(static_cast<int>((uint32_t)entity + 1));
+        ImGui::PushID(static_cast<int>(static_cast<uint32_t>(entity) + 1));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 
         // Add indentation indicator for hierarchy depth
@@ -281,7 +283,7 @@ namespace CB
                 m_CopiedEntity = entity;
             }
 
-            if (ImGui::MenuItem("Paste", nullptr, false, (bool)m_CopiedEntity))
+            if (ImGui::MenuItem("Paste", nullptr, false, m_CopiedEntity))
             {
                 if (m_CopiedEntity)
                     DuplicateEntity(m_CopiedEntity);
@@ -357,9 +359,9 @@ namespace CB
         {
             if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY"))
             {
-                UUID droppedUUID = *(UUID*)payload->Data;
+                UUID droppedUUID = *static_cast<UUID*>(payload->Data);
                 Entity droppedEntity = m_Context->GetEntityByUUID(droppedUUID);
-                
+
                 // Prevent dropping on self or creating cycles
                 if (droppedEntity && droppedEntity != entity && !entity.IsDescendantOf(droppedEntity))
                 {
@@ -385,7 +387,7 @@ namespace CB
             ImGui::PushItemWidth(-1);
 
             if (ImGui::InputText("##Rename", m_RenameBuffer, sizeof(m_RenameBuffer),
-                ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
+                                 ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
             {
                 if (m_RenameBuffer[0] != '\0')
                     entity.GetComponent<TagComponent>().Tag = m_RenameBuffer;
@@ -403,12 +405,12 @@ namespace CB
         else
         {
             ImGui::Text("%s", tag.c_str());
-            
+
             // Show child count if has children
             if (hasChildren)
             {
                 ImGui::SameLine();
-                ImGui::TextDisabled("(%d)", (int)transform.Children.size());
+                ImGui::TextDisabled("(%d)", static_cast<int>(transform.Children.size()));
             }
         }
 
@@ -428,7 +430,8 @@ namespace CB
             {
                 // Get and sort children
                 std::vector<Entity> children = entity.GetChildren();
-                std::sort(children.begin(), children.end(), [](Entity a, Entity b) {
+                std::sort(children.begin(), children.end(), [](Entity a, Entity b)
+                {
                     return a.GetComponent<TagComponent>().Tag < b.GetComponent<TagComponent>().Tag;
                 });
 
@@ -440,8 +443,8 @@ namespace CB
                         String childTag = child.GetComponent<TagComponent>().Tag;
                         String lowerTag = childTag;
                         String lowerSearch = m_SearchBuffer;
-                        std::transform(lowerTag.begin(), lowerTag.end(), lowerTag.begin(), ::tolower);
-                        std::transform(lowerSearch.begin(), lowerSearch.end(), lowerSearch.begin(), ::tolower);
+                        std::transform(lowerTag.begin(), lowerTag.end(), lowerTag.begin(), tolower);
+                        std::transform(lowerSearch.begin(), lowerSearch.end(), lowerSearch.begin(), tolower);
 
                         if (lowerTag.find(lowerSearch) == String::npos)
                             continue;
@@ -602,4 +605,4 @@ namespace CB
         m_SelectionContext = newEntity;
         Selection::Select(Selectable::Entity(newEntity.GetUUID()));
     }
-} 
+}

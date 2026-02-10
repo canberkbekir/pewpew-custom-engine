@@ -5,14 +5,14 @@
 
 namespace CB
 {
-    static const uint32_t s_MaxFramebufferSize = 8192;
+    static constexpr uint32_t s_MaxFramebufferSize = 8192;
 
     static bool IsDepthFormat(FramebufferTextureFormat format)
     {
         switch (format)
         {
-            case FramebufferTextureFormat::DEPTH24STENCIL8: return true;
-            default: return false;
+        case FramebufferTextureFormat::DEPTH24STENCIL8: return true;
+        default: return false;
         }
     }
 
@@ -82,8 +82,8 @@ namespace CB
         if (m_Specification.Attachments.Attachments.empty())
         {
             m_Specification.Attachments.Attachments = {
-                { FramebufferTextureFormat::RGBA8 },
-                { FramebufferTextureFormat::Depth }
+                {FramebufferTextureFormat::RGBA8},
+                {FramebufferTextureFormat::Depth}
             };
         }
 
@@ -101,7 +101,7 @@ namespace CB
     OpenGLFramebuffer::~OpenGLFramebuffer()
     {
         glDeleteFramebuffers(1, &m_RendererID);
-        glDeleteTextures((GLsizei)m_ColorAttachments.size(), m_ColorAttachments.data());
+        glDeleteTextures(static_cast<GLsizei>(m_ColorAttachments.size()), m_ColorAttachments.data());
         glDeleteTextures(1, &m_DepthAttachment);
     }
 
@@ -111,7 +111,7 @@ namespace CB
         if (m_RendererID)
         {
             glDeleteFramebuffers(1, &m_RendererID);
-            glDeleteTextures((GLsizei)m_ColorAttachments.size(), m_ColorAttachments.data());
+            glDeleteTextures(static_cast<GLsizei>(m_ColorAttachments.size()), m_ColorAttachments.data());
             glDeleteTextures(1, &m_DepthAttachment);
 
             m_ColorAttachments.clear();
@@ -128,23 +128,25 @@ namespace CB
         if (!m_ColorAttachmentSpecifications.empty())
         {
             m_ColorAttachments.resize(m_ColorAttachmentSpecifications.size());
-            CreateTextures(multisample, m_ColorAttachments.data(), (uint32_t)m_ColorAttachments.size());
+            CreateTextures(multisample, m_ColorAttachments.data(), static_cast<uint32_t>(m_ColorAttachments.size()));
 
             for (size_t i = 0; i < m_ColorAttachments.size(); i++)
             {
                 BindTexture(multisample, m_ColorAttachments[i]);
                 switch (m_ColorAttachmentSpecifications[i].TextureFormat)
                 {
-                    case FramebufferTextureFormat::RGBA8:
-                        AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples,
-                            GL_RGBA8, GL_RGBA, m_Specification.Width, m_Specification.Height, (int)i);
-                        break;
-                    case FramebufferTextureFormat::RED_INTEGER:
-                        AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples,
-                            GL_R32I, GL_RED_INTEGER, m_Specification.Width, m_Specification.Height, (int)i);
-                        break;
-                    default:
-                        break;
+                case FramebufferTextureFormat::RGBA8:
+                    AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples,
+                                       GL_RGBA8, GL_RGBA, m_Specification.Width, m_Specification.Height,
+                                       static_cast<int>(i));
+                    break;
+                case FramebufferTextureFormat::RED_INTEGER:
+                    AttachColorTexture(m_ColorAttachments[i], m_Specification.Samples,
+                                       GL_R32I, GL_RED_INTEGER, m_Specification.Width, m_Specification.Height,
+                                       static_cast<int>(i));
+                    break;
+                default:
+                    break;
                 }
             }
         }
@@ -155,21 +157,23 @@ namespace CB
             BindTexture(multisample, m_DepthAttachment);
             switch (m_DepthAttachmentSpecification.TextureFormat)
             {
-                case FramebufferTextureFormat::DEPTH24STENCIL8:
-                    AttachDepthTexture(m_DepthAttachment, m_Specification.Samples,
-                        GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT,
-                        m_Specification.Width, m_Specification.Height);
-                    break;
-                default:
-                    break;
+            case FramebufferTextureFormat::DEPTH24STENCIL8:
+                AttachDepthTexture(m_DepthAttachment, m_Specification.Samples,
+                                   GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT,
+                                   m_Specification.Width, m_Specification.Height);
+                break;
+            default:
+                break;
             }
         }
 
         if (m_ColorAttachments.size() > 1)
         {
             CB_CORE_ASSERT(m_ColorAttachments.size() <= 4, "Too many color attachments!");
-            GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
-            glDrawBuffers((GLsizei)m_ColorAttachments.size(), buffers);
+            GLenum buffers[4] = {
+                GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3
+            };
+            glDrawBuffers(static_cast<GLsizei>(m_ColorAttachments.size()), buffers);
         }
         else if (m_ColorAttachments.empty())
         {
@@ -178,7 +182,8 @@ namespace CB
         }
 
         // Check framebuffer completeness
-        CB_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is incomplete!");
+        CB_CORE_ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE,
+                       "Framebuffer is incomplete!");
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
@@ -224,6 +229,6 @@ namespace CB
 
         auto& spec = m_ColorAttachmentSpecifications[index];
         glClearTexImage(m_ColorAttachments[index], 0,
-            GL_RED_INTEGER, GL_INT, &value);
+                        GL_RED_INTEGER, GL_INT, &value);
     }
 }

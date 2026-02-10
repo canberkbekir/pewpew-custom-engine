@@ -4,12 +4,12 @@
 
 namespace CB
 {
-	class TransformSystem
-	{
-	public: 
-		static void OnUpdate(Scene* scene,Timestep ts);
-	private:
-		static void UpdateHierarchy(Scene* scene, Entity entity, const Mat4& parentWorld);
-	};
-	 
-} 
+    class TransformSystem
+    {
+    public:
+        static void OnUpdate(Scene* scene, Timestep ts);
+
+    private:
+        static void UpdateHierarchy(Scene* scene, Entity entity, const Mat4& parentWorld);
+    };
+}

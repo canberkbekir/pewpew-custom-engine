@@ -29,7 +29,8 @@ namespace CB
         m_VertexArray = VertexArray::Create();
 
         // Create vertex buffer
-        Ref<VertexBuffer> vertexBuffer = VertexBuffer::Create((float*)vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(Vertex)));
+        Ref<VertexBuffer> vertexBuffer = VertexBuffer::Create((float*)vertices.data(),
+                                                              static_cast<uint32_t>(vertices.size() * sizeof(Vertex)));
 
         vertexBuffer->SetLayout({
             {ShaderDataType::Float3, "a_Position"},
@@ -185,9 +186,9 @@ namespace CB
         }
 
         CB_CORE_INFO("Loaded mesh: {0} ({1} vertices, {2} triangles)",
-                      filePath, vertices.size(), indices.size() / 3);
+                     filePath, vertices.size(), indices.size() / 3);
 
-        Ref<Mesh> mesh = std::make_shared<Mesh>(vertices, indices, retainCPUData);
+        auto mesh = std::make_shared<Mesh>(vertices, indices, retainCPUData);
         mesh->m_FilePath = filePath;
         mesh->m_IsFromFile = true;
         return mesh;
@@ -200,11 +201,11 @@ namespace CB
         Assimp::Importer importer;
 
         const aiScene* scene = importer.ReadFile(filePath,
-            aiProcess_Triangulate |
-            aiProcess_GenSmoothNormals |
-            aiProcess_CalcTangentSpace |
-            aiProcess_JoinIdenticalVertices |
-            aiProcess_PreTransformVertices
+                                                 aiProcess_Triangulate |
+                                                 aiProcess_GenSmoothNormals |
+                                                 aiProcess_CalcTangentSpace |
+                                                 aiProcess_JoinIdenticalVertices |
+                                                 aiProcess_PreTransformVertices
         );
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
@@ -229,7 +230,8 @@ namespace CB
 
         m_VertexArray = VertexArray::Create();
 
-        Ref<VertexBuffer> vertexBuffer = VertexBuffer::Create((float*)vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(Vertex)));
+        Ref<VertexBuffer> vertexBuffer = VertexBuffer::Create((float*)vertices.data(),
+                                                              static_cast<uint32_t>(vertices.size() * sizeof(Vertex)));
         vertexBuffer->SetLayout({
             {ShaderDataType::Float3, "a_Position"},
             {ShaderDataType::Float3, "a_Normal"},
@@ -241,7 +243,7 @@ namespace CB
         });
         m_VertexArray->AddVertexBuffer(vertexBuffer);
 
-        Ref<IndexBuffer> indexBuffer = IndexBuffer::Create(const_cast<uint32_t*>(indices.data()), m_IndexCount);
+        Ref<IndexBuffer> indexBuffer = IndexBuffer::Create(indices.data(), m_IndexCount);
         m_VertexArray->SetIndexBuffer(indexBuffer);
 
         return true;

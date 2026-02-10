@@ -6,39 +6,39 @@
 
 namespace CB
 {
+    struct IDComponent
+    {
+        UUID ID;
 
-	struct IDComponent
-	{
-		UUID ID;
+        IDComponent() = default;
+        IDComponent(const IDComponent&) = default;
 
-		IDComponent() = default;
-		IDComponent(const IDComponent&) = default;
-		IDComponent(UUID id) : ID(id)
-		{
-		}
-	};
+        IDComponent(UUID id) : ID(id)
+        {
+        }
+    };
 
-	struct TagComponent
-	{
-		std::string Tag;
+    struct TagComponent
+    {
+        std::string Tag;
 
-		static constexpr const char* YAMLKey = "TagComponent";
+        static constexpr auto YAMLKey = "TagComponent";
 
-		TagComponent() = default;
-		TagComponent(const TagComponent&) = default;
-		TagComponent(const String& tag) : Tag(tag)
-		{
-		}
+        TagComponent() = default;
+        TagComponent(const TagComponent&) = default;
 
-		void Serialize(YAML::Emitter& out) const
-		{
-			out << YAML::Key << "Tag" << YAML::Value << Tag;
-		}
+        TagComponent(const String& tag) : Tag(tag)
+        {
+        }
 
-		void Deserialize(const YAML::Node& node)
-		{
-			Tag = node["Tag"].as<std::string>();
-		}
-	};
+        void Serialize(YAML::Emitter& out) const
+        {
+            out << YAML::Key << "Tag" << YAML::Value << Tag;
+        }
 
+        void Deserialize(const YAML::Node& node)
+        {
+            Tag = node["Tag"].as<std::string>();
+        }
+    };
 }

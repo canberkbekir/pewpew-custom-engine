@@ -60,7 +60,8 @@ namespace CB
             std::string value = line.substr(eqPos + 1);
 
             // Trim whitespace
-            auto trim = [](std::string& s) {
+            auto trim = [](std::string& s)
+            {
                 s.erase(0, s.find_first_not_of(" \t\r\n"));
                 s.erase(s.find_last_not_of(" \t\r\n") + 1);
             };
@@ -72,7 +73,7 @@ namespace CB
             {
                 float r, g, b;
                 if (sscanf(value.c_str(), "%f,%f,%f", &r, &g, &b) == 3)
-                    m_Albedo = { r, g, b };
+                    m_Albedo = {r, g, b};
             }
             else if (key == "metallic")
             {
@@ -92,7 +93,7 @@ namespace CB
                 {
                     m_AlbedoMapPath = value;
                     std::filesystem::path texPath = (matDir / value).lexically_normal();
-                    if (std::filesystem::exists(texPath))
+                    if (exists(texPath))
                         m_AlbedoMap = Texture2D::Create(texPath.string());
                     else
                         CB_CORE_WARN("Albedo map not found: {0}", texPath.string());
@@ -104,7 +105,7 @@ namespace CB
                 {
                     m_NormalMapPath = value;
                     std::filesystem::path texPath = (matDir / value).lexically_normal();
-                    if (std::filesystem::exists(texPath))
+                    if (exists(texPath))
                         m_NormalMap = Texture2D::Create(texPath.string());
                     else
                         CB_CORE_WARN("Normal map not found: {0}", texPath.string());
@@ -116,7 +117,7 @@ namespace CB
                 {
                     m_MetallicMapPath = value;
                     std::filesystem::path texPath = (matDir / value).lexically_normal();
-                    if (std::filesystem::exists(texPath))
+                    if (exists(texPath))
                         m_MetallicMap = Texture2D::Create(texPath.string());
                     else
                         CB_CORE_WARN("Metallic map not found: {0}", texPath.string());
@@ -128,7 +129,7 @@ namespace CB
                 {
                     m_RoughnessMapPath = value;
                     std::filesystem::path texPath = (matDir / value).lexically_normal();
-                    if (std::filesystem::exists(texPath))
+                    if (exists(texPath))
                         m_RoughnessMap = Texture2D::Create(texPath.string());
                     else
                         CB_CORE_WARN("Roughness map not found: {0}", texPath.string());

@@ -2,7 +2,7 @@
 #include "CBEngine/Core/Layer.h"
 #include "CBEngine/FileWatcher/FileWatcher.h"
 
-typedef unsigned int ImGuiID;
+using ImGuiID = unsigned int;
 
 #include "Panels/SceneHierarchyPanel.h"
 #include "Panels/PropertiesPanel.h"
@@ -23,7 +23,7 @@ namespace CB
     {
     public:
         EditorLayer();
-        virtual ~EditorLayer() = default;
+        ~EditorLayer() override = default;
 
         void OnAttach() override;
         void OnDetach() override;
@@ -33,7 +33,8 @@ namespace CB
 
         // Request import preview for a file (thread-safe, called from FileWatcher or ContentBrowser)
         // outputDir: where to write .mesh/.vmesh files. Empty = use source file's parent directory.
-        static void RequestImportPreview(const std::filesystem::path& path, const std::filesystem::path& outputDir = {});
+        static void RequestImportPreview(const std::filesystem::path& path,
+                                         const std::filesystem::path& outputDir = {});
         static void RequestImportPreviewReimport(const std::filesystem::path& path, UUID uuid);
         static void RequestOpenVoxelTexture(UUID vtexUUID);
 
@@ -49,7 +50,6 @@ namespace CB
         void SaveScene();
         void SaveSceneAs();
 
-    private:
         // File Watcher for hot reload
         Scope<FileWatcher> m_FileWatcher;
 
@@ -68,12 +68,22 @@ namespace CB
         VoxelTextureEditorPanel m_VoxelTextureEditorPanel;
 
         // Pending import queue (thread-safe, for FileWatcher callback)
-        struct ImportRequest { std::filesystem::path SourcePath; std::filesystem::path OutputDirectory; };
+        struct ImportRequest
+        {
+            std::filesystem::path SourcePath;
+            std::filesystem::path OutputDirectory;
+        };
+
         static std::queue<ImportRequest> s_PendingImports;
         static std::mutex s_PendingImportsMutex;
 
         // Pending reimport queue
-        struct ReimportRequest { std::filesystem::path Path; UUID AssetUUID; };
+        struct ReimportRequest
+        {
+            std::filesystem::path Path;
+            UUID AssetUUID;
+        };
+
         static std::queue<ReimportRequest> s_PendingReimports;
 
         // Pending vtex editor open requests

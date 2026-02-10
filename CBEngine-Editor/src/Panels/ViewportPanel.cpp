@@ -27,11 +27,14 @@ namespace CB
 
     ViewportPanel::ViewportPanel()
         : Panel("Viewport", true)
-        , m_CameraController(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f)
+          , m_CameraController(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f)
     {
         // Create framebuffer with entity ID attachment for picking
         FramebufferSpecification fbSpec;
-        fbSpec.Attachments = { { FramebufferTextureFormat::RGBA8 }, { FramebufferTextureFormat::RED_INTEGER }, { FramebufferTextureFormat::Depth } };
+        fbSpec.Attachments = {
+            {FramebufferTextureFormat::RGBA8}, {FramebufferTextureFormat::RED_INTEGER},
+            {FramebufferTextureFormat::Depth}
+        };
         fbSpec.Width = 1280;
         fbSpec.Height = 720;
         m_Framebuffer = Framebuffer::Create(fbSpec);
@@ -41,7 +44,7 @@ namespace CB
 
         // Create default material
         m_DefaultMaterial = CreateRef<Material>();
-        m_DefaultMaterial->SetAlbedo({ 0.8f, 0.8f, 0.8f });
+        m_DefaultMaterial->SetAlbedo({0.8f, 0.8f, 0.8f});
         m_DefaultMaterial->SetRoughness(0.5f);
         m_DefaultMaterial->SetMetallic(0.0f);
     }
@@ -82,7 +85,7 @@ namespace CB
     void ViewportPanel::RenderScene()
     {
         // Clear
-        RenderCommand::SetClearColor({ 0.15f, 0.15f, 0.18f, 1.0f });
+        RenderCommand::SetClearColor({0.15f, 0.15f, 0.18f, 1.0f});
         RenderCommand::Clear();
 
         // Clear entity ID attachment to -1 (no entity)
@@ -126,7 +129,7 @@ namespace CB
 
         // Viewport size
         ImVec2 availableSize = ImGui::GetContentRegionAvail();
-        m_ViewportSize = { availableSize.x, availableSize.y };
+        m_ViewportSize = {availableSize.x, availableSize.y};
 
         // Display framebuffer texture (UV flipped for OpenGL)
         uint64_t textureID = m_Framebuffer->GetColorAttachmentRendererID();
@@ -309,13 +312,13 @@ namespace CB
                 auto meshView = scene->GetRegistry().view<MeshRendererComponent>();
                 auto voxelView = scene->GetRegistry().view<VoxelRendererComponent>();
                 ImGui::Text("Mesh: %d | Voxel: %d",
-                    static_cast<int>(meshView.size()),
-                    static_cast<int>(voxelView.size()));
+                            static_cast<int>(meshView.size()),
+                            static_cast<int>(voxelView.size()));
             }
 
             ImGui::Text("Viewport: %dx%d",
-                static_cast<int>(m_ViewportSize.x),
-                static_cast<int>(m_ViewportSize.y)
+                        static_cast<int>(m_ViewportSize.x),
+                        static_cast<int>(m_ViewportSize.y)
             );
 
             auto pos = m_CameraController.GetCamera().GetPosition();
@@ -349,11 +352,12 @@ namespace CB
         // Flip Y for OpenGL (bottom-left origin)
         my = imageSize.y - my;
 
-        int mouseX = (int)mx;
-        int mouseY = (int)my;
+        int mouseX = static_cast<int>(mx);
+        int mouseY = static_cast<int>(my);
 
         auto spec = m_Framebuffer->GetSpecification();
-        if (mouseX >= 0 && mouseY >= 0 && mouseX < (int)spec.Width && mouseY < (int)spec.Height)
+        if (mouseX >= 0 && mouseY >= 0 && mouseX < static_cast<int>(spec.Width) && mouseY < static_cast<int>(spec.
+            Height))
         {
             m_Framebuffer->Bind();
             int pixelData = m_Framebuffer->ReadPixel(1, mouseX, mouseY);
@@ -365,7 +369,7 @@ namespace CB
                 if (scene)
                 {
                     auto& registry = scene->GetRegistry();
-                    entt::entity entityHandle = (entt::entity)(uint32_t)pixelData;
+                    auto entityHandle = static_cast<entt::entity>((uint32_t)pixelData);
 
                     if (registry.valid(entityHandle) && registry.all_of<IDComponent>(entityHandle))
                     {
@@ -417,7 +421,7 @@ namespace CB
         Mat4 transformMatrix = tc.HasParent() ? tc.WorldMatrix : tc.GetLocalTransform();
 
         // Snap values
-        float snapValues[3] = { 0.0f, 0.0f, 0.0f };
+        float snapValues[3] = {0.0f, 0.0f, 0.0f};
         bool useSnap = ImGui::GetIO().KeyCtrl;
         if (useSnap)
         {
@@ -430,12 +434,12 @@ namespace CB
         }
 
         // Manipulate
-        ImGuizmo::Manipulate(
-            glm::value_ptr(viewMatrix),
-            glm::value_ptr(projMatrix),
+        Manipulate(
+            value_ptr(viewMatrix),
+            value_ptr(projMatrix),
             m_GizmoOperation,
             m_GizmoOperation == ImGuizmo::SCALE ? ImGuizmo::LOCAL : m_GizmoMode,
-            glm::value_ptr(transformMatrix),
+            value_ptr(transformMatrix),
             nullptr,
             useSnap ? snapValues : nullptr
         );
@@ -449,7 +453,7 @@ namespace CB
                 if (parent && parent.HasComponent<TransformComponent>())
                 {
                     Mat4 parentWorldMatrix = parent.GetComponent<TransformComponent>().WorldMatrix;
-                    transformMatrix = glm::inverse(parentWorldMatrix) * transformMatrix;
+                    transformMatrix = inverse(parentWorldMatrix) * transformMatrix;
                 }
             }
 
@@ -465,8 +469,8 @@ namespace CB
                 Vector4 perspective;
                 Quaternion rotation;
                 Vector3 translation;
-                glm::decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
-                tc.Rotation = glm::eulerAngles(rotation);
+                decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
+                tc.Rotation = eulerAngles(rotation);
             }
             else if (m_GizmoOperation == ImGuizmo::SCALE)
             {
@@ -474,7 +478,7 @@ namespace CB
                 Vector4 perspective;
                 Quaternion rotation;
                 Vector3 translation;
-                glm::decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
+                decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
                 tc.Scale = decomposedScale;
             }
 

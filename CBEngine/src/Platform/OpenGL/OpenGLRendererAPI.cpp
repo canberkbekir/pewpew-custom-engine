@@ -23,6 +23,7 @@ namespace CB
     {
         glClearColor(color.r, color.g, color.b, color.a);
     }
+
     void OpenGLRendererAPI::SetWireframeMode(bool enabled)
     {
         if (enabled)

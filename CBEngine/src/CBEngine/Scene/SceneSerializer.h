@@ -4,21 +4,19 @@
 
 namespace CB
 {
-	class SceneSerializer
-	{
-	public:
-		SceneSerializer(const Ref<Scene>& ActiveScene);
+    class SceneSerializer
+    {
+    public:
+        SceneSerializer(const Ref<Scene>& ActiveScene);
 
-		void Serialize(const String& FilePath);
-		void Deserialize(const String& FilePath);
+        void Serialize(const String& FilePath);
+        void Deserialize(const String& FilePath);
 
-		//YAML format
-		void SerializeText(const String& FilePath);
-		void DeserializeText(const String& FilePath);
+        //YAML format
+        void SerializeText(const String& FilePath);
+        void DeserializeText(const String& FilePath);
 
-	private:
-		Ref<Scene> m_Scene;
-		
-	};
-
+    private:
+        Ref<Scene> m_Scene;
+    };
 }
