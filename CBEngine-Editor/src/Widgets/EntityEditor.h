@@ -11,6 +11,8 @@
 #include "ComponentViews/DirectionalLightComponentView.h"
 #include "ComponentViews/MeshRendererComponentView.h"
 #include "ComponentViews/VoxelRendererComponentView.h"
+#include "ComponentViews/RigidBodyComponentView.h"
+#include "ComponentViews/ColliderComponentView.h"
 #include "ComponentViews/AddComponentMenu.h"
 
 namespace CB
@@ -53,6 +55,8 @@ namespace CB
             DirectionalLightComponentView::Draw(entity);
             MeshRendererComponentView::Draw(entity);
             VoxelRendererComponentView::Draw(entity);
+            RigidBodyComponentView::Draw(entity);
+            ColliderComponentView::Draw(entity);
 
             ImGui::Separator();
 

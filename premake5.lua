@@ -23,6 +23,9 @@ IncludeDir["voxelizer"] = "CBEngine/vendor/voxelizer"
 IncludeDir["ImGuizmo"] = "CBEngine/vendor/ImGuizmo"
 IncludeDir["entt"] = "CBEngine/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "CBEngine/vendor/yaml-cpp/include"
+IncludeDir["JoltPhysics"] = "CBEngine/vendor/JoltPhysics"
+
+include "CBEngine/vendor/JoltPhysics"
 
 project "CBEngine"
     location "CBEngine"
@@ -109,7 +112,9 @@ project "CBEngine"
 	defines
 	{
 		"_CRT_SECURE_NO_WARNINGS",
-		"YAML_CPP_STATIC_DEFINE"
+		"YAML_CPP_STATIC_DEFINE",
+		"JPH_DISABLE_CUSTOM_ALLOCATOR",
+		"JPH_CROSS_PLATFORM_DETERMINISTIC"
 	}
 
 	includedirs
@@ -126,6 +131,7 @@ project "CBEngine"
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
+		"%{IncludeDir.JoltPhysics}",
 	}
 
 	libdirs
@@ -136,7 +142,8 @@ project "CBEngine"
 	links
 	{
 		"opengl32.lib",
-		"assimp-vc143-mt"
+		"assimp-vc143-mt",
+		"JoltPhysics"
 	}
 
 
@@ -226,7 +233,8 @@ project "Sandbox"
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.voxelizer}",
 		"%{IncludeDir.entt}",
-		"%{IncludeDir.yaml_cpp}"
+		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.JoltPhysics}"
     }
 
     links { "CBEngine" }
@@ -302,11 +310,13 @@ project "CBEngine-Editor"
         "CBEngine/vendor/spdlog/include",
         "CBEngine/src",
 		"CBEngine/vendor",
+		"%{IncludeDir.Glad}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.ImGui}",
 		"%{IncludeDir.voxelizer}",
 		"%{IncludeDir.entt}",
-		"%{IncludeDir.yaml_cpp}"
+		"%{IncludeDir.yaml_cpp}",
+		"%{IncludeDir.JoltPhysics}"
     }
 
     links { "CBEngine" }

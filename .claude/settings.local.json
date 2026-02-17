@@ -8,7 +8,17 @@
       "Bash(cmd //c:*)",
       "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" CBEngine.sln /p:Configuration=Debug /p:Platform=x64 /m /v:minimal)",
       "Bash(cmd /c:*)",
-      "Bash(vendor/bin/premake/premake5.exe:*)"
+      "Bash(vendor/bin/premake/premake5.exe:*)",
+      "Bash(git clone:*)",
+      "Bash(cmake:*)",
+      "Bash(ls:*)",
+      "Bash(CMAKE=\"/c/Program Files/CMake/bin/cmake.exe\")",
+      "Bash(__NEW_LINE_dbcf1a2dba3d40d8__ mkdir -p /tmp/JoltBuild)",
+      "Bash(__NEW_LINE_dbcf1a2dba3d40d8__ cd /tmp/JoltBuild)",
+      "Bash(__NEW_LINE_dbcf1a2dba3d40d8__ \"$CMAKE\" -G \"Visual Studio 17 2022\" -A x64 -DCMAKE_CONFIGURATION_TYPES=\"Debug;Release\" -DTARGET_UNIT_TESTS=OFF -DTARGET_HELLO_WORLD=OFF -DTARGET_PERFORMANCE_TEST=OFF -DTARGET_SAMPLES=OFF -DTARGET_VIEWER=OFF -DTARGET_TEST_FRAMEWORK=OFF -DDOUBLE_PRECISION=OFF -DUSE_SSE4_1=ON -DUSE_SSE4_2=ON -DUSE_AVX=OFF -DUSE_AVX2=OFF -DUSE_AVX512=OFF -DUSE_LZCNT=OFF -DUSE_TZCNT=OFF -DUSE_F16C=OFF -DUSE_FMADD=OFF -DCROSS_PLATFORM_DETERMINISTIC=ON -DDISABLE_CUSTOM_ALLOCATOR=ON -DCMAKE_MSVC_RUNTIME_LIBRARY=\"\" /tmp/JoltPhysics/Build)",
+      "Bash(MSBUILD=\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/amd64/MSBuild.exe\":*)",
+      "Bash(\"$MSBUILD\" Jolt.vcxproj /p:Configuration=Debug /p:Platform=x64 /m)",
+      "Bash(chmod:*)"
     ]
   }
 }

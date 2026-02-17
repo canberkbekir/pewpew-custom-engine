@@ -5,7 +5,9 @@
 #include "CBEngine/Debug/Instrumentor.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Scene/SceneManager.h"
+#include "CBEngine/Scene/Scene.h" 
 #include "CBEngine/Core/Application.h"
+#include "CBEngine/Debug/ColliderDebugRenderer.h"
 #include "CBEngine/Utils/FileDialogs.h"
 
 namespace CB
@@ -65,6 +67,7 @@ namespace CB
             m_FileWatcher->Stop();
         }
 
+        ColliderDebugRenderer::Shutdown();
         SceneManager::Shutdown();
     }
 
@@ -134,6 +137,17 @@ namespace CB
                     NewScene();
                 else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O))
                     OpenScene();
+                else if (ImGui::IsKeyPressed(ImGuiKey_F5))
+                {
+                    Ref<Scene> scene = SceneManager::GetActiveScene();
+                    if (scene)
+                    {
+                        if (scene->IsPhysicsInitialized())
+                            scene->ShutdownPhysics();
+                        else
+                            scene->InitPhysics();
+                    }
+                }
             }
         }
 
@@ -238,6 +252,27 @@ namespace CB
                 ImGui::Separator();
                 if (ImGui::MenuItem("Reset to Default Layout"))
                     m_ResetLayout = true;
+                ImGui::EndMenu();
+            }
+
+            if (ImGui::BeginMenu("Physics"))
+            {
+                Ref<Scene> scene = SceneManager::GetActiveScene();
+                if (scene)
+                {
+                    bool simulating = scene->IsPhysicsInitialized();
+                    if (ImGui::MenuItem(simulating ? "Stop Simulation" : "Start Simulation", "F5"))
+                    {
+                        if (simulating)
+                            scene->ShutdownPhysics();
+                        else
+                            scene->InitPhysics();
+                    }
+                }
+                else
+                {
+                    ImGui::TextDisabled("No active scene");
+                }
                 ImGui::EndMenu();
             }
 

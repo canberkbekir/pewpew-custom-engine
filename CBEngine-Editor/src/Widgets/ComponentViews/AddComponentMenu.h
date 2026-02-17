@@ -6,6 +6,8 @@
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/RigidBodyComponent.h"
+#include "CBEngine/Components/ColliderComponent.h"
 
 namespace CB
 {
@@ -55,6 +57,26 @@ namespace CB
                     if (ImGui::MenuItem("Directional Light"))
                     {
                         entity.AddComponent<DirectionalLightComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+
+                ImGui::Separator();
+
+                if (!entity.HasComponent<RigidBodyComponent>())
+                {
+                    if (ImGui::MenuItem("Rigid Body"))
+                    {
+                        entity.AddComponent<RigidBodyComponent>();
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+
+                if (!entity.HasComponent<ColliderComponent>())
+                {
+                    if (ImGui::MenuItem("Collider"))
+                    {
+                        entity.AddComponent<ColliderComponent>();
                         ImGui::CloseCurrentPopup();
                     }
                 }

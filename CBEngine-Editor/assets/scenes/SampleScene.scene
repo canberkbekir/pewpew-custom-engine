@@ -1,19 +1,17 @@
 Scene: SampleScene
 Entities:
-  - Entity: 16816817297846241028
+  - Entity: 649376958173459848
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
-      Position: [0, -7.450581e-09, 0]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Position: [3.1, 0, 0]
+      Rotation: [6.6069945e-09, 1.1077523, 7.4001836e-09]
       Scale: [0.01, 0.01, 0.01]
       Parent: 0
-    VoxelRendererComponent:
-      VoxelMeshUUID: 16725038486124727391
-      ColorTextureUUID: 0
-      MaterialUUID: 0
+    MeshRendererComponent:
+      MeshUUID: 14354534839807604147
+      MaterialUUID: 10679708688162182362
       ShaderUUID: 0
-      VoxelTextureUUID: 2879451016976322528
       Visible: true
   - Entity: 1812297280797331399
     TagComponent:
@@ -29,16 +27,34 @@ Entities:
       Intensity: 1
       CastShadows: false
       SourceAngleDegrees: 0.53
-  - Entity: 649376958173459848
+  - Entity: 16816817297846241028
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
-      Position: [3.1, 0, 0]
-      Rotation: [6.6069945e-09, 1.1077523, 7.4001836e-09]
+      Position: [-1.2362251e-16, 6.181122e-17, -5.1270825e-16]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
       Scale: [0.01, 0.01, 0.01]
       Parent: 0
-    MeshRendererComponent:
-      MeshUUID: 14354534839807604147
-      MaterialUUID: 10679708688162182362
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      ColorTextureUUID: 0
+      MaterialUUID: 0
       ShaderUUID: 0
+      VoxelTextureUUID: 2879451016976322528
       Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [0.5, 0.5, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false

@@ -16,7 +16,8 @@ namespace CB
         DragDropBegin, DragDropEnd, DragDropDeliver,
         SceneLoaded, SceneUnloaded, SceneSaved,
         EntityCreated, EntityDestroyed, ComponentAdded, ComponentRemoved,
-        PlayModeEnter, PlayModeExit
+        PlayModeEnter, PlayModeExit,
+        CollisionBegin, CollisionEnd
     };
 
     enum EventCategory
@@ -31,7 +32,8 @@ namespace CB
         EventCategoryDragDrop = BIT(6),
         EventCategoryScene = BIT(7),
         EventCategoryEntity = BIT(8),
-        EventCategoryEditor = BIT(9)
+        EventCategoryEditor = BIT(9),
+        EventCategoryPhysics = BIT(10)
     };
 
 #define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return EventType::type; }\

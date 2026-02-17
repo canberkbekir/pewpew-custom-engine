@@ -12,7 +12,7 @@ namespace CB
     {
     public:
         Scene() = default;
-        ~Scene() = default;
+        ~Scene();
 
         Entity CreateEntity(String Name);
         Entity CreateEntityWithUUID(UUID UUID, String Name);
@@ -24,6 +24,10 @@ namespace CB
         void OnUpdate(Timestep ts);
         void OnRender();
 
+        // Physics
+        void InitPhysics();
+        void ShutdownPhysics();
+        bool IsPhysicsInitialized() const { return m_PhysicsInitialized; }
 
         template <typename... Components>
         auto GetEntitiesWith() { return m_Registry.view<Components...>(); }
@@ -36,5 +40,7 @@ namespace CB
         entt::registry m_Registry;
         std::unordered_map<UUID, entt::entity> m_EntityMap;
         std::vector<entt::entity> m_DeferredDestroys;
+
+        bool m_PhysicsInitialized = false;
     };
 }

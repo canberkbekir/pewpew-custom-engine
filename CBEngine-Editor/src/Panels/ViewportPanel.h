@@ -3,6 +3,7 @@
 #include "Panel.h"
 #include "CBEngine/Core/Core.h"
 #include "CBEngine/Math/CoreMath.h"
+#include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Renderer/Core/Framebuffer.h"
 #include "CBEngine/Renderer/Camera/PerspectiveCameraController.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
@@ -29,6 +30,7 @@ namespace CB
         void RenderGizmo();
 
         void HandleEntityPicking();
+        void DrawEntityColliders(Entity entity);
 
         // Rendering
         Ref<Framebuffer> m_Framebuffer;
@@ -45,6 +47,7 @@ namespace CB
 
         // Toolbar options
         bool m_Wireframe = false;
+        bool m_ShowColliders = false;
         bool m_ShowStats = true;
 
         // Gizmo state

@@ -8,16 +8,20 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/matrix_decompose.hpp>
 
+#include "CBEngine/Asset/AssetManager.h"
+#include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "CBEngine/Components/CoreComponents.h"
+#include "CBEngine/Components/ColliderComponent.h"
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/TransformComponent.h"
+#include "CBEngine/Debug/ColliderDebugRenderer.h"
 #include "CBEngine/Debug/Instrumentor.h"
 #include "CBEngine/Renderer/Core/RenderCommand.h"
 #include "CBEngine/Scene/SceneManager.h"
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Selection/Selection.h"
-#include "CBEngine/Systems/RendererSystem.h"
+#include "CBEngine/Systems/RendererSystem.h" 
 
 namespace CB
 {
@@ -106,6 +110,15 @@ namespace CB
 
         // Restore fill mode
         RenderCommand::SetWireframeMode(false);
+
+        // Draw collider wireframes for selected entity and its children
+        if (m_ShowColliders && Selection::HasEntitySelected() && scene)
+        {
+            UUID entityUUID = Selection::GetPrimarySelection().ID;
+            Entity entity = scene->GetEntityByUUID(entityUUID);
+            if (entity)
+                DrawEntityColliders(entity);
+        }
     }
 
     //--------------------------------------------------------------------------
@@ -271,6 +284,11 @@ namespace CB
             m_Wireframe = !m_Wireframe;
 
         ImGui::SameLine();
+        if (ImGui::Selectable("Colliders", m_ShowColliders, 0, ImVec2(60, 0)))
+            m_ShowColliders = !m_ShowColliders;
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show collision shapes for selected entity");
+
+        ImGui::SameLine();
         if (ImGui::Selectable("Stats", m_ShowStats, 0, ImVec2(40, 0)))
             m_ShowStats = !m_ShowStats;
 
@@ -325,6 +343,61 @@ namespace CB
             ImGui::Text("Camera: %.1f, %.1f, %.1f", pos.x, pos.y, pos.z);
         }
         ImGui::End();
+    }
+
+    //--------------------------------------------------------------------------
+    // Collider Debug Drawing
+    //--------------------------------------------------------------------------
+
+    void ViewportPanel::DrawEntityColliders(Entity entity)
+    {
+        if (!entity)
+            return;
+
+        // Draw this entity's collider if it has one
+        if (entity.HasComponent<ColliderComponent>() && entity.HasComponent<TransformComponent>())
+        {
+            auto& collider = entity.GetComponent<ColliderComponent>();
+            auto& tc = entity.GetComponent<TransformComponent>();
+            Mat4 worldTransform = tc.HasParent() ? tc.WorldMatrix : tc.GetLocalTransform();
+
+            if (collider.Shape == ColliderShape::VoxelCompound)
+            {
+                // For voxel compound, draw each merged box from the voxel grid
+                if (entity.HasComponent<VoxelRendererComponent>())
+                {
+                    auto& vrc = entity.GetComponent<VoxelRendererComponent>();
+                    if (vrc.VoxelMeshUUID.IsValid())
+                    {
+                        auto vmesh = AssetManager::GetAsset<VoxelMeshAsset>(vrc.VoxelMeshUUID);
+                        if (vmesh && vmesh->GridData.CountFilled() > 0)
+                        {
+                            ColliderDebugRenderer::DrawVoxelCompound(
+                                vmesh->GridData, worldTransform, m_CameraController.GetCamera());
+                        }
+                        else
+                        {
+                            // Fallback: draw bounding box
+                            ColliderDebugRenderer::DrawCollider(
+                                collider, worldTransform, m_CameraController.GetCamera(),
+                                Vector3(1.0f, 0.5f, 0.0f));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                ColliderDebugRenderer::DrawCollider(
+                    collider, worldTransform, m_CameraController.GetCamera());
+            }
+        }
+
+        // Recursively draw children's colliders
+        if (entity.HasChildren())
+        {
+            for (Entity child : entity.GetChildren())
+                DrawEntityColliders(child);
+        }
     }
 
     //--------------------------------------------------------------------------

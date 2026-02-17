@@ -5,11 +5,19 @@
 #include "CBEngine/Components/CoreComponents.h"
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Systems/TransformSystem.h"
+#include "CBEngine/Systems/PhysicsSystem.h"
+#include "CBEngine/Systems/DestructionSystem.h"
 #include "CBEngine/Core/Application.h"
 #include "CBEngine/Events/SceneEvent.h"
 
 namespace CB
 {
+    Scene::~Scene()
+    {
+        if (m_PhysicsInitialized)
+            ShutdownPhysics();
+    }
+
     Entity Scene::CreateEntity(const String Name)
     {
         return CreateEntityWithUUID(UUID(), Name);
@@ -83,12 +91,39 @@ namespace CB
         return m_EntityMap.find(UUID) != m_EntityMap.end();
     }
 
+    void Scene::InitPhysics()
+    {
+        if (m_PhysicsInitialized)
+            return;
+
+        PhysicsSystem::Init(this);
+        m_PhysicsInitialized = true;
+    }
+
+    void Scene::ShutdownPhysics()
+    {
+        if (!m_PhysicsInitialized)
+            return;
+
+        PhysicsSystem::Shutdown();
+        m_PhysicsInitialized = false;
+    }
+
     void Scene::OnUpdate(Timestep ts)
     {
         // 1. Process deferred destruction
         ProcessDeferredDestroys();
 
-        // Transform system
+        if (m_PhysicsInitialized)
+        {
+            // 2. Destruction system (splits voxels, spawns fragments)
+            DestructionSystem::OnUpdate(this, ts);
+
+            // 3. Physics simulation (new fragments participate immediately)
+            PhysicsSystem::OnUpdate(this, ts);
+        }
+
+        // 4. Transform system (world matrices)
         TransformSystem::OnUpdate(this, ts);
     }
 

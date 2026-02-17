@@ -20,7 +20,9 @@ namespace CB
         TransformComponent,
         MeshRendererComponent,
         VoxelRendererComponent,
-        DirectionalLightComponent
+        DirectionalLightComponent,
+        RigidBodyComponent,
+        ColliderComponent
     >;
 
     // SFINAE trait: does T have a ResolveAssets() member?
