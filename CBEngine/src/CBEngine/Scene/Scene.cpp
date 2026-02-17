@@ -88,20 +88,8 @@ namespace CB
         // 1. Process deferred destruction
         ProcessDeferredDestroys();
 
-        //2. Transform system
+        // Transform system
         TransformSystem::OnUpdate(this, ts);
-
-        // 2. Destruction system (spawn fragments)
-        //DestructionSystem::OnUpdate(*this, ts);
-
-        // 3. Physics system (gravity, collision)
-        //PhysicsSystem::OnUpdate(*this, ts);
-
-        // 4. Voxel mesh regeneration
-        //VoxelSystem::RegenerateDirtyMeshes(*this);
-
-        // 5. Fragment cleanup
-        //DestructionSystem::CleanupExpiredFragments(*this);
     }
 
     void Scene::OnRender()

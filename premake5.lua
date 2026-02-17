@@ -162,7 +162,6 @@ project "CBEngine"
 	    defines
 	    {
 	    	"CB_PLATFORM_WINDOWS",
-	    	"CB_BUILD_DLL",
 			"_GLFW_WIN32"
 	    }
 

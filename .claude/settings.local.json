@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(git rm:*)",
+      "Bash(dir:*)",
+      "Bash(./GenerateProject.bat)",
+      "Bash(cmd //c:*)",
+      "Bash(\"C:/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" CBEngine.sln /p:Configuration=Debug /p:Platform=x64 /m /v:minimal)",
+      "Bash(cmd /c:*)",
+      "Bash(vendor/bin/premake/premake5.exe:*)"
     ]
   }
 }

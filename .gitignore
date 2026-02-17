@@ -63,6 +63,9 @@ obj/
 
 .claude/settings.local.json
 
+# IDE user settings
+*.DotSettings.user
+
 Sandbox/profiles/
 
 # Runtime profiles
@@ -70,3 +73,5 @@ CBEngineProfile-*.json
 
 # Docs (kept locally, not in repo)
 docs/
+
+nul
