@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(git clone:*)",
+      "Bash(ls -la \"C:\\\\Codes\\\\GitKraken\\\\pewpew-custom-engine\\\\PewPew\\\\vendor\\\\assimp\\\\include\"\" 2>/dev/null || echo \"include folder missing \")",
+      "Bash(ls:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(GenerateProject.bat)",
+      "Bash(\"C:\\\\Codes\\\\GitKraken\\\\pewpew-custom-engine\\\\vendor\\\\bin\\\\premake\\\\premake5.exe\" vs2022:*)",
+      "Bash(powershell:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git cat-file:*)",
+      "Bash(sort:*)",
+      "Bash(git lfs:*)",
+      "Bash(git commit:*)",
+      "Bash(tree:*)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" /c/Codes/GitKraken/pewpew-custom-engine/PewPew.sln /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal)",
+      "Bash(./GenerateProject.bat)",
+      "Bash(xargs:*)",
+      "Bash(cmd /c \"where msbuild 2>NUL || dir /s /b \"\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\*MSBuild.exe\"\" 2>NUL || dir /s /b \"\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\*MSBuild.exe\"\" 2>NUL || echo NOT_FOUND\")",
+      "Bash(git mv:*)",
+      "Bash(cmd /c \"move PewPew-Editor CBEngine-Editor 2>&1\")",
+      "Bash(vendor/bin/premake/premake5.exe:*)",
+      "Bash(cmd //c GenerateProject.bat)",
+      "Bash(msbuild:*)",
+      "Bash(cmd /c:*)",
+      "WebSearch",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" CBEngine.sln /p:Configuration=Debug /p:Platform=x64 /m)",
+      "Bash(\"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\MSBuild\\\\Current\\\\Bin\\\\MSBuild.exe\" \"C:\\\\Codes\\\\GitKraken\\\\pewpew-custom-engine\\\\CBEngine.sln\" -p:Configuration=Debug -p:Platform=x64 -m)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"C:/Codes/GitKraken/pewpew-custom-engine/PewPew.sln\" -p:Configuration=Debug -p:Platform=x64 -m -nologo -verbosity:minimal)",
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" \"C:/Codes/GitKraken/pewpew-custom-engine/CBEngine.sln\" -p:Configuration=Debug -p:Platform=x64 -m -nologo -verbosity:minimal)",
+      "Bash(cmd.exe /c GenerateProject.bat)",
+      "Bash(git -C \"C:\\\\Codes\\\\GitKraken\\\\pewpew-custom-engine\" log --oneline --no-decorate -20)"
+    ]
+  }
+}

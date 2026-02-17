@@ -61,9 +61,10 @@ obj/
 !**/vendor/assimp/**/*.lib
 !**/vendor/assimp/**/*.pdb
 
-.claude/settings.local.json
-
 Sandbox/profiles/
 
 # Runtime profiles
-CBEngineProfile-*.json 
+CBEngineProfile-*.json
+
+# Docs (kept locally, not in repo)
+docs/
