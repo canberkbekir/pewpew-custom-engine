@@ -17,7 +17,10 @@ namespace CB
         SceneLoaded, SceneUnloaded, SceneSaved,
         EntityCreated, EntityDestroyed, ComponentAdded, ComponentRemoved,
         PlayModeEnter, PlayModeExit,
-        CollisionBegin, CollisionEnd
+        CollisionBegin, CollisionEnd,
+
+        // Starting point for runtime-registered custom events
+        Custom = 1000
     };
 
     enum EventCategory
@@ -42,6 +45,13 @@ namespace CB
 
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; }
 
+
+    // Allocate a unique EventType ID for custom events
+    inline EventType RegisterCustomEventType(const char* /*name*/)
+    {
+        static int s_NextCustomEventType = static_cast<int>(EventType::Custom);
+        return static_cast<EventType>(s_NextCustomEventType++);
+    }
 
     class Event
     {

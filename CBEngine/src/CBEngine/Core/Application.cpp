@@ -11,6 +11,8 @@
 #include "CBEngine/Renderer/Core/Renderer.h"
 #include "CBEngine/Renderer/Core/Renderer3D.h"
 #include "CBEngine/Asset/AssetManager.h"
+#include "CBEngine/Physics/PhysicsWorld.h"
+#include "CBEngine/Scripting/ScriptEngine.h"
 
 namespace CB
 {
@@ -28,17 +30,23 @@ namespace CB
 
         Renderer::Init();
         Renderer3D::Init();
+        PhysicsWorld::InitJoltGlobals();
+        ScriptEngine::Init();
 
         AssetManager::Init("assets");
 
+#ifdef CB_ENABLE_IMGUI
         m_ImGuiLayer = new ImGuiLayer();
         PushOverlay(m_ImGuiLayer);
+#endif
     }
 
     Application::~Application()
     {
         CB_PROFILE_FUNCTION();
         AssetManager::Shutdown();
+        ScriptEngine::Shutdown();
+        PhysicsWorld::ShutdownJoltGlobals();
         Renderer::Shutdown();
     }
 
@@ -91,6 +99,7 @@ namespace CB
                 }
             }
 
+#ifdef CB_ENABLE_IMGUI
             {
                 CB_PROFILE_SCOPE("LayerStack OnImGuiRender");
                 m_ImGuiLayer->Begin();
@@ -98,6 +107,7 @@ namespace CB
                     layer->OnImGuiRender();
                 m_ImGuiLayer->End();
             }
+#endif
 
             m_Window->OnUpdate();
             CB_PROFILE_END_FRAME();

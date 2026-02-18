@@ -9,7 +9,6 @@
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Physics/VoxelSplitter.h"
 #include "CBEngine/Physics/VoxelCollisionShapeGenerator.h"
-#include "CBEngine/Physics/CollisionShapeCache.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
@@ -114,7 +113,8 @@ namespace CB
 					voxelRenderer.MeshAsset = newMesh;
 
 					// Invalidate collision cache and mark collider dirty
-					CollisionShapeCache::Get().Invalidate(voxelRenderer.VoxelMeshUUID);
+					if (auto* physWorld = scene->GetPhysicsWorld())
+						physWorld->GetShapeCache().Invalidate(voxelRenderer.VoxelMeshUUID);
 					if (targetEntity.HasComponent<ColliderComponent>())
 					{
 						auto& collider = targetEntity.GetComponent<ColliderComponent>();

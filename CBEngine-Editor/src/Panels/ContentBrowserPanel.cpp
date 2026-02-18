@@ -3,9 +3,12 @@
 #include "imgui.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/Asset.h"
+#include "CBEngine/Asset/BlueprintAsset.h"
 #include "CBEngine/Selection/Selection.h"
 #include "CBEngine/Scene/SceneManager.h"
 #include "CBEngine/Scene/SceneSerializer.h"
+#include "CBEngine/Scene/Entity.h"
+#include "CBEngine/Components/CoreComponents.h"
 #include "CBEngine/Core/Log.h"
 #include "CBEngine/Events/ApplicationEvent.h"
 #include "CBEngine/Renderer/Resources/Material.h"
@@ -67,6 +70,18 @@ namespace CB
             m_FileTypeIcons[".scene"] = Texture2D::Create("resources/icons/scene.png");
         else
             m_FileTypeIcons[".scene"] = m_FileIcon;
+
+        // Blueprint icon
+        if (std::filesystem::exists("resources/icons/blueprint.png"))
+            m_FileTypeIcons[".blueprint"] = Texture2D::Create("resources/icons/blueprint.png");
+        else
+            m_FileTypeIcons[".blueprint"] = m_FileIcon;
+
+        // Lua script icon
+        if (std::filesystem::exists("resources/icons/lua.png"))
+            m_FileTypeIcons[".lua"] = Texture2D::Create("resources/icons/lua.png");
+        else
+            m_FileTypeIcons[".lua"] = m_FileIcon;
     }
 
     void ContentBrowserPanel::OnImGuiRender()
@@ -180,7 +195,11 @@ namespace CB
 
             ImGui::Columns(1);
 
-            // Drop target for content area (move to current directory)
+            // Invisible drop zone covering remaining content area space
+            ImVec2 remainingRegion = ImGui::GetContentRegionAvail();
+            float dropZoneHeight = std::max(remainingRegion.y, 20.0f);
+            ImGui::InvisibleButton("##ContentDropZone", ImVec2(-1, dropZoneHeight));
+
             if (ImGui::BeginDragDropTarget())
             {
                 if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
@@ -190,6 +209,40 @@ namespace CB
                     if (source.parent_path() != m_CurrentDirectory)
                     {
                         MoveAsset(source, m_CurrentDirectory);
+                    }
+                }
+                // Accept entity drops from Scene Hierarchy -> save as blueprint
+                if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY"))
+                {
+                    UUID droppedUUID = *static_cast<UUID*>(payload->Data);
+                    Ref<Scene> scene = SceneManager::GetActiveScene();
+                    if (scene)
+                    {
+                        Entity entity = scene->GetEntityByUUID(droppedUUID);
+                        if (entity)
+                        {
+                            String name = entity.GetName();
+                            String yamlData = SceneSerializer::SerializeEntityHierarchy(entity);
+
+                            // Find unique filename
+                            std::filesystem::path bpPath = m_CurrentDirectory / (name + ".blueprint");
+                            int counter = 1;
+                            while (exists(bpPath))
+                            {
+                                bpPath = m_CurrentDirectory / (name + " " + std::to_string(counter) + ".blueprint");
+                                counter++;
+                            }
+
+                            auto bp = CreateRef<BlueprintAsset>();
+                            bp->YAMLData = yamlData;
+                            bp->RootEntityName = name;
+                            if (bp->Save(bpPath))
+                            {
+                                std::filesystem::path relativePath = relative(bpPath, m_BaseDirectory);
+                                AssetManager::ImportAsset(relativePath);
+                                m_EntriesDirty = true;
+                            }
+                        }
                     }
                 }
                 ImGui::EndDragDropTarget();
@@ -303,7 +356,8 @@ namespace CB
                 {
                     m_ShowTextures = m_ShowMeshes = m_ShowRawMeshes = true;
                     m_ShowProcessedMeshes = m_ShowShaders = true;
-                    m_ShowMaterials = m_ShowScenes = m_ShowOther = true;
+                    m_ShowMaterials = m_ShowScenes = true;
+                    m_ShowBlueprints = m_ShowScripts = m_ShowOther = true;
                 }
                 m_EntriesDirty = true;
             }
@@ -322,13 +376,16 @@ namespace CB
             anyChanged |= ImGui::Checkbox("Shaders", &m_ShowShaders);
             anyChanged |= ImGui::Checkbox("Materials", &m_ShowMaterials);
             anyChanged |= ImGui::Checkbox("Scenes", &m_ShowScenes);
+            anyChanged |= ImGui::Checkbox("Blueprints", &m_ShowBlueprints);
+            anyChanged |= ImGui::Checkbox("Scripts", &m_ShowScripts);
             anyChanged |= ImGui::Checkbox("Other", &m_ShowOther);
 
             if (anyChanged)
             {
                 m_ShowAllTypes = m_ShowTextures && m_ShowMeshes && m_ShowRawMeshes &&
                     m_ShowProcessedMeshes && m_ShowShaders &&
-                    m_ShowMaterials && m_ShowScenes && m_ShowOther;
+                    m_ShowMaterials && m_ShowScenes &&
+                    m_ShowBlueprints && m_ShowScripts && m_ShowOther;
                 m_EntriesDirty = true;
             }
 
@@ -419,6 +476,18 @@ namespace CB
                 if (ImGui::MenuItem("Scene"))
                 {
                     CreateScene("New Scene");
+                }
+                if (ImGui::MenuItem("Shader"))
+                {
+                    CreateShader("New Shader");
+                }
+                if (ImGui::MenuItem("Blueprint"))
+                {
+                    CreateBlueprint("New Blueprint");
+                }
+                if (ImGui::MenuItem("Lua Script"))
+                {
+                    CreateLuaScript("New Script");
                 }
                 ImGui::EndMenu();
             }
@@ -649,6 +718,12 @@ namespace CB
         if (ext == ".scene" || ext == ".cb")
             return m_ShowScenes;
 
+        if (ext == ".blueprint")
+            return m_ShowBlueprints;
+
+        if (ext == ".lua")
+            return m_ShowScripts;
+
         return m_ShowOther;
     }
 
@@ -778,6 +853,12 @@ namespace CB
                 case AssetType::Texture2D:
                     // TODO: Open texture in Texture Viewer
                     break;
+                case AssetType::Blueprint:
+                    // Select to show in Properties panel (already done above)
+                    break;
+                case AssetType::Script:
+                    // Select to show in Properties panel (already done above)
+                    break;
                 default:
                     break;
                 }
@@ -840,8 +921,44 @@ namespace CB
                     ReimportAsset(path);
                 }
 
-                // Generate VTexture from .vmesh
+                // Instantiate blueprint in scene
                 std::string ctxExt = path.extension().string();
+                std::transform(ctxExt.begin(), ctxExt.end(), ctxExt.begin(), tolower);
+                if (ctxExt == ".blueprint" && ImGui::MenuItem("Instantiate in Scene"))
+                {
+                    std::filesystem::path relPath = relative(path, m_BaseDirectory);
+                    UUID bpUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+                    if (bpUUID.IsValid())
+                    {
+                        auto bpAsset = AssetManager::GetAsset<BlueprintAsset>(bpUUID);
+                        if (bpAsset)
+                        {
+                            Ref<Scene> scene = SceneManager::GetActiveScene();
+                            if (scene)
+                            {
+                                SceneSerializer serializer(scene);
+                                serializer.InstantiateBlueprint(bpAsset->YAMLData, path.string(), bpUUID);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Load directly from file if not in registry
+                        auto bpAsset = BlueprintAsset::Load(path);
+                        if (bpAsset)
+                        {
+                            Ref<Scene> scene = SceneManager::GetActiveScene();
+                            if (scene)
+                            {
+                                SceneSerializer serializer(scene);
+                                serializer.InstantiateBlueprint(bpAsset->YAMLData, path.string());
+                            }
+                        }
+                    }
+                }
+
+                // Generate VTexture from .vmesh
+                ctxExt = path.extension().string();
                 std::transform(ctxExt.begin(), ctxExt.end(), ctxExt.begin(), tolower);
                 if (ctxExt == ".vmesh" && ImGui::MenuItem("Generate VTexture"))
                 {
@@ -1457,6 +1574,130 @@ namespace CB
 
         ImportExternalFiles(e.GetPaths());
         return true;
+    }
+
+    void ContentBrowserPanel::CreateShader(const std::string& name)
+    {
+        std::filesystem::path shaderPath = m_CurrentDirectory / (name + ".glsl");
+
+        int counter = 1;
+        while (exists(shaderPath))
+        {
+            shaderPath = m_CurrentDirectory / (name + " " + std::to_string(counter) + ".glsl");
+            counter++;
+        }
+
+        std::ofstream fout(shaderPath);
+        if (fout.is_open())
+        {
+            fout << "#type vertex\n";
+            fout << "#version 450 core\n\n";
+            fout << "layout(location = 0) in vec3 a_Position;\n";
+            fout << "layout(location = 1) in vec3 a_Normal;\n";
+            fout << "layout(location = 2) in vec2 a_TexCoords;\n\n";
+            fout << "uniform mat4 u_ViewProjection;\n";
+            fout << "uniform mat4 u_Transform;\n\n";
+            fout << "out vec3 v_Normal;\n";
+            fout << "out vec2 v_TexCoords;\n\n";
+            fout << "void main()\n";
+            fout << "{\n";
+            fout << "    gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0);\n";
+            fout << "    v_Normal = mat3(u_Transform) * a_Normal;\n";
+            fout << "    v_TexCoords = a_TexCoords;\n";
+            fout << "}\n\n";
+            fout << "#type fragment\n";
+            fout << "#version 450 core\n\n";
+            fout << "layout(location = 0) out vec4 o_Color;\n\n";
+            fout << "in vec3 v_Normal;\n";
+            fout << "in vec2 v_TexCoords;\n\n";
+            fout << "void main()\n";
+            fout << "{\n";
+            fout << "    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));\n";
+            fout << "    float diff = max(dot(normalize(v_Normal), lightDir), 0.0);\n";
+            fout << "    o_Color = vec4(vec3(0.1 + diff * 0.9), 1.0);\n";
+            fout << "}\n";
+            fout.close();
+
+            std::filesystem::path relativePath = relative(shaderPath, m_BaseDirectory);
+            AssetManager::ImportAsset(relativePath);
+
+            CB_CORE_INFO("Created shader: {0}", shaderPath.string());
+            m_EntriesDirty = true;
+
+            m_IsRenaming = true;
+            m_RenamingPath = shaderPath;
+            strncpy_s(m_RenameBuffer, name.c_str(), sizeof(m_RenameBuffer) - 1);
+        }
+    }
+
+    void ContentBrowserPanel::CreateBlueprint(const std::string& name)
+    {
+        std::filesystem::path bpPath = m_CurrentDirectory / (name + ".blueprint");
+
+        int counter = 1;
+        while (exists(bpPath))
+        {
+            bpPath = m_CurrentDirectory / (name + " " + std::to_string(counter) + ".blueprint");
+            counter++;
+        }
+
+        // Create an empty blueprint file
+        std::ofstream fout(bpPath);
+        if (fout.is_open())
+        {
+            fout << "Blueprint: " << name << "\n";
+            fout << "Entities:\n";
+            fout.close();
+
+            std::filesystem::path relativePath = relative(bpPath, m_BaseDirectory);
+            AssetManager::ImportAsset(relativePath);
+
+            CB_CORE_INFO("Created blueprint: {0}", bpPath.string());
+            m_EntriesDirty = true;
+
+            m_IsRenaming = true;
+            m_RenamingPath = bpPath;
+            strncpy_s(m_RenameBuffer, name.c_str(), sizeof(m_RenameBuffer) - 1);
+        }
+    }
+
+    void ContentBrowserPanel::CreateLuaScript(const std::string& name)
+    {
+        std::filesystem::path scriptPath = m_CurrentDirectory / (name + ".lua");
+
+        int counter = 1;
+        while (exists(scriptPath))
+        {
+            scriptPath = m_CurrentDirectory / (name + " " + std::to_string(counter) + ".lua");
+            counter++;
+        }
+
+        std::ofstream fout(scriptPath);
+        if (fout.is_open())
+        {
+            fout << "-- " << name << ".lua\n\n";
+            fout << "function OnCreate()\n";
+            fout << "    -- Called when the entity is created\n";
+            fout << "end\n\n";
+            fout << "function OnUpdate(dt)\n";
+            fout << "    -- Called every frame\n";
+            fout << "    -- dt = delta time in seconds\n";
+            fout << "end\n\n";
+            fout << "function OnDestroy()\n";
+            fout << "    -- Called when the entity is destroyed\n";
+            fout << "end\n";
+            fout.close();
+
+            std::filesystem::path relativePath = relative(scriptPath, m_BaseDirectory);
+            AssetManager::ImportAsset(relativePath);
+
+            CB_CORE_INFO("Created Lua script: {0}", scriptPath.string());
+            m_EntriesDirty = true;
+
+            m_IsRenaming = true;
+            m_RenamingPath = scriptPath;
+            strncpy_s(m_RenameBuffer, name.c_str(), sizeof(m_RenameBuffer) - 1);
+        }
     }
 
     void ContentBrowserPanel::ImportExternalFiles(const std::vector<std::string>& paths)

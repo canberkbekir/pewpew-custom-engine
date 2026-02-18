@@ -9,6 +9,7 @@
 #include "../Widgets/TextureEditor.h"
 #include "../Widgets/MeshEditor.h"
 #include "../Widgets/ShaderEditor.h"
+#include "../Widgets/BlueprintViewer.h"
 
 namespace CB
 {
@@ -150,6 +151,10 @@ namespace CB
 
         case AssetType::Material:
             MaterialEditor::Draw(assetUUID);
+            break;
+
+        case AssetType::Blueprint:
+            BlueprintViewer::Draw(assetUUID);
             break;
 
         default:

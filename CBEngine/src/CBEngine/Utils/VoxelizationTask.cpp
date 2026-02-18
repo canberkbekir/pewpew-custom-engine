@@ -6,6 +6,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/config.h>
 
 namespace CB
 {
@@ -14,12 +15,14 @@ namespace CB
     static void LoadMeshData(const String& filePath, std::vector<Vertex>& vertices, std::vector<uint32_t>& indices)
     {
         Assimp::Importer importer;
+        importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.01f);
         const aiScene* scene = importer.ReadFile(filePath,
                                                  aiProcess_Triangulate |
                                                  aiProcess_GenSmoothNormals |
                                                  aiProcess_CalcTangentSpace |
                                                  aiProcess_JoinIdenticalVertices |
-                                                 aiProcess_PreTransformVertices
+                                                 aiProcess_PreTransformVertices |
+                                                 aiProcess_GlobalScale
         );
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)

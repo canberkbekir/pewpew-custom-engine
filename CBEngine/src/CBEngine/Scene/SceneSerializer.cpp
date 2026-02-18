@@ -2,6 +2,7 @@
 #include "SceneSerializer.h"
 #include "Entity.h"
 #include "ComponentRegistry.h"
+#include "RuntimeComponentRegistry.h"
 
 #include <yaml-cpp/yaml.h>
 #include <fstream>
@@ -13,15 +14,18 @@ namespace CB
     {
     }
 
-    static void SerializeEntity(YAML::Emitter& out, Entity entity)
+    static void SerializeEntity(YAML::Emitter& out, Entity entity, entt::registry& registry)
     {
         out << YAML::BeginMap;
 
         // Entity UUID (special case — not a component block)
         out << YAML::Key << "Entity" << YAML::Value << entity.GetUUID();
 
-        // Serialize all registered components via fold expression
+        // Serialize all built-in components via fold expression
         SerializeAll(out, entity);
+
+        // Serialize runtime-registered components
+        RuntimeComponentRegistry::SerializeAll(out, registry, entity);
 
         out << YAML::EndMap;
     }
@@ -49,7 +53,7 @@ namespace CB
         for (auto entityHandle : view)
         {
             Entity entity = {entityHandle, m_Scene.get()};
-            SerializeEntity(out, entity);
+            SerializeEntity(out, entity, m_Scene->GetRegistry());
         }
 
         out << YAML::EndSeq;
@@ -121,6 +125,9 @@ namespace CB
             // Deserialize all registered components via fold expression
             DeserializeAll(entityNode, entity);
 
+            // Deserialize runtime-registered components
+            RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
+
             // Resolve asset UUIDs to loaded assets
             ResolveAssetsAll(entity);
         }
@@ -148,5 +155,226 @@ namespace CB
         }
 
         CB_CORE_INFO("Deserialized scene from: {0}", FilePath);
+    }
+
+    String SceneSerializer::SerializeToString()
+    {
+        YAML::Emitter out;
+        out << YAML::BeginMap;
+        out << YAML::Key << "Scene" << YAML::Value << "Snapshot";
+
+        out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+
+        auto view = m_Scene->GetEntitiesWith<IDComponent>();
+        for (auto entityHandle : view)
+        {
+            Entity entity = {entityHandle, m_Scene.get()};
+            SerializeEntity(out, entity, m_Scene->GetRegistry());
+        }
+
+        out << YAML::EndSeq;
+        out << YAML::EndMap;
+
+        return String(out.c_str());
+    }
+
+    void SceneSerializer::DeserializeFromString(const String& yamlString)
+    {
+        YAML::Node data;
+        try
+        {
+            data = YAML::Load(yamlString);
+        }
+        catch (const YAML::ParserException& e)
+        {
+            CB_CORE_ERROR("Failed to parse scene snapshot: {0}", e.what());
+            return;
+        }
+
+        if (!data["Scene"])
+        {
+            CB_CORE_ERROR("Invalid scene snapshot (missing 'Scene' key)");
+            return;
+        }
+
+        auto entities = data["Entities"];
+        if (!entities)
+            return;
+
+        for (auto entityNode : entities)
+        {
+            uint64_t uuid = entityNode["Entity"].as<uint64_t>();
+
+            String name = "Entity";
+            auto tagComponent = entityNode["TagComponent"];
+            if (tagComponent)
+                name = tagComponent["Tag"].as<std::string>();
+
+            Entity entity = m_Scene->CreateEntityWithUUID(UUID(uuid), name);
+
+            DeserializeAll(entityNode, entity);
+            RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
+            ResolveAssetsAll(entity);
+        }
+
+        // Rebuild Children lists from Parent references
+        auto view = m_Scene->GetEntitiesWith<TransformComponent>();
+        for (auto entityHandle : view)
+        {
+            Entity entity = {entityHandle, m_Scene.get()};
+            auto& tc = entity.GetComponent<TransformComponent>();
+            if (tc.Parent.IsValid())
+            {
+                Entity parent = m_Scene->GetEntityByUUID(tc.Parent);
+                if (parent)
+                {
+                    parent.GetComponent<TransformComponent>().Children.push_back(entity.GetUUID());
+                }
+                else
+                {
+                    tc.Parent = UUID(0);
+                }
+            }
+        }
+
+        CB_CORE_TRACE("Deserialized scene from in-memory snapshot");
+    }
+
+    // =========================================================================
+    // Blueprint (prefab) support
+    // =========================================================================
+
+    static void CollectEntityHierarchy(Entity entity, std::vector<Entity>& out)
+    {
+        out.push_back(entity);
+        if (entity.HasChildren())
+        {
+            for (Entity child : entity.GetChildren())
+                CollectEntityHierarchy(child, out);
+        }
+    }
+
+    String SceneSerializer::SerializeEntityHierarchy(Entity root)
+    {
+        // Collect root + all descendants
+        std::vector<Entity> entities;
+        CollectEntityHierarchy(root, entities);
+
+        YAML::Emitter out;
+        out << YAML::BeginMap;
+        out << YAML::Key << "Blueprint" << YAML::Value << root.GetName();
+        out << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
+
+        for (Entity entity : entities)
+        {
+            out << YAML::BeginMap;
+            out << YAML::Key << "Entity" << YAML::Value << entity.GetUUID();
+            SerializeAll(out, entity);
+            out << YAML::EndMap;
+        }
+
+        out << YAML::EndSeq;
+        out << YAML::EndMap;
+
+        return String(out.c_str());
+    }
+
+    std::vector<Entity> SceneSerializer::InstantiateBlueprint(const String& yamlData,
+        const String& blueprintPath, UUID blueprintUUID)
+    {
+        std::vector<Entity> createdEntities;
+
+        YAML::Node data;
+        try
+        {
+            data = YAML::Load(yamlData);
+        }
+        catch (const YAML::ParserException& e)
+        {
+            CB_CORE_ERROR("InstantiateBlueprint: Failed to parse YAML: {0}", e.what());
+            return createdEntities;
+        }
+
+        auto entities = data["Entities"];
+        if (!entities)
+            return createdEntities;
+
+        // Build old UUID -> new UUID remap table
+        std::unordered_map<uint64_t, UUID> uuidRemap;
+
+        // First pass: create all entities with new UUIDs
+        for (auto entityNode : entities)
+        {
+            uint64_t oldUUID = entityNode["Entity"].as<uint64_t>();
+            UUID newUUID; // generates a new random UUID
+
+            String name = "Entity";
+            auto tagComponent = entityNode["TagComponent"];
+            if (tagComponent)
+                name = tagComponent["Tag"].as<std::string>();
+
+            Entity entity = m_Scene->CreateEntityWithUUID(newUUID, name);
+            uuidRemap[oldUUID] = newUUID;
+            createdEntities.push_back(entity);
+        }
+
+        // Second pass: deserialize components
+        int idx = 0;
+        for (auto entityNode : entities)
+        {
+            Entity entity = createdEntities[idx++];
+
+            DeserializeAll(entityNode, entity);
+            RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
+            ResolveAssetsAll(entity);
+        }
+
+        // Third pass: clear children lists (will rebuild from parent refs),
+        // then remap parent UUIDs to new UUIDs
+        for (Entity entity : createdEntities)
+        {
+            if (!entity.HasComponent<TransformComponent>())
+                continue;
+            entity.GetComponent<TransformComponent>().Children.clear();
+        }
+
+        for (Entity entity : createdEntities)
+        {
+            if (!entity.HasComponent<TransformComponent>())
+                continue;
+
+            auto& tc = entity.GetComponent<TransformComponent>();
+
+            if (tc.Parent.IsValid())
+            {
+                uint64_t oldParentUUID = static_cast<uint64_t>(tc.Parent);
+                auto it = uuidRemap.find(oldParentUUID);
+                if (it != uuidRemap.end())
+                {
+                    tc.Parent = it->second;
+
+                    Entity parent = m_Scene->GetEntityByUUID(it->second);
+                    if (parent)
+                        parent.GetComponent<TransformComponent>().Children.push_back(entity.GetUUID());
+                }
+                else
+                {
+                    // Parent not in blueprint, clear it
+                    tc.Parent = UUID(0);
+                }
+            }
+        }
+
+        // Attach BlueprintInstanceComponent to the root entity for tracking
+        if (!createdEntities.empty())
+        {
+            auto& bic = createdEntities[0].AddComponent<BlueprintInstanceComponent>();
+            bic.BlueprintAssetUUID = blueprintUUID;
+            bic.BlueprintPath = blueprintPath;
+            bic.OriginalYAML = yamlData;
+        }
+
+        CB_CORE_INFO("Instantiated blueprint with {0} entities", createdEntities.size());
+        return createdEntities;
     }
 }

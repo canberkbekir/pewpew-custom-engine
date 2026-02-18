@@ -3,17 +3,26 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "CBEngine/Asset/AssetManager.h"
+#include "CBEngine/Asset/BlueprintAsset.h"
+#include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "CBEngine/Components/CoreComponents.h"
+#include "CBEngine/Components/Components.h"
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Components/MeshRendererComponent.h"
+#include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Selection/Selection.h"
 #include "CBEngine/Scene/SceneManager.h"
+#include "CBEngine/Scene/SceneSerializer.h"
+#include "CBEngine/Utils/FileDialogs.h"
 
 #include <algorithm>
 #include <cstring>
 #include <vector>
+#include <filesystem>
 
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/BlueprintInstanceComponent.h"
 
 namespace CB
 {
@@ -133,6 +142,11 @@ namespace CB
                         {
                             droppedEntity.RemoveParent();
                         }
+                    }
+                    if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+                    {
+                        std::filesystem::path droppedPath(static_cast<const char*>(payload->Data));
+                        HandleContentBrowserDrop(droppedPath, {});
                     }
                     ImGui::EndDragDropTarget();
                 }
@@ -321,6 +335,34 @@ namespace CB
 
             ImGui::Separator();
 
+            if (ImGui::MenuItem("Save as Blueprint"))
+            {
+                String yamlData = SceneSerializer::SerializeEntityHierarchy(entity);
+                String savePath = FileDialogs::SaveFile("Blueprint (*.blueprint)\0*.blueprint\0");
+                if (!savePath.empty())
+                {
+                    // Ensure .blueprint extension
+                    std::filesystem::path path(savePath);
+                    if (path.extension() != ".blueprint")
+                        path.replace_extension(".blueprint");
+
+                    auto bp = CreateRef<BlueprintAsset>();
+                    bp->YAMLData = yamlData;
+                    bp->RootEntityName = tag;
+                    bp->Save(path);
+
+                    // Import if inside assets directory
+                    std::filesystem::path assetsDir = std::filesystem::path("assets");
+                    if (path.string().find(assetsDir.string()) != String::npos)
+                    {
+                        std::filesystem::path relPath = relative(path, assetsDir);
+                        AssetManager::ImportAsset(relPath);
+                    }
+                }
+            }
+
+            ImGui::Separator();
+
             if (ImGui::MenuItem("Delete", "Del"))
             {
                 entityDeleted = true;
@@ -368,6 +410,11 @@ namespace CB
                     droppedEntity.SetParent(entity);
                 }
             }
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+            {
+                std::filesystem::path droppedPath(static_cast<const char*>(payload->Data));
+                HandleContentBrowserDrop(droppedPath, entity);
+            }
             ImGui::EndDragDropTarget();
         }
 
@@ -405,6 +452,33 @@ namespace CB
         else
         {
             ImGui::Text("%s", tag.c_str());
+
+            // Blueprint instance badge
+            if (entity.HasComponent<BlueprintInstanceComponent>())
+            {
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(0.3f, 0.5f, 1.0f, 1.0f), "[BP]");
+                if (ImGui::IsItemHovered())
+                {
+                    auto& bic = entity.GetComponent<BlueprintInstanceComponent>();
+                    ImGui::SetTooltip("Blueprint: %s", bic.BlueprintPath.c_str());
+                }
+            }
+            else if (entity.HasParent())
+            {
+                // Check if any ancestor has BlueprintInstanceComponent
+                Entity ancestor = entity.GetParent();
+                while (ancestor)
+                {
+                    if (ancestor.HasComponent<BlueprintInstanceComponent>())
+                    {
+                        ImGui::SameLine();
+                        ImGui::TextColored(ImVec4(0.3f, 0.5f, 1.0f, 0.4f), "[BP]");
+                        break;
+                    }
+                    ancestor = ancestor.HasParent() ? ancestor.GetParent() : Entity{};
+                }
+            }
 
             // Show child count if has children
             if (hasChildren)
@@ -500,6 +574,32 @@ namespace CB
             }
         }
 
+        if (ImGui::MenuItem("From Blueprint..."))
+        {
+            String filePath = FileDialogs::OpenFile("Blueprint (*.blueprint)\0*.blueprint\0");
+            if (!filePath.empty())
+            {
+                auto bp = BlueprintAsset::Load(std::filesystem::path(filePath));
+                if (bp && m_Context)
+                {
+                    SceneSerializer serializer(m_Context);
+                    std::filesystem::path bpPath(filePath);
+                    std::filesystem::path relPath = relative(bpPath, std::filesystem::path("assets"));
+                    UUID bpUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+                    auto entities = serializer.InstantiateBlueprint(bp->YAMLData, filePath, bpUUID);
+                    if (!entities.empty())
+                    {
+                        // Optionally parent to selected entity
+                        if (m_SelectionContext && !entities[0].HasParent())
+                            entities[0].SetParent(m_SelectionContext);
+
+                        m_SelectionContext = entities[0];
+                        Selection::Select(Selectable::Entity(entities[0].GetUUID()));
+                    }
+                }
+            }
+        }
+
         ImGui::Separator();
 
         if (ImGui::BeginMenu("3D Object"))
@@ -583,6 +683,103 @@ namespace CB
                 Selection::Select(Selectable::Entity(entity.GetUUID()));
             }
             ImGui::EndMenu();
+        }
+    }
+
+    void SceneHierarchyPanel::HandleContentBrowserDrop(const std::filesystem::path& droppedPath, Entity parentEntity)
+    {
+        if (!m_Context)
+            return;
+
+        std::string ext = droppedPath.extension().string();
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+        if (ext == ".blueprint")
+        {
+            auto bp = BlueprintAsset::Load(droppedPath);
+            if (bp)
+            {
+                SceneSerializer serializer(m_Context);
+                std::filesystem::path relPath = relative(droppedPath, std::filesystem::path("assets"));
+                UUID bpUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+                auto entities = serializer.InstantiateBlueprint(bp->YAMLData, droppedPath.string(), bpUUID);
+                if (!entities.empty())
+                {
+                    // If dropping on an entity node, parent the root to it
+                    if (parentEntity && !entities[0].HasParent())
+                        entities[0].SetParent(parentEntity);
+
+                    m_SelectionContext = entities[0];
+                    Selection::Select(Selectable::Entity(entities[0].GetUUID()));
+                }
+            }
+        }
+        else if (ext == ".mesh")
+        {
+            std::filesystem::path relPath = relative(droppedPath, std::filesystem::path("assets"));
+            UUID meshUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+            if (meshUUID.IsValid())
+            {
+                String name = droppedPath.stem().string();
+                Entity entity = m_Context->CreateEntity(name);
+                auto& mrc = entity.AddComponent<MeshRendererComponent>();
+                mrc.MeshUUID = meshUUID;
+                mrc.ResolveAssets();
+                if (parentEntity)
+                    entity.SetParent(parentEntity);
+                m_SelectionContext = entity;
+                Selection::Select(Selectable::Entity(entity.GetUUID()));
+            }
+        }
+        else if (ext == ".vmesh")
+        {
+            std::filesystem::path relPath = relative(droppedPath, std::filesystem::path("assets"));
+            UUID vmeshUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+            if (vmeshUUID.IsValid())
+            {
+                String name = droppedPath.stem().string();
+                Entity entity = m_Context->CreateEntity(name);
+                auto& vrc = entity.AddComponent<VoxelRendererComponent>();
+                vrc.VoxelMeshUUID = vmeshUUID;
+                vrc.ResolveAssets();
+                if (parentEntity)
+                    entity.SetParent(parentEntity);
+                m_SelectionContext = entity;
+                Selection::Select(Selectable::Entity(entity.GetUUID()));
+            }
+        }
+        else if (ext == ".mat" && parentEntity)
+        {
+            // Apply material to target entity
+            if (parentEntity.HasComponent<MeshRendererComponent>())
+            {
+                std::filesystem::path relPath = relative(droppedPath, std::filesystem::path("assets"));
+                UUID matUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+                if (matUUID.IsValid())
+                {
+                    auto& mrc = parentEntity.GetComponent<MeshRendererComponent>();
+                    mrc.MaterialUUID = matUUID;
+                    mrc.ResolveAssets();
+                }
+            }
+        }
+        else if (ext == ".lua" && parentEntity)
+        {
+            // Assign script to entity
+            if (!parentEntity.HasComponent<ScriptComponent>())
+                parentEntity.AddComponent<ScriptComponent>();
+            parentEntity.GetComponent<ScriptComponent>().ScriptPath = droppedPath.string();
+        }
+        else if (ext == ".fbx" || ext == ".obj" || ext == ".gltf" || ext == ".glb")
+        {
+            String name = droppedPath.stem().string();
+            Entity entity = m_Context->CreateEntity(name);
+            entity.AddComponent<MeshRendererComponent>();
+            if (parentEntity)
+                entity.SetParent(parentEntity);
+            m_SelectionContext = entity;
+            Selection::Select(Selectable::Entity(entity.GetUUID()));
+            CB_CORE_WARN("Dropped raw mesh '{0}' - use Import Panel to process into .mesh first", name);
         }
     }
 

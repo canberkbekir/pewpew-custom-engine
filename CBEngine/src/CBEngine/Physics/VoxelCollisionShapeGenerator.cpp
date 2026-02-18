@@ -101,31 +101,8 @@ namespace CB
 		if (mergedBoxes.empty())
 			return nullptr;
 
-		// If only one box, return a simple BoxShape (no compound overhead)
-		if (mergedBoxes.size() == 1)
-		{
-			const auto& box = mergedBoxes[0];
-			glm::vec3 halfExtents = glm::vec3(
-				(box.Max.x - box.Min.x + 1) * 0.5f * grid.voxelSize.x,
-				(box.Max.y - box.Min.y + 1) * 0.5f * grid.voxelSize.y,
-				(box.Max.z - box.Min.z + 1) * 0.5f * grid.voxelSize.z);
-
-			glm::vec3 center = grid.origin + glm::vec3(
-				(box.Min.x + box.Max.x + 1) * 0.5f * grid.voxelSize.x,
-				(box.Min.y + box.Max.y + 1) * 0.5f * grid.voxelSize.y,
-				(box.Min.z + box.Max.z + 1) * 0.5f * grid.voxelSize.z);
-
-			// Note: The shape position is relative to the body, which sits at entity transform
-			// So we use center relative to grid origin
-			glm::vec3 relativeCenter = center - grid.origin - glm::vec3(grid.size) * 0.5f * grid.voxelSize;
-
-			return new JPH::BoxShape(JPH::Vec3(halfExtents.x, halfExtents.y, halfExtents.z));
-		}
-
-		// Build compound shape
+		// Build compound shape (even for single box, to preserve correct position)
 		JPH::StaticCompoundShapeSettings compoundSettings;
-
-		glm::vec3 gridCenter = grid.origin + glm::vec3(grid.size) * 0.5f * grid.voxelSize;
 
 		for (const auto& box : mergedBoxes)
 		{
@@ -134,16 +111,14 @@ namespace CB
 				(box.Max.y - box.Min.y + 1) * 0.5f * grid.voxelSize.y,
 				(box.Max.z - box.Min.z + 1) * 0.5f * grid.voxelSize.z);
 
+			// Position in mesh local space (matches mesh vertex positions)
 			glm::vec3 center = grid.origin + glm::vec3(
 				(box.Min.x + box.Max.x + 1) * 0.5f * grid.voxelSize.x,
 				(box.Min.y + box.Max.y + 1) * 0.5f * grid.voxelSize.y,
 				(box.Min.z + box.Max.z + 1) * 0.5f * grid.voxelSize.z);
 
-			// Position relative to grid center (which aligns with entity position)
-			glm::vec3 relPos = center - gridCenter;
-
 			compoundSettings.AddShape(
-				JPH::Vec3(relPos.x, relPos.y, relPos.z),
+				JPH::Vec3(center.x, center.y, center.z),
 				JPH::Quat::sIdentity(),
 				new JPH::BoxShape(JPH::Vec3(halfExtents.x, halfExtents.y, halfExtents.z)));
 		}

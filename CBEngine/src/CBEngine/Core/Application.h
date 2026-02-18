@@ -5,11 +5,13 @@
 #include "Window.h"
 #include "CBEngine/Events/ApplicationEvent.h"
 #include "CBEngine/Events/Event.h"
+#ifdef CB_ENABLE_IMGUI
 #include "CBEngine/ImGui/ImGuiLayer.h"
+#endif
 
 namespace CB
 {
-    class Application
+    class CB_API Application
     {
     public:
         Application();
@@ -32,7 +34,9 @@ namespace CB
         bool OnWindowClose(WindowCloseEvent& e);
         bool OnWindowResize(WindowResizeEvent& e);
         Scope<Window> m_Window;
+#ifdef CB_ENABLE_IMGUI
         ImGuiLayer* m_ImGuiLayer;
+#endif
         bool m_Running = true;
         bool m_Minimized = false;
         LayerStack m_LayerStack;

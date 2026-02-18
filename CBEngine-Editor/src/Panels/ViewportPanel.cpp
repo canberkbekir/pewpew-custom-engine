@@ -10,8 +10,10 @@
 
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
+#include "CBEngine/Asset/BlueprintAsset.h"
 #include "CBEngine/Components/CoreComponents.h"
 #include "CBEngine/Components/ColliderComponent.h"
+#include "CBEngine/Components/Components.h"
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/TransformComponent.h"
@@ -19,9 +21,11 @@
 #include "CBEngine/Debug/Instrumentor.h"
 #include "CBEngine/Renderer/Core/RenderCommand.h"
 #include "CBEngine/Scene/SceneManager.h"
+#include "CBEngine/Scene/SceneSerializer.h"
+#include "CBEngine/Scene/Scene.h"
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Selection/Selection.h"
-#include "CBEngine/Systems/RendererSystem.h" 
+#include "CBEngine/Systems/RendererSystem.h"
 
 namespace CB
 {
@@ -111,13 +115,27 @@ namespace CB
         // Restore fill mode
         RenderCommand::SetWireframeMode(false);
 
-        // Draw collider wireframes for selected entity and its children
-        if (m_ShowColliders && Selection::HasEntitySelected() && scene)
+        // Draw collider wireframes
+        if (scene)
         {
-            UUID entityUUID = Selection::GetPrimarySelection().ID;
-            Entity entity = scene->GetEntityByUUID(entityUUID);
-            if (entity)
-                DrawEntityColliders(entity);
+            if (m_ShowColliders)
+            {
+                // Show ALL colliders in the scene (no recursion since view covers all)
+                auto view = scene->GetRegistry().view<ColliderComponent, TransformComponent>();
+                for (auto entityHandle : view)
+                {
+                    Entity entity = { entityHandle, scene.get() };
+                    DrawEntityColliders(entity, false);
+                }
+            }
+            else if (Selection::HasEntitySelected())
+            {
+                // Show collider only for the selected entity (even when toggle is off)
+                UUID entityUUID = Selection::GetPrimarySelection().ID;
+                Entity entity = scene->GetEntityByUUID(entityUUID);
+                if (entity)
+                    DrawEntityColliders(entity);
+            }
         }
     }
 
@@ -152,6 +170,110 @@ namespace CB
             ImVec2(0, 1),
             ImVec2(1, 0)
         );
+
+        // Drag-drop target on viewport
+        if (ImGui::BeginDragDropTarget())
+        {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+            {
+                std::filesystem::path droppedPath(static_cast<const char*>(payload->Data));
+                std::string ext = droppedPath.extension().string();
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+                Ref<Scene> scene = SceneManager::GetActiveScene();
+                if (scene)
+                {
+                    if (ext == ".blueprint")
+                    {
+                        auto bp = BlueprintAsset::Load(droppedPath);
+                        if (bp)
+                        {
+                            SceneSerializer serializer(scene);
+                            std::filesystem::path relPath = relative(droppedPath, std::filesystem::path("assets"));
+                            UUID bpUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+                            serializer.InstantiateBlueprint(bp->YAMLData, droppedPath.string(), bpUUID);
+                        }
+                    }
+                    else if (ext == ".mesh")
+                    {
+                        std::filesystem::path relPath = relative(droppedPath, std::filesystem::path("assets"));
+                        UUID meshUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+                        if (meshUUID.IsValid())
+                        {
+                            String name = droppedPath.stem().string();
+                            Entity entity = scene->CreateEntity(name);
+                            auto& mrc = entity.AddComponent<MeshRendererComponent>();
+                            mrc.MeshUUID = meshUUID;
+                            mrc.ResolveAssets();
+                            Selection::Select(Selectable::Entity(entity.GetUUID()));
+                        }
+                    }
+                    else if (ext == ".vmesh")
+                    {
+                        std::filesystem::path relPath = relative(droppedPath, std::filesystem::path("assets"));
+                        UUID vmeshUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+                        if (vmeshUUID.IsValid())
+                        {
+                            String name = droppedPath.stem().string();
+                            Entity entity = scene->CreateEntity(name);
+                            auto& vrc = entity.AddComponent<VoxelRendererComponent>();
+                            vrc.VoxelMeshUUID = vmeshUUID;
+                            vrc.ResolveAssets();
+                            Selection::Select(Selectable::Entity(entity.GetUUID()));
+                        }
+                    }
+                    else if (ext == ".mat")
+                    {
+                        // Apply material to selected entity
+                        if (Selection::HasEntitySelected())
+                        {
+                            UUID entityUUID = Selection::GetPrimarySelection().ID;
+                            Entity entity = scene->GetEntityByUUID(entityUUID);
+                            if (entity && entity.HasComponent<MeshRendererComponent>())
+                            {
+                                std::filesystem::path relPath = relative(droppedPath, std::filesystem::path("assets"));
+                                UUID matUUID = AssetManager::GetRegistry().GetUUIDByPath(relPath);
+                                if (matUUID.IsValid())
+                                {
+                                    auto& mrc = entity.GetComponent<MeshRendererComponent>();
+                                    mrc.MaterialUUID = matUUID;
+                                    mrc.ResolveAssets();
+                                }
+                            }
+                        }
+                    }
+                    else if (ext == ".scene")
+                    {
+                        SceneManager::LoadScene(droppedPath.string());
+                    }
+                    else if (ext == ".fbx" || ext == ".obj" || ext == ".gltf" || ext == ".glb")
+                    {
+                        // Raw meshes need import; create entity with MeshRendererComponent placeholder
+                        String name = droppedPath.stem().string();
+                        Entity entity = scene->CreateEntity(name);
+                        entity.AddComponent<MeshRendererComponent>();
+                        Selection::Select(Selectable::Entity(entity.GetUUID()));
+                        CB_CORE_WARN("Dropped raw mesh '{0}' - use Import Panel to process into .mesh first", name);
+                    }
+                    else if (ext == ".lua")
+                    {
+                        // Assign script to selected entity
+                        if (Selection::HasEntitySelected())
+                        {
+                            UUID entityUUID = Selection::GetPrimarySelection().ID;
+                            Entity entity = scene->GetEntityByUUID(entityUUID);
+                            if (entity)
+                            {
+                                if (!entity.HasComponent<ScriptComponent>())
+                                    entity.AddComponent<ScriptComponent>();
+                                entity.GetComponent<ScriptComponent>().ScriptPath = droppedPath.string();
+                            }
+                        }
+                    }
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
 
         // Entity picking (before gizmo so we can check ImGuizmo::IsOver)
         HandleEntityPicking();
@@ -286,11 +408,81 @@ namespace CB
         ImGui::SameLine();
         if (ImGui::Selectable("Colliders", m_ShowColliders, 0, ImVec2(60, 0)))
             m_ShowColliders = !m_ShowColliders;
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show collision shapes for selected entity");
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show all colliders in scene (off = selected entity only)");
 
         ImGui::SameLine();
         if (ImGui::Selectable("Stats", m_ShowStats, 0, ImVec2(40, 0)))
             m_ShowStats = !m_ShowStats;
+
+        // --- Simulation Controls (centered-ish, right side) ---
+        ImGui::SameLine();
+        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+        ImGui::SameLine();
+
+        {
+            Ref<Scene> scene = SceneManager::GetActiveScene();
+            bool simulating = scene && scene->IsPhysicsInitialized();
+            bool paused = scene && scene->IsPhysicsPaused();
+
+            if (!simulating)
+            {
+                // Play button
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
+                if (ImGui::Selectable("|>", false, 0, ImVec2(20, 0)))
+                {
+                    if (scene)
+                        scene->InitPhysics();
+                }
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Play (F5)");
+            }
+            else
+            {
+                // Stop button
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
+                if (ImGui::Selectable("[]", false, 0, ImVec2(20, 0)))
+                {
+                    scene->ShutdownPhysics();
+                }
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Stop (F5)");
+
+                ImGui::SameLine();
+
+                // Pause / Resume button
+                if (paused)
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
+                    if (ImGui::Selectable("|>##resume", false, 0, ImVec2(20, 0)))
+                        scene->ResumePhysics();
+                    ImGui::PopStyleColor();
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Resume");
+                }
+                else
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f));
+                    if (ImGui::Selectable("||", false, 0, ImVec2(20, 0)))
+                        scene->PausePhysics();
+                    ImGui::PopStyleColor();
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pause");
+                }
+
+                ImGui::SameLine();
+
+                // Step one frame button
+                bool canStep = paused;
+                if (!canStep)
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+                if (ImGui::Selectable("|>|", canStep ? false : false, canStep ? 0 : ImGuiSelectableFlags_Disabled, ImVec2(24, 0)))
+                {
+                    if (canStep)
+                        scene->StepOneFrame();
+                }
+                if (!canStep)
+                    ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Step One Frame (only when paused)");
+            }
+        }
 
         ImGui::EndChild();
         ImGui::Separator();
@@ -349,7 +541,7 @@ namespace CB
     // Collider Debug Drawing
     //--------------------------------------------------------------------------
 
-    void ViewportPanel::DrawEntityColliders(Entity entity)
+    void ViewportPanel::DrawEntityColliders(Entity entity, bool recurseChildren)
     {
         if (!entity)
             return;
@@ -373,7 +565,8 @@ namespace CB
                         if (vmesh && vmesh->GridData.CountFilled() > 0)
                         {
                             ColliderDebugRenderer::DrawVoxelCompound(
-                                vmesh->GridData, worldTransform, m_CameraController.GetCamera());
+                                vmesh->GridData, worldTransform, m_CameraController.GetCamera(),
+                                collider.Offset);
                         }
                         else
                         {
@@ -393,10 +586,10 @@ namespace CB
         }
 
         // Recursively draw children's colliders
-        if (entity.HasChildren())
+        if (recurseChildren && entity.HasChildren())
         {
             for (Entity child : entity.GetChildren())
-                DrawEntityColliders(child);
+                DrawEntityColliders(child, true);
         }
     }
 

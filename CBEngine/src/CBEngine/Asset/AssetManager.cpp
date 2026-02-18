@@ -2,6 +2,7 @@
 #include "AssetManager.h"
 #include "ProcessedMeshAsset.h"
 #include "VoxelTextureAsset.h"
+#include "BlueprintAsset.h"
 #include "CBEngine/Core/Log.h"
 #include "CBEngine/Renderer/Resources/Texture.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
@@ -16,13 +17,71 @@ namespace CB
     std::filesystem::path AssetManager::s_AssetDirectory;
     AssetRegistry AssetManager::s_Registry;
     std::unordered_map<UUID, Ref<Asset>> AssetManager::s_LoadedAssets;
+    std::unordered_map<AssetType, AssetManager::AssetLoaderFn> AssetManager::s_Loaders;
+    std::unordered_map<std::string, AssetType> AssetManager::s_ExtensionMap;
+    uint16_t AssetManager::s_NextCustomType = static_cast<uint16_t>(AssetType::Custom);
     std::queue<UUID> AssetManager::s_ReloadQueue;
     std::mutex AssetManager::s_QueueMutex;
     std::mutex AssetManager::s_AssetsMutex;
 
+    void AssetManager::RegisterLoader(AssetType type, AssetLoaderFn loader)
+    {
+        s_Loaders[type] = std::move(loader);
+    }
+
+    void AssetManager::RegisterExtension(const std::string& ext, AssetType type)
+    {
+        s_ExtensionMap[ext] = type;
+    }
+
+    AssetType AssetManager::AllocateCustomType()
+    {
+        return static_cast<AssetType>(s_NextCustomType++);
+    }
+
     void AssetManager::Init(const std::filesystem::path& assetDirectory)
     {
         s_AssetDirectory = absolute(assetDirectory);
+
+        // Register built-in loaders
+        RegisterLoader(AssetType::Texture2D, [](const AssetMetadata& m) -> Ref<Asset> {
+            return Texture2D::Create((s_AssetDirectory / m.FilePath).string());
+        });
+        RegisterLoader(AssetType::Mesh, [](const AssetMetadata& m) -> Ref<Asset> {
+            return Mesh::Load((s_AssetDirectory / m.FilePath).string());
+        });
+        RegisterLoader(AssetType::Shader, [](const AssetMetadata& m) -> Ref<Asset> {
+            return Shader::Create((s_AssetDirectory / m.FilePath).string());
+        });
+        RegisterLoader(AssetType::Material, [](const AssetMetadata& m) -> Ref<Asset> {
+            return Material::Load((s_AssetDirectory / m.FilePath).string());
+        });
+        RegisterLoader(AssetType::ProcessedMesh, [](const AssetMetadata& m) -> Ref<Asset> {
+            return ProcessedMeshAsset::Load(s_AssetDirectory / m.FilePath);
+        });
+        RegisterLoader(AssetType::VoxelMesh, [](const AssetMetadata& m) -> Ref<Asset> {
+            return VoxelMeshAsset::Load(s_AssetDirectory / m.FilePath);
+        });
+        RegisterLoader(AssetType::VoxelTexture, [](const AssetMetadata& m) -> Ref<Asset> {
+            return VoxelTextureAsset::Load(s_AssetDirectory / m.FilePath);
+        });
+        RegisterLoader(AssetType::Blueprint, [](const AssetMetadata& m) -> Ref<Asset> {
+            return BlueprintAsset::Load(s_AssetDirectory / m.FilePath);
+        });
+
+        // Register built-in extensions
+        RegisterExtension(".png", AssetType::Texture2D);
+        RegisterExtension(".jpg", AssetType::Texture2D);
+        RegisterExtension(".jpeg", AssetType::Texture2D);
+        RegisterExtension(".bmp", AssetType::Texture2D);
+        RegisterExtension(".tga", AssetType::Texture2D);
+        RegisterExtension(".glsl", AssetType::Shader);
+        RegisterExtension(".hlsl", AssetType::Shader);
+        RegisterExtension(".mat", AssetType::Material);
+        RegisterExtension(".scene", AssetType::Scene);
+        RegisterExtension(".mesh", AssetType::ProcessedMesh);
+        RegisterExtension(".vmesh", AssetType::VoxelMesh);
+        RegisterExtension(".vtex", AssetType::VoxelTexture);
 
         CB_CORE_INFO("AssetManager: Working directory is {0}", std::filesystem::current_path().string());
         CB_CORE_INFO("AssetManager: Asset directory set to {0}", s_AssetDirectory.string());
@@ -45,6 +104,8 @@ namespace CB
             std::lock_guard<std::mutex> lock(s_AssetsMutex);
             s_LoadedAssets.clear();
         }
+        s_Loaders.clear();
+        s_ExtensionMap.clear();
         s_Registry.Clear();
         CB_CORE_INFO("AssetManager shutdown");
     }
@@ -72,8 +133,14 @@ namespace CB
 
         // Determine asset type from extension
         std::string ext = fullPath.extension().string();
-        std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
-        AssetType type = AssetTypeFromExtension(ext);
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+        // Try runtime extension map first, then built-in
+        AssetType type = AssetType::None;
+        auto extIt = s_ExtensionMap.find(ext);
+        if (extIt != s_ExtensionMap.end())
+            type = extIt->second;
+        else
+            type = AssetTypeFromExtension(ext);
 
         if (type == AssetType::None)
         {
@@ -288,9 +355,11 @@ namespace CB
                 {
                     // Asset without .meta file - import it
                     std::string ext = path.extension().string();
-                    std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
+                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
 
-                    if (AssetTypeFromExtension(ext) != AssetType::None)
+                    bool hasType = s_ExtensionMap.find(ext) != s_ExtensionMap.end() ||
+                                   AssetTypeFromExtension(ext) != AssetType::None;
+                    if (hasType)
                     {
                         ImportAsset(path);
                         assetsImported++;
@@ -385,7 +454,7 @@ namespace CB
         std::filesystem::path metaPath = GetMetaFilePath(assetPath);
 
         std::string ext = assetPath.extension().string();
-        std::transform(ext.begin(), ext.end(), ext.begin(), tolower);
+        std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
         AssetType type = AssetTypeFromExtension(ext);
 
         // Simple text format for now
@@ -423,57 +492,23 @@ namespace CB
 
         Ref<Asset> asset = nullptr;
 
-        switch (metadata.Type)
+        // Use registered loader map
+        auto loaderIt = s_Loaders.find(metadata.Type);
+        if (loaderIt != s_Loaders.end())
         {
-        case AssetType::Texture2D:
-            {
-                asset = Texture2D::Create(fullPath.string());
-                break;
-            }
-        case AssetType::Mesh:
-            {
-                asset = Mesh::Load(fullPath.string());
-                break;
-            }
-        case AssetType::Shader:
-            {
-                asset = Shader::Create(fullPath.string());
-                break;
-            }
-        case AssetType::Material:
-            {
-                asset = Material::Load(fullPath.string());
-                break;
-            }
-        case AssetType::Scene:
-            {
-                // Scene loading requires ECS implementation
-                CB_CORE_WARN("Scene loading requires ECS implementation");
-                break;
-            }
-        case AssetType::ProcessedMesh:
-            {
-                asset = ProcessedMeshAsset::Load(fullPath);
-                break;
-            }
-        case AssetType::VoxelMesh:
-            {
-                asset = VoxelMeshAsset::Load(fullPath);
-                break;
-            }
-        case AssetType::VoxelTexture:
-            {
-                asset = VoxelTextureAsset::Load(fullPath);
-                break;
-            }
-        default:
-            CB_CORE_ERROR("Unknown asset type: {0}", static_cast<int>(metadata.Type));
-            break;
+            asset = loaderIt->second(metadata);
+        }
+        else if (metadata.Type == AssetType::Scene)
+        {
+            CB_CORE_WARN("Scene loading requires ECS implementation");
+        }
+        else
+        {
+            CB_CORE_ERROR("No loader registered for asset type: {0}", static_cast<int>(metadata.Type));
         }
 
         if (asset)
         {
-            // Set the UUID on the loaded asset
             asset->m_UUID = metadata.Handle;
             asset->m_Type = metadata.Type;
             asset->m_Path = fullPath;

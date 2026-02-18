@@ -56,6 +56,9 @@ namespace CB
         void CreateFolder(const std::string& name);
         void CreateMaterial(const std::string& name);
         void CreateScene(const std::string& name);
+        void CreateShader(const std::string& name);
+        void CreateBlueprint(const std::string& name);
+        void CreateLuaScript(const std::string& name);
 
         // Context Menu Actions
         void ShowInExplorer(const std::filesystem::path& path);
@@ -108,6 +111,8 @@ namespace CB
         bool m_ShowShaders = true;
         bool m_ShowMaterials = true;
         bool m_ShowScenes = true;
+        bool m_ShowBlueprints = true;
+        bool m_ShowScripts = true;
         bool m_ShowOther = true;
 
         // Selection

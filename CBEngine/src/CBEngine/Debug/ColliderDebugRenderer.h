@@ -22,7 +22,8 @@ namespace CB
 
 		/// Draw wireframe for each merged box in a voxel compound collider.
 		static void DrawVoxelCompound(const voxelizer::VoxelGrid& grid, const Mat4& worldTransform,
-			const Camera& camera, const Vector3& color = Vector3(1.0f, 0.5f, 0.0f));
+			const Camera& camera, const Vector3& colliderOffset = Vector3(0.0f),
+			const Vector3& color = Vector3(0.0f, 1.0f, 0.0f));
 
 	private:
 		static void DrawWireBox(const Vector3& halfExtents, const Vector3& offset,

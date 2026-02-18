@@ -17,7 +17,12 @@ namespace CB
         Scene,
         ProcessedMesh,
         VoxelMesh,
-        VoxelTexture
+        VoxelTexture,
+        Blueprint,
+        Script,
+
+        // Starting point for runtime-registered custom types
+        Custom = 1000
     };
 
     inline const char* AssetTypeToString(AssetType type)
@@ -33,6 +38,8 @@ namespace CB
         case AssetType::ProcessedMesh: return "ProcessedMesh";
         case AssetType::VoxelMesh: return "VoxelMesh";
         case AssetType::VoxelTexture: return "VoxelTexture";
+        case AssetType::Blueprint: return "Blueprint";
+        case AssetType::Script: return "Script";
         }
         return "Unknown";
     }
@@ -47,6 +54,8 @@ namespace CB
         if (str == "ProcessedMesh") return AssetType::ProcessedMesh;
         if (str == "VoxelMesh") return AssetType::VoxelMesh;
         if (str == "VoxelTexture") return AssetType::VoxelTexture;
+        if (str == "Blueprint") return AssetType::Blueprint;
+        if (str == "Script") return AssetType::Script;
         return AssetType::None;
     }
 
@@ -68,6 +77,10 @@ namespace CB
             return AssetType::VoxelMesh;
         if (ext == ".vtex")
             return AssetType::VoxelTexture;
+        if (ext == ".blueprint")
+            return AssetType::Blueprint;
+        if (ext == ".lua")
+            return AssetType::Script;
         return AssetType::None;
     }
 

@@ -5,6 +5,8 @@
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Scene/Scene.h"
 
+#include <filesystem>
+
 namespace CB
 {
     class SceneHierarchyPanel : public Panel
@@ -24,6 +26,7 @@ namespace CB
         void DrawEntityNode(Entity entity);
         void DrawEntityTree(); // New: draws the full hierarchy
         void DuplicateEntity(Entity entity);
+        void HandleContentBrowserDrop(const std::filesystem::path& droppedPath, Entity parentEntity);
 
         Ref<Scene> m_Context;
         Entity m_SelectionContext;

@@ -2,6 +2,15 @@
 
 #include  <memory>
 
+// DLL export/import macros (no-ops for StaticLib builds)
+#ifdef CB_BUILD_DLL
+	#define CB_API __declspec(dllexport)
+#elif defined(CB_IMPORT_DLL)
+	#define CB_API __declspec(dllimport)
+#else
+	#define CB_API
+#endif
+
 #ifdef CB_DEBUG
 #define CB_ENABLE_ASSERTS
 #endif

@@ -4,6 +4,7 @@
 #include "CBEngine/Utils/YAMLHelpers.h"
 
 #include <Jolt/Jolt.h>
+#include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Collision/Shape/Shape.h>
 
 namespace CB
@@ -37,6 +38,10 @@ namespace CB
 		// Runtime-only (not serialized)
 		JPH::RefConst<JPH::Shape> RuntimeShape;
 		bool ShapeDirty = true;
+
+		// For collider-only entities (no RigidBody): tracks the static body
+		JPH::BodyID StaticBodyID;
+		bool StaticBodyCreated = false;
 
 		static constexpr auto YAMLKey = "ColliderComponent";
 

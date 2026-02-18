@@ -1,6 +1,7 @@
 #pragma once
 
 #include "imgui.h"
+#include "ColliderComponentView.h"
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Components/MeshRendererComponent.h"
@@ -8,6 +9,7 @@
 #include "CBEngine/Components/DirectionalLightComponent.h"
 #include "CBEngine/Components/RigidBodyComponent.h"
 #include "CBEngine/Components/ColliderComponent.h"
+#include "CBEngine/Components/ScriptComponent.h"
 
 namespace CB
 {
@@ -76,7 +78,19 @@ namespace CB
                 {
                     if (ImGui::MenuItem("Collider"))
                     {
-                        entity.AddComponent<ColliderComponent>();
+                        auto& collider = entity.AddComponent<ColliderComponent>();
+                        ColliderComponentView::AutoFitCollider(entity, collider);
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+
+                ImGui::Separator();
+
+                if (!entity.HasComponent<ScriptComponent>())
+                {
+                    if (ImGui::MenuItem("Script"))
+                    {
+                        entity.AddComponent<ScriptComponent>();
                         ImGui::CloseCurrentPopup();
                     }
                 }

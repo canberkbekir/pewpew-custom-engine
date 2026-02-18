@@ -30,7 +30,7 @@ namespace CB
         void RenderGizmo();
 
         void HandleEntityPicking();
-        void DrawEntityColliders(Entity entity);
+        void DrawEntityColliders(Entity entity, bool recurseChildren = true);
 
         // Rendering
         Ref<Framebuffer> m_Framebuffer;

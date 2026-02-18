@@ -1,19 +1,28 @@
 #pragma once
 
 #include "Asset.h"
+#include "AssetMetadata.h"
 #include "AssetRegistry.h"
 #include "CBEngine/Core/Core.h"
 
 #include <queue>
 #include <mutex>
+#include <unordered_map>
 
 namespace CB
 {
-    class AssetManager
+    class CB_API AssetManager
     {
     public:
+        using AssetLoaderFn = std::function<Ref<Asset>(const AssetMetadata&)>;
+
         static void Init(const std::filesystem::path& assetDirectory);
         static void Shutdown();
+
+        // Runtime registration of custom loaders and extensions
+        static void RegisterLoader(AssetType type, AssetLoaderFn loader);
+        static void RegisterExtension(const std::string& ext, AssetType type);
+        static AssetType AllocateCustomType(); // Returns next available custom AssetType
 
         static const std::filesystem::path& GetAssetDirectory() { return s_AssetDirectory; }
 
@@ -62,6 +71,10 @@ namespace CB
         static std::filesystem::path s_AssetDirectory;
         static AssetRegistry s_Registry;
         static std::unordered_map<UUID, Ref<Asset>> s_LoadedAssets;
+
+        static std::unordered_map<AssetType, AssetLoaderFn> s_Loaders;
+        static std::unordered_map<std::string, AssetType> s_ExtensionMap;
+        static uint16_t s_NextCustomType;
 
         static std::queue<UUID> s_ReloadQueue;
         static std::mutex s_QueueMutex;

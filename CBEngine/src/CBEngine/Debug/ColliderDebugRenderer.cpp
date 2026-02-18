@@ -65,8 +65,7 @@ namespace CB
 				worldTransform, camera, color);
 			break;
 		case ColliderShape::VoxelCompound:
-			DrawWireBox(collider.HalfExtents, collider.Offset, worldTransform, camera,
-				Vector3(1.0f, 0.5f, 0.0f));
+			DrawWireBox(collider.HalfExtents, collider.Offset, worldTransform, camera, color);
 			break;
 		}
 	}
@@ -170,7 +169,8 @@ namespace CB
 	}
 
 	void ColliderDebugRenderer::DrawVoxelCompound(const voxelizer::VoxelGrid& grid,
-		const Mat4& worldTransform, const Camera& camera, const Vector3& color)
+		const Mat4& worldTransform, const Camera& camera, const Vector3& colliderOffset,
+		const Vector3& color)
 	{
 		if (!s_Initialized)
 			Init();
@@ -179,8 +179,6 @@ namespace CB
 		if (mergedBoxes.empty())
 			return;
 
-		Vector3 gridCenter = Vector3(grid.origin) + Vector3(grid.size) * 0.5f * Vector3(grid.voxelSize);
-
 		for (const auto& box : mergedBoxes)
 		{
 			Vector3 halfExtents(
@@ -188,14 +186,13 @@ namespace CB
 				(box.Max.y - box.Min.y + 1) * 0.5f * grid.voxelSize.y,
 				(box.Max.z - box.Min.z + 1) * 0.5f * grid.voxelSize.z);
 
+			// Position in mesh local space (matches mesh vertex positions)
 			Vector3 center = Vector3(grid.origin) + Vector3(
 				(box.Min.x + box.Max.x + 1) * 0.5f * grid.voxelSize.x,
 				(box.Min.y + box.Max.y + 1) * 0.5f * grid.voxelSize.y,
 				(box.Min.z + box.Max.z + 1) * 0.5f * grid.voxelSize.z);
 
-			Vector3 offset = center - gridCenter;
-
-			DrawWireBox(halfExtents, offset, worldTransform, camera, color);
+			DrawWireBox(halfExtents, center + colliderOffset, worldTransform, camera, color);
 		}
 	}
 

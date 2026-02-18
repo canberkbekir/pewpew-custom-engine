@@ -40,6 +40,16 @@ namespace CB
         const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
         const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
 
+        // Get cached axis-aligned bounding box (always available, computed at construction)
+        bool GetBounds(Vector3& outMin, Vector3& outMax) const
+        {
+            outMin = m_BoundsMin;
+            outMax = m_BoundsMax;
+            return m_HasBounds;
+        }
+        const Vector3& GetBoundsMin() const { return m_BoundsMin; }
+        const Vector3& GetBoundsMax() const { return m_BoundsMax; }
+
         void ReleaseCPUData()
         {
             m_Vertices.clear();
@@ -61,6 +71,11 @@ namespace CB
         String m_FilePath;
         bool m_IsFromFile = false;
         bool m_RetainCPUData = false;
+
+        // Cached bounding box (computed at construction, always available)
+        Vector3 m_BoundsMin{0.0f};
+        Vector3 m_BoundsMax{0.0f};
+        bool m_HasBounds = false;
 
         // Optional CPU-side data retention for voxelization etc.
         std::vector<Vertex> m_Vertices;

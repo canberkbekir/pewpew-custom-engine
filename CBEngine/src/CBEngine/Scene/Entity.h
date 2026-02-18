@@ -7,7 +7,7 @@
 
 namespace CB
 {
-    class Entity
+    class CB_API Entity
     {
     public:
         Entity() = default;

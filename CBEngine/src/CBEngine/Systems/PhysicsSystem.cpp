@@ -18,14 +18,20 @@
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
-#include <Jolt/Physics/Collision/Shape/OffsetCenterOfMassShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
 
+#include <mutex>
+
 namespace CB
 {
-	static PhysicsWorld* s_PhysicsWorld = nullptr;
+	// Thread-safe collision event queue
+	static std::mutex s_CollisionMutex;
+	static std::vector<CollisionCallback> s_PendingCollisionBegin;
+	static std::vector<CollisionCallback> s_PendingCollisionEnd;
 
 	static JPH::EMotionType ToJoltMotionType(BodyType type)
 	{
@@ -44,21 +50,39 @@ namespace CB
 	}
 
 	static JPH::RefConst<JPH::Shape> CreateJoltShape(ColliderComponent& collider,
+		PhysicsWorld* world,
+		const Vector3& worldScale = Vector3(1.0f),
 		Scene* scene = nullptr, entt::entity entity = entt::null)
 	{
+		// 1.4 Fix: Respect pre-set RuntimeShape (e.g. fragment VoxelCompound shapes)
+		if (!collider.ShapeDirty && collider.RuntimeShape != nullptr)
+			return collider.RuntimeShape;
+
 		JPH::RefConst<JPH::Shape> shape;
+
+		// Apply entity scale to collider dimensions (collider values are in local space)
+		Vector3 absScale = Vector3(std::abs(worldScale.x), std::abs(worldScale.y), std::abs(worldScale.z));
 
 		switch (collider.Shape)
 		{
 		case ColliderShape::Box:
-			shape = new JPH::BoxShape(JPH::Vec3(collider.HalfExtents.x, collider.HalfExtents.y, collider.HalfExtents.z));
+		{
+			Vector3 scaledHalf = collider.HalfExtents * absScale;
+			shape = new JPH::BoxShape(JPH::Vec3(scaledHalf.x, scaledHalf.y, scaledHalf.z));
 			break;
+		}
 		case ColliderShape::Sphere:
-			shape = new JPH::SphereShape(collider.Radius);
+		{
+			float maxScale = std::max({absScale.x, absScale.y, absScale.z});
+			shape = new JPH::SphereShape(collider.Radius * maxScale);
 			break;
+		}
 		case ColliderShape::Capsule:
-			shape = new JPH::CapsuleShape(collider.CapsuleHalfHeight, collider.CapsuleRadius);
+		{
+			float radiusScale = std::max(absScale.x, absScale.z);
+			shape = new JPH::CapsuleShape(collider.CapsuleHalfHeight * absScale.y, collider.CapsuleRadius * radiusScale);
 			break;
+		}
 		case ColliderShape::VoxelCompound:
 		{
 			// Try to generate compound shape from VoxelRendererComponent grid
@@ -70,7 +94,7 @@ namespace CB
 				UUID vmeshUUID = voxelRenderer.VoxelMeshUUID;
 
 				// Check cache first
-				auto& cache = CollisionShapeCache::Get();
+				auto& cache = world->GetShapeCache();
 				if (vmeshUUID.IsValid() && cache.Has(vmeshUUID))
 				{
 					shape = cache.Get(vmeshUUID);
@@ -94,16 +118,33 @@ namespace CB
 
 			// Fallback to box if voxel shape generation failed
 			if (!generated)
-				shape = new JPH::BoxShape(JPH::Vec3(collider.HalfExtents.x, collider.HalfExtents.y, collider.HalfExtents.z));
+			{
+				Vector3 scaledHalf = collider.HalfExtents * absScale;
+				shape = new JPH::BoxShape(JPH::Vec3(scaledHalf.x, scaledHalf.y, scaledHalf.z));
+			}
+			else
+			{
+				// VoxelCompound shapes are in mesh local space, apply entity scale
+				bool needsScale = std::abs(absScale.x - 1.0f) > 0.001f ||
+					std::abs(absScale.y - 1.0f) > 0.001f ||
+					std::abs(absScale.z - 1.0f) > 0.001f;
+				if (needsScale)
+				{
+					shape = new JPH::ScaledShape(shape,
+						JPH::Vec3(absScale.x, absScale.y, absScale.z));
+				}
+			}
 			break;
 		}
 		}
 
-		// Apply offset if non-zero
-		if (glm::length(collider.Offset) > 0.001f)
+		// Apply geometric offset if non-zero (scaled by entity transform)
+		Vector3 scaledOffset = collider.Offset * absScale;
+		if (glm::length(scaledOffset) > 0.001f)
 		{
-			shape = new JPH::OffsetCenterOfMassShape(shape,
-				JPH::Vec3(collider.Offset.x, collider.Offset.y, collider.Offset.z));
+			shape = new JPH::RotatedTranslatedShape(
+				JPH::Vec3(scaledOffset.x, scaledOffset.y, scaledOffset.z),
+				JPH::Quat::sIdentity(), shape);
 		}
 
 		collider.RuntimeShape = shape;
@@ -111,26 +152,61 @@ namespace CB
 		return shape;
 	}
 
-	void PhysicsSystem::Init(Scene* scene)
+	void PhysicsSystem::Init(Scene* scene, PhysicsWorld* world)
 	{
-		if (s_PhysicsWorld)
+		// 1.7: Set up thread-safe collision callbacks
+		world->SetCollisionBeginCallback([](const CollisionCallback& cb)
 		{
-			CB_CORE_WARN("PhysicsSystem already initialized");
+			std::lock_guard<std::mutex> lock(s_CollisionMutex);
+			s_PendingCollisionBegin.push_back(cb);
+		});
+
+		world->SetCollisionEndCallback([](const CollisionCallback& cb)
+		{
+			std::lock_guard<std::mutex> lock(s_CollisionMutex);
+			s_PendingCollisionEnd.push_back(cb);
+		});
+
+		CB_CORE_INFO("PhysicsSystem initialized");
+	}
+
+	void PhysicsSystem::Shutdown(PhysicsWorld* world)
+	{
+		if (!world)
 			return;
+
+		world->GetShapeCache().Clear();
+
+		{
+			std::lock_guard<std::mutex> lock(s_CollisionMutex);
+			s_PendingCollisionBegin.clear();
+			s_PendingCollisionEnd.clear();
 		}
 
-		s_PhysicsWorld = new PhysicsWorld();
-		s_PhysicsWorld->Init();
+		CB_CORE_INFO("PhysicsSystem shut down");
+	}
 
-		// Set up collision callbacks with impact-based destruction
-		s_PhysicsWorld->SetCollisionBeginCallback([scene](const CollisionCallback& cb)
+	// 1.7: Flush collision events on the main thread
+	static void FlushCollisionEvents(Scene* scene, PhysicsWorld* world)
+	{
+		std::vector<CollisionCallback> beginEvents;
+		std::vector<CollisionCallback> endEvents;
+
+		{
+			std::lock_guard<std::mutex> lock(s_CollisionMutex);
+			beginEvents = std::move(s_PendingCollisionBegin);
+			s_PendingCollisionBegin.clear();
+			endEvents = std::move(s_PendingCollisionEnd);
+			s_PendingCollisionEnd.clear();
+		}
+
+		auto& bodyInterface = world->GetBodyInterface();
+
+		for (const auto& cb : beginEvents)
 		{
 			CB_CORE_TRACE("Collision begin: Entity {0} <-> Entity {1}", (uint64_t)cb.EntityA, (uint64_t)cb.EntityB);
 
 			// Check relative velocity for destruction threshold
-			// For high-speed impacts on voxel entities, queue destruction
-			auto& bodyInterface = s_PhysicsWorld->GetBodyInterface();
-
 			auto checkDestructible = [&](UUID entityUUID, UUID otherUUID)
 			{
 				Entity entity = scene->GetEntityByUUID(entityUUID);
@@ -147,18 +223,16 @@ namespace CB
 				if (!otherRB.BodyCreated)
 					return;
 
-				// Get relative velocity at contact point
 				JPH::Vec3 vel = bodyInterface.GetLinearVelocity(otherRB.RuntimeBodyID);
 				float speed = vel.Length();
 
-				// Destruction threshold: 10 m/s impact speed
 				constexpr float DESTRUCTION_THRESHOLD = 10.0f;
 				if (speed >= DESTRUCTION_THRESHOLD)
 				{
 					DestructionRequest request;
 					request.TargetEntity = entityUUID;
 					request.ImpactPoint = cb.ContactPoint;
-					request.DamageRadius = 0.5f + speed * 0.05f; // Scale radius with impact speed
+					request.DamageRadius = 0.5f + speed * 0.05f;
 					request.ImpactForce = Vector3(vel.GetX(), vel.GetY(), vel.GetZ());
 					DestructionSystem::RequestDestruction(request);
 				}
@@ -166,41 +240,29 @@ namespace CB
 
 			checkDestructible(cb.EntityA, cb.EntityB);
 			checkDestructible(cb.EntityB, cb.EntityA);
-		});
+		}
 
-		s_PhysicsWorld->SetCollisionEndCallback([](const CollisionCallback& cb)
+		for (const auto& cb : endEvents)
 		{
 			CB_CORE_TRACE("Collision end: Entity {0} <-> Entity {1}", (uint64_t)cb.EntityA, (uint64_t)cb.EntityB);
-		});
-
-		CB_CORE_INFO("PhysicsSystem initialized");
+		}
 	}
 
-	void PhysicsSystem::Shutdown()
+	void PhysicsSystem::OnUpdate(Scene* scene, PhysicsWorld* world, Timestep ts)
 	{
-		if (!s_PhysicsWorld)
+		if (!world)
 			return;
 
-		CollisionShapeCache::Get().Clear();
+		// 1.7: Flush collision events at the start of the update
+		FlushCollisionEvents(scene, world);
 
-		s_PhysicsWorld->Shutdown();
-		delete s_PhysicsWorld;
-		s_PhysicsWorld = nullptr;
-
-		CB_CORE_INFO("PhysicsSystem shut down");
+		SyncStaticColliders(scene, world);
+		SyncToPhysics(scene, world);
+		world->Step(ts);
+		SyncFromPhysics(scene, world);
 	}
 
-	void PhysicsSystem::OnUpdate(Scene* scene, Timestep ts)
-	{
-		if (!s_PhysicsWorld)
-			return;
-
-		SyncToPhysics(scene);
-		s_PhysicsWorld->Step(ts);
-		SyncFromPhysics(scene);
-	}
-
-	void PhysicsSystem::SyncToPhysics(Scene* scene)
+	void PhysicsSystem::SyncToPhysics(Scene* scene, PhysicsWorld* world)
 	{
 		auto view = scene->GetRegistry().view<RigidBodyComponent, ColliderComponent, TransformComponent>();
 
@@ -212,7 +274,7 @@ namespace CB
 			// Create body if not yet created
 			if (!rb.BodyCreated)
 			{
-				CreateBody(scene, entity);
+				CreateBody(scene, world, entity);
 				continue;
 			}
 
@@ -223,7 +285,7 @@ namespace CB
 				Vector3 pos = transform.GetWorldPosition();
 				glm::quat rotation = glm::quat(transform.Rotation);
 
-				s_PhysicsWorld->GetBodyInterface().MoveKinematic(
+				world->GetBodyInterface().MoveKinematic(
 					rb.RuntimeBodyID,
 					JPH::RVec3(pos.x, pos.y, pos.z),
 					JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w),
@@ -233,14 +295,24 @@ namespace CB
 			// Rebuild shape if dirty
 			if (collider.ShapeDirty && rb.BodyCreated)
 			{
-				JPH::RefConst<JPH::Shape> newShape = CreateJoltShape(collider, scene, entity);
-				s_PhysicsWorld->GetBodyInterface().SetShape(
+				auto& transform = view.get<TransformComponent>(entity);
+				Vector3 worldScale = transform.Scale;
+				if (transform.HasParent())
+				{
+					worldScale = Vector3(
+						glm::length(Vector3(transform.WorldMatrix[0])),
+						glm::length(Vector3(transform.WorldMatrix[1])),
+						glm::length(Vector3(transform.WorldMatrix[2])));
+				}
+				JPH::RefConst<JPH::Shape> newShape = CreateJoltShape(collider, world, worldScale, scene, entity);
+				world->GetBodyInterface().SetShape(
 					rb.RuntimeBodyID, newShape, false, JPH::EActivation::Activate);
 			}
 		}
 	}
 
-	void PhysicsSystem::SyncFromPhysics(Scene* scene)
+	// 1.6 Fix: Proper parent transform writeback
+	void PhysicsSystem::SyncFromPhysics(Scene* scene, PhysicsWorld* world)
 	{
 		auto view = scene->GetRegistry().view<RigidBodyComponent, TransformComponent>();
 
@@ -250,49 +322,74 @@ namespace CB
 			if (!rb.BodyCreated || rb.Type != BodyType::Dynamic)
 				continue;
 
-			auto& bodyInterface = s_PhysicsWorld->GetBodyInterface();
+			auto& bodyInterface = world->GetBodyInterface();
 			if (!bodyInterface.IsActive(rb.RuntimeBodyID))
 				continue;
 
 			auto& transform = view.get<TransformComponent>(entity);
 
-			JPH::RVec3 position = bodyInterface.GetCenterOfMassPosition(rb.RuntimeBodyID);
+			JPH::RVec3 position = bodyInterface.GetPosition(rb.RuntimeBodyID);
 			JPH::Quat rotation = bodyInterface.GetRotation(rb.RuntimeBodyID);
 
-			// Write back to transform
+			Vector3 worldPos(
+				static_cast<float>(position.GetX()),
+				static_cast<float>(position.GetY()),
+				static_cast<float>(position.GetZ()));
+
+			glm::quat worldQuat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
+
 			if (transform.HasParent())
 			{
-				// For parented entities, convert world position to local
-				// This is a simplification - proper inverse parent transform would be needed
-				transform.Position = Vector3(
-					static_cast<float>(position.GetX()),
-					static_cast<float>(position.GetY()),
-					static_cast<float>(position.GetZ()));
+				// Convert world position/rotation to local space using parent's world matrix
+				Entity parentEntity = scene->GetEntityByUUID(transform.Parent);
+				if (parentEntity)
+				{
+					Mat4 parentWorldMatrix = parentEntity.GetComponent<TransformComponent>().WorldMatrix;
+					Mat4 invParent = glm::inverse(parentWorldMatrix);
+
+					// Convert world position to local
+					transform.Position = Vector3(invParent * Vector4(worldPos, 1.0f));
+
+					// Convert world rotation to local
+					glm::quat parentWorldQuat = glm::quat_cast(parentWorldMatrix);
+					glm::quat localQuat = glm::inverse(parentWorldQuat) * worldQuat;
+					transform.Rotation = glm::eulerAngles(localQuat);
+				}
+				else
+				{
+					transform.Position = worldPos;
+					transform.Rotation = glm::eulerAngles(worldQuat);
+				}
 			}
 			else
 			{
-				transform.Position = Vector3(
-					static_cast<float>(position.GetX()),
-					static_cast<float>(position.GetY()),
-					static_cast<float>(position.GetZ()));
+				transform.Position = worldPos;
+				transform.Rotation = glm::eulerAngles(worldQuat);
 			}
 
-			// Convert quaternion to euler
-			glm::quat glmQuat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
-			transform.Rotation = glm::eulerAngles(glmQuat);
 			transform.Dirty = true;
 		}
 	}
 
-	void PhysicsSystem::CreateBody(Scene* scene, entt::entity entity)
+	void PhysicsSystem::CreateBody(Scene* scene, PhysicsWorld* world, entt::entity entity)
 	{
 		auto& rb = scene->GetRegistry().get<RigidBodyComponent>(entity);
 		auto& collider = scene->GetRegistry().get<ColliderComponent>(entity);
 		auto& transform = scene->GetRegistry().get<TransformComponent>(entity);
 		auto& id = scene->GetRegistry().get<IDComponent>(entity);
 
-		// Create Jolt shape
-		JPH::RefConst<JPH::Shape> shape = CreateJoltShape(collider, scene, entity);
+		// Extract world scale from transform for scaling collider dimensions
+		Vector3 worldScale = transform.Scale;
+		if (transform.HasParent())
+		{
+			worldScale = Vector3(
+				glm::length(Vector3(transform.WorldMatrix[0])),
+				glm::length(Vector3(transform.WorldMatrix[1])),
+				glm::length(Vector3(transform.WorldMatrix[2])));
+		}
+
+		// Create Jolt shape (scaled by entity world scale)
+		JPH::RefConst<JPH::Shape> shape = CreateJoltShape(collider, world, worldScale, scene, entity);
 
 		// Get world position and rotation
 		Vector3 worldPos = transform.GetWorldPosition();
@@ -320,7 +417,7 @@ namespace CB
 		bodySettings.mIsSensor = collider.IsTrigger;
 
 		// Create body in Jolt
-		JPH::Body* body = s_PhysicsWorld->GetBodyInterface().CreateBody(bodySettings);
+		JPH::Body* body = world->GetBodyInterface().CreateBody(bodySettings);
 		if (!body)
 		{
 			CB_CORE_ERROR("Failed to create physics body for entity {0}", (uint64_t)id.ID);
@@ -331,19 +428,155 @@ namespace CB
 		rb.BodyCreated = true;
 
 		// Register for collision callbacks
-		s_PhysicsWorld->RegisterBodyEntity(rb.RuntimeBodyID, id.ID);
+		world->RegisterBodyEntity(rb.RuntimeBodyID, id.ID);
 
 		// Add to physics world
-		s_PhysicsWorld->GetBodyInterface().AddBody(rb.RuntimeBodyID,
+		world->GetBodyInterface().AddBody(rb.RuntimeBodyID,
 			rb.Type == BodyType::Static ? JPH::EActivation::DontActivate : JPH::EActivation::Activate);
 
 		CB_CORE_TRACE("Created physics body for entity {0} (BodyID: {1})",
 			(uint64_t)id.ID, rb.RuntimeBodyID.GetIndexAndSequenceNumber());
 	}
 
-	void PhysicsSystem::DestroyBody(entt::entity entity)
+	void PhysicsSystem::SyncStaticColliders(Scene* scene, PhysicsWorld* world)
 	{
-		// This will be called when entities with physics bodies are destroyed
-		// For now, handled via Scene lifecycle
+		auto view = scene->GetRegistry().view<ColliderComponent, TransformComponent>();
+
+		for (auto entity : view)
+		{
+			if (scene->GetRegistry().all_of<RigidBodyComponent>(entity))
+				continue;
+
+			auto& collider = view.get<ColliderComponent>(entity);
+			auto& transform = view.get<TransformComponent>(entity);
+
+			if (!collider.StaticBodyCreated)
+			{
+				CreateStaticColliderBody(scene, world, entity);
+			}
+			else
+			{
+				auto& bodyInterface = world->GetBodyInterface();
+
+				// Update shape if dirty
+				if (collider.ShapeDirty)
+				{
+					Vector3 worldScale = transform.Scale;
+					if (transform.HasParent())
+					{
+						worldScale = Vector3(
+							glm::length(Vector3(transform.WorldMatrix[0])),
+							glm::length(Vector3(transform.WorldMatrix[1])),
+							glm::length(Vector3(transform.WorldMatrix[2])));
+					}
+					JPH::RefConst<JPH::Shape> newShape = CreateJoltShape(collider, world, worldScale, scene, entity);
+					bodyInterface.SetShape(
+						collider.StaticBodyID, newShape, false, JPH::EActivation::DontActivate);
+				}
+
+				// Sync position/rotation from transform to physics body every frame
+				// This ensures child colliders follow their moving parent
+				if (transform.HasParent())
+				{
+					Vector3 worldPos = transform.GetWorldPosition();
+
+					// Extract rotation from WorldMatrix, removing scale first
+					Mat4 rotMat = transform.WorldMatrix;
+					rotMat[0] = Vector4(glm::normalize(Vector3(rotMat[0])), 0.0f);
+					rotMat[1] = Vector4(glm::normalize(Vector3(rotMat[1])), 0.0f);
+					rotMat[2] = Vector4(glm::normalize(Vector3(rotMat[2])), 0.0f);
+					glm::quat worldRot = glm::normalize(glm::quat_cast(rotMat));
+
+					bodyInterface.SetPositionAndRotation(
+						collider.StaticBodyID,
+						JPH::RVec3(worldPos.x, worldPos.y, worldPos.z),
+						JPH::Quat(worldRot.x, worldRot.y, worldRot.z, worldRot.w),
+						JPH::EActivation::DontActivate);
+				}
+			}
+		}
+	}
+
+	void PhysicsSystem::CreateStaticColliderBody(Scene* scene, PhysicsWorld* world, entt::entity entity)
+	{
+		auto& collider = scene->GetRegistry().get<ColliderComponent>(entity);
+		auto& transform = scene->GetRegistry().get<TransformComponent>(entity);
+		auto& id = scene->GetRegistry().get<IDComponent>(entity);
+
+		Vector3 worldScale = transform.Scale;
+		if (transform.HasParent())
+		{
+			worldScale = Vector3(
+				glm::length(Vector3(transform.WorldMatrix[0])),
+				glm::length(Vector3(transform.WorldMatrix[1])),
+				glm::length(Vector3(transform.WorldMatrix[2])));
+		}
+
+		JPH::RefConst<JPH::Shape> shape = CreateJoltShape(collider, world, worldScale, scene, entity);
+
+		Vector3 worldPos = transform.GetWorldPosition();
+		glm::quat rotation = glm::quat(transform.Rotation);
+
+		JPH::BodyCreationSettings bodySettings(
+			shape,
+			JPH::RVec3(worldPos.x, worldPos.y, worldPos.z),
+			JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w),
+			JPH::EMotionType::Static,
+			ObjectLayers::NON_MOVING);
+
+		bodySettings.mFriction = 0.5f;
+		bodySettings.mRestitution = 0.3f;
+		bodySettings.mIsSensor = collider.IsTrigger;
+
+		JPH::Body* body = world->GetBodyInterface().CreateBody(bodySettings);
+		if (!body)
+		{
+			CB_CORE_ERROR("Failed to create static collider body for entity {0}", (uint64_t)id.ID);
+			return;
+		}
+
+		collider.StaticBodyID = body->GetID();
+		collider.StaticBodyCreated = true;
+
+		world->RegisterBodyEntity(collider.StaticBodyID, id.ID);
+		world->GetBodyInterface().AddBody(collider.StaticBodyID, JPH::EActivation::DontActivate);
+
+		CB_CORE_TRACE("Created static collider body for entity {0} (BodyID: {1})",
+			(uint64_t)id.ID, collider.StaticBodyID.GetIndexAndSequenceNumber());
+	}
+
+	// 1.5: Properly destroy physics bodies
+	void PhysicsSystem::DestroyBody(PhysicsWorld* world, entt::entity entity, entt::registry& registry)
+	{
+		if (!world || !registry.all_of<RigidBodyComponent>(entity))
+			return;
+
+		auto& rb = registry.get<RigidBodyComponent>(entity);
+		if (!rb.BodyCreated)
+			return;
+
+		auto& bodyInterface = world->GetBodyInterface();
+		bodyInterface.RemoveBody(rb.RuntimeBodyID);
+		bodyInterface.DestroyBody(rb.RuntimeBodyID);
+		world->UnregisterBody(rb.RuntimeBodyID);
+
+		rb.BodyCreated = false;
+	}
+
+	void PhysicsSystem::DestroyStaticBody(PhysicsWorld* world, entt::entity entity, entt::registry& registry)
+	{
+		if (!world || !registry.all_of<ColliderComponent>(entity))
+			return;
+
+		auto& collider = registry.get<ColliderComponent>(entity);
+		if (!collider.StaticBodyCreated)
+			return;
+
+		auto& bodyInterface = world->GetBodyInterface();
+		bodyInterface.RemoveBody(collider.StaticBodyID);
+		bodyInterface.DestroyBody(collider.StaticBodyID);
+		world->UnregisterBody(collider.StaticBodyID);
+
+		collider.StaticBodyCreated = false;
 	}
 }

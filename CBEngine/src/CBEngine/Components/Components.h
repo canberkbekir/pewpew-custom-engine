@@ -7,3 +7,5 @@
 #include "DirectionalLightComponent.h"
 #include "RigidBodyComponent.h"
 #include "ColliderComponent.h"
+#include "ScriptComponent.h"
+#include "BlueprintInstanceComponent.h"

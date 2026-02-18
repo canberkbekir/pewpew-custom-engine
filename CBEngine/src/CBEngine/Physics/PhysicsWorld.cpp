@@ -25,6 +25,36 @@ namespace CB
 	}
 #endif
 
+	static bool s_JoltGlobalsInitialized = false;
+
+	void PhysicsWorld::InitJoltGlobals()
+	{
+		if (s_JoltGlobalsInitialized)
+			return;
+
+		JPH::Trace = JoltTraceImpl;
+		JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = JoltAssertFailed;)
+
+		JPH::Factory::sInstance = new JPH::Factory();
+		JPH::RegisterTypes();
+
+		s_JoltGlobalsInitialized = true;
+		CB_CORE_INFO("Jolt globals initialized");
+	}
+
+	void PhysicsWorld::ShutdownJoltGlobals()
+	{
+		if (!s_JoltGlobalsInitialized)
+			return;
+
+		JPH::UnregisterTypes();
+		delete JPH::Factory::sInstance;
+		JPH::Factory::sInstance = nullptr;
+
+		s_JoltGlobalsInitialized = false;
+		CB_CORE_INFO("Jolt globals shut down");
+	}
+
 	PhysicsWorld::PhysicsWorld()
 	{
 	}
@@ -40,13 +70,7 @@ namespace CB
 		if (m_Initialized)
 			return;
 
-		// Register Jolt trace/assert handlers
-		JPH::Trace = JoltTraceImpl;
-		JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = JoltAssertFailed;)
-
-		// Register types (must be called once)
-		JPH::Factory::sInstance = new JPH::Factory();
-		JPH::RegisterTypes();
+		CB_CORE_ASSERT(s_JoltGlobalsInitialized, "Must call PhysicsWorld::InitJoltGlobals() before Init()!");
 
 		// Allocators
 		m_TempAllocator = CreateScope<JPH::TempAllocatorImpl>(10 * 1024 * 1024); // 10 MB
@@ -60,17 +84,12 @@ namespace CB
 		m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(ObjectLayers::NON_MOVING, BroadPhaseLayers::NON_MOVING);
 		m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(ObjectLayers::MOVING, BroadPhaseLayers::MOVING);
 
-		// Broad-phase vs object layer filter
-		m_ObjectVsBroadPhaseLayerFilter = CreateScope<JPH::ObjectVsBroadPhaseLayerFilterTable>(
-			*m_BroadPhaseLayerInterface, BroadPhaseLayers::NUM_LAYERS,
-			*m_ObjectLayerPairFilter, ObjectLayers::NUM_LAYERS);
-
-		// Object layer pair filter
+		// Object layer pair filter (must be created before ObjectVsBroadPhaseLayerFilter)
 		m_ObjectLayerPairFilter = CreateScope<JPH::ObjectLayerPairFilterTable>(ObjectLayers::NUM_LAYERS);
 		m_ObjectLayerPairFilter->EnableCollision(ObjectLayers::NON_MOVING, ObjectLayers::MOVING);
 		m_ObjectLayerPairFilter->EnableCollision(ObjectLayers::MOVING, ObjectLayers::MOVING);
 
-		// Re-create broad-phase filter now that pair filter exists
+		// Broad-phase vs object layer filter
 		m_ObjectVsBroadPhaseLayerFilter = CreateScope<JPH::ObjectVsBroadPhaseLayerFilterTable>(
 			*m_BroadPhaseLayerInterface, BroadPhaseLayers::NUM_LAYERS,
 			*m_ObjectLayerPairFilter, ObjectLayers::NUM_LAYERS);
@@ -105,10 +124,6 @@ namespace CB
 		m_ObjectVsBroadPhaseLayerFilter.reset();
 		m_ObjectLayerPairFilter.reset();
 		m_BroadPhaseLayerInterface.reset();
-
-		JPH::UnregisterTypes();
-		delete JPH::Factory::sInstance;
-		JPH::Factory::sInstance = nullptr;
 
 		m_Initialized = false;
 		CB_CORE_INFO("PhysicsWorld shut down");

@@ -2,6 +2,7 @@
 #include "SceneManager.h"
 #include "SceneSerializer.h"
 #include "CBEngine/Core/Log.h"
+#include "CBEngine/Core/Application.h"
 
 namespace CB
 {
@@ -25,9 +26,17 @@ namespace CB
         CB_CORE_INFO("SceneManager shutdown");
     }
 
+    static void SetupSceneEventCallback(const Ref<Scene>& scene)
+    {
+        scene->SetEventCallback([](Event& e) {
+            Application::Get().OnEvent(e);
+        });
+    }
+
     Ref<Scene> SceneManager::NewScene(const String& name)
     {
         s_ActiveScene = CreateRef<Scene>();
+        SetupSceneEventCallback(s_ActiveScene);
         s_ActiveScenePath = "";
         s_ActiveSceneName = name;
         s_SceneModified = false;
@@ -41,6 +50,7 @@ namespace CB
     Ref<Scene> SceneManager::LoadScene(const String& filepath)
     {
         s_ActiveScene = CreateRef<Scene>();
+        SetupSceneEventCallback(s_ActiveScene);
         s_ActiveScenePath = filepath;
 
         // Extract filename without extension as scene name

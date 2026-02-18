@@ -13,11 +13,7 @@ namespace CB
 	class CollisionShapeCache
 	{
 	public:
-		static CollisionShapeCache& Get()
-		{
-			static CollisionShapeCache instance;
-			return instance;
-		}
+		CollisionShapeCache() = default;
 
 		bool Has(UUID id) const
 		{
@@ -48,7 +44,6 @@ namespace CB
 		}
 
 	private:
-		CollisionShapeCache() = default;
 		std::unordered_map<UUID, JPH::RefConst<JPH::Shape>> m_Cache;
 	};
 }

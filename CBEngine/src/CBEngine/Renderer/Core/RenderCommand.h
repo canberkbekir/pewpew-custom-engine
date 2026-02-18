@@ -1,5 +1,4 @@
 #pragma once
-#include <GL/gl.h>
 
 #include "RendererAPI.h"
 

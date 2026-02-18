@@ -8,9 +8,22 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/config.h>
 
 namespace CB
 {
+    static void ComputeBoundsFromVertices(const std::vector<Vertex>& vertices,
+        Vector3& outMin, Vector3& outMax)
+    {
+        outMin = Vector3(std::numeric_limits<float>::max());
+        outMax = Vector3(std::numeric_limits<float>::lowest());
+        for (const auto& v : vertices)
+        {
+            outMin = glm::min(outMin, v.Position);
+            outMax = glm::max(outMax, v.Position);
+        }
+    }
+
     Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices, bool retainCPUData)
         : m_IsFromFile(false), m_RetainCPUData(retainCPUData)
     {
@@ -19,6 +32,13 @@ namespace CB
 
         m_IndexCount = static_cast<uint32_t>(indices.size());
         m_VertexCount = static_cast<uint32_t>(vertices.size());
+
+        // Compute bounding box before vertices might be discarded
+        if (!vertices.empty())
+        {
+            ComputeBoundsFromVertices(vertices, m_BoundsMin, m_BoundsMax);
+            m_HasBounds = true;
+        }
 
         if (m_RetainCPUData)
         {
@@ -156,6 +176,9 @@ namespace CB
 
         Assimp::Importer importer;
 
+        // Scale from centimeters to meters (most 3D tools export in cm)
+        importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.01f);
+
         const aiScene* scene = nullptr;
         {
             CB_PROFILE_SCOPE("Mesh::Assimp::ReadFile");
@@ -165,7 +188,8 @@ namespace CB
                                       aiProcess_CalcTangentSpace |
                                       // Calculate tangents (for normal mapping later)
                                       aiProcess_JoinIdenticalVertices | // Optimize vertex count
-                                      aiProcess_PreTransformVertices // Bake node transforms into vertices
+                                      aiProcess_PreTransformVertices | // Bake node transforms into vertices
+                                      aiProcess_GlobalScale // Apply global scale factor (cm -> m)
                                       // Note: NOT using aiProcess_FlipUVs - stb_image already flips textures
             );
         }
@@ -200,12 +224,16 @@ namespace CB
 
         Assimp::Importer importer;
 
+        // Scale from centimeters to meters
+        importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.01f);
+
         const aiScene* scene = importer.ReadFile(filePath,
                                                  aiProcess_Triangulate |
                                                  aiProcess_GenSmoothNormals |
                                                  aiProcess_CalcTangentSpace |
                                                  aiProcess_JoinIdenticalVertices |
-                                                 aiProcess_PreTransformVertices
+                                                 aiProcess_PreTransformVertices |
+                                                 aiProcess_GlobalScale
         );
 
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
@@ -221,6 +249,13 @@ namespace CB
 
         m_IndexCount = static_cast<uint32_t>(indices.size());
         m_VertexCount = static_cast<uint32_t>(vertices.size());
+
+        // Compute bounding box before vertices might be discarded
+        if (!vertices.empty())
+        {
+            ComputeBoundsFromVertices(vertices, m_BoundsMin, m_BoundsMax);
+            m_HasBounds = true;
+        }
 
         if (m_RetainCPUData)
         {

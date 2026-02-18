@@ -1,37 +1,31 @@
 Scene: SampleScene
 Entities:
-  - Entity: 649376958173459848
+  - Entity: 12289061692542715367
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
-      Position: [3.1, 0, 0]
+      Position: [-115.84206, -264.68118, -15.30051]
       Rotation: [6.6069945e-09, 1.1077523, 7.4001836e-09]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 0
+      Scale: [1, 1, 1]
+      Parent: 18159077778749587118
     MeshRendererComponent:
       MeshUUID: 14354534839807604147
       MaterialUUID: 10679708688162182362
       ShaderUUID: 0
       Visible: true
-  - Entity: 1812297280797331399
-    TagComponent:
-      Tag: Directional Light
-    TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Parent: 0
-    DirectionalLightComponent:
-      Visible: true
-      Color: [1, 1, 1]
-      Intensity: 1
-      CastShadows: false
-      SourceAngleDegrees: 0.53
-  - Entity: 16816817297846241028
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [107.93994, 100.58357, 101.87407]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [6.2387085, 100.58354, 1.8740311]
+      IsTrigger: false
+  - Entity: 18159077778749587118
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
-      Position: [-1.2362251e-16, 6.181122e-17, -5.1270825e-16]
+      Position: [4.8560405, -9.051992e-08, -2.486291]
       Rotation: [-3.1415925, 1.0975952, -3.1415925]
       Scale: [0.01, 0.01, 0.01]
       Parent: 0
@@ -57,4 +51,126 @@ Entities:
       CapsuleRadius: 0.5
       CapsuleHalfHeight: 0.5
       Offset: [0, 0, 0]
+      IsTrigger: false
+    BlueprintInstanceComponent:
+      BlueprintAssetUUID: 18166468466123905578
+      BlueprintPath: assets\Blueprints\test.blueprint
+      OriginalYAML: "Blueprint: Empty Entity\nEntities:\n  - Entity: 2513760504464774808\n    TagComponent:\n      Tag: Empty Entity\n    TransformComponent:\n      Position: [-1.2362251e-16, 6.181122e-17, -5.1270825e-16]\n      Rotation: [-3.1415925, 1.0975952, -3.1415925]\n      Scale: [0.01, 0.01, 0.01]\n      Parent: 0\n    VoxelRendererComponent:\n      VoxelMeshUUID: 16725038486124727391\n      ColorTextureUUID: 0\n      MaterialUUID: 0\n      ShaderUUID: 0\n      VoxelTextureUUID: 2879451016976322528\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n    ColliderComponent:\n      Shape: 3\n      HalfExtents: [0.5, 0.5, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false\n  - Entity: 17544285425828685692\n    TagComponent:\n      Tag: Empty Entity\n    TransformComponent:\n      Position: [-115.84206, -264.68118, -15.30051]\n      Rotation: [6.6069945e-09, 1.1077523, 7.4001836e-09]\n      Scale: [1, 1, 1]\n      Parent: 2513760504464774808\n    MeshRendererComponent:\n      MeshUUID: 14354534839807604147\n      MaterialUUID: 10679708688162182362\n      ShaderUUID: 0\n      Visible: true\n    ColliderComponent:\n      Shape: 0\n      HalfExtents: [107.93994, 100.58357, 101.87407]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [6.2387085, 100.58354, 1.8740311]\n      IsTrigger: false"
+  - Entity: 649376958173459848
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [-3.0841203, -2.6468117, 1.6137751]
+      Rotation: [6.6069945e-09, 1.1077523, 7.4001836e-09]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 14354534839807604147
+      MaterialUUID: 10679708688162182362
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [107.93994, 100.58357, 101.87407]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [6.2387085, 100.58354, 1.8740311]
+      IsTrigger: false
+  - Entity: 1812297280797331399
+    TagComponent:
+      Tag: Directional Light
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    DirectionalLightComponent:
+      Visible: true
+      Color: [1, 1, 1]
+      Intensity: 1
+      CastShadows: false
+      SourceAngleDegrees: 0.53
+  - Entity: 16816817297846241028
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [-3.4758646, 0, 0.51291823]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 0
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      ColorTextureUUID: 9748488012783393583
+      MaterialUUID: 0
+      ShaderUUID: 0
+      VoxelTextureUUID: 2879451016976322528
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [0.5, 0.5, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 2513760504464774808
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [-1.2362251e-16, -3.733297e-23, -5.1270825e-16]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 0
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      ColorTextureUUID: 0
+      MaterialUUID: 0
+      ShaderUUID: 0
+      VoxelTextureUUID: 2879451016976322528
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [0.5, 0.5, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 17544285425828685692
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [-115.84206, -264.68118, -15.30051]
+      Rotation: [6.6069945e-09, 1.1077523, 7.4001836e-09]
+      Scale: [1, 1, 1]
+      Parent: 2513760504464774808
+    MeshRendererComponent:
+      MeshUUID: 14354534839807604147
+      MaterialUUID: 10679708688162182362
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [107.93994, 100.58357, 101.87407]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [6.2387085, 100.58354, 1.8740311]
       IsTrigger: false

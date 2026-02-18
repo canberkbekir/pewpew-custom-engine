@@ -23,6 +23,8 @@
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 
+#include "CollisionShapeCache.h"
+
 #include <functional>
 
 namespace CB
@@ -54,6 +56,10 @@ namespace CB
 	class PhysicsWorld : public JPH::ContactListener
 	{
 	public:
+		// Global Jolt init/shutdown - call once from Application
+		static void InitJoltGlobals();
+		static void ShutdownJoltGlobals();
+
 		PhysicsWorld();
 		~PhysicsWorld();
 
@@ -66,6 +72,8 @@ namespace CB
 
 		JPH::BodyInterface& GetBodyInterface();
 		JPH::PhysicsSystem& GetPhysicsSystem() { return m_PhysicsSystem; }
+
+		CollisionShapeCache& GetShapeCache() { return m_ShapeCache; }
 
 		using CollisionCallbackFn = std::function<void(const CollisionCallback&)>;
 		void SetCollisionBeginCallback(CollisionCallbackFn fn) { m_CollisionBeginCallback = std::move(fn); }
@@ -100,6 +108,8 @@ namespace CB
 
 		CollisionCallbackFn m_CollisionBeginCallback;
 		CollisionCallbackFn m_CollisionEndCallback;
+
+		CollisionShapeCache m_ShapeCache;
 
 		bool m_Initialized = false;
 	};

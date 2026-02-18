@@ -24,8 +24,49 @@ IncludeDir["ImGuizmo"] = "CBEngine/vendor/ImGuizmo"
 IncludeDir["entt"] = "CBEngine/vendor/entt/include"
 IncludeDir["yaml_cpp"] = "CBEngine/vendor/yaml-cpp/include"
 IncludeDir["JoltPhysics"] = "CBEngine/vendor/JoltPhysics"
+IncludeDir["lua"] = "CBEngine/vendor/lua/src"
+IncludeDir["sol2"] = "CBEngine/vendor/sol2"
 
 include "CBEngine/vendor/JoltPhysics"
+
+-- Lua static library
+project "Lua"
+	location "CBEngine/vendor/lua"
+	kind "StaticLib"
+	language "C"
+	staticruntime "on"
+	warnings "off"
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"CBEngine/vendor/lua/src/*.c",
+		"CBEngine/vendor/lua/src/*.h"
+	}
+
+	-- Exclude lua.c and luac.c (they contain main() functions)
+	removefiles
+	{
+		"CBEngine/vendor/lua/src/lua.c",
+		"CBEngine/vendor/lua/src/luac.c"
+	}
+
+	filter "system:windows"
+		systemversion "latest"
+
+	filter "configurations:Debug"
+		runtime "Debug"
+		symbols "on"
+
+	filter "configurations:Release"
+		runtime "Release"
+		optimize "on"
+
+	filter "configurations:Dist"
+		runtime "Release"
+		optimize "on"
 
 project "CBEngine"
     location "CBEngine"
@@ -132,6 +173,8 @@ project "CBEngine"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.ImGuizmo}",
 		"%{IncludeDir.JoltPhysics}",
+		"%{IncludeDir.lua}",
+		"%{IncludeDir.sol2}",
 	}
 
 	libdirs
@@ -143,7 +186,8 @@ project "CBEngine"
 	{
 		"opengl32.lib",
 		"assimp-vc143-mt",
-		"JoltPhysics"
+		"JoltPhysics",
+		"Lua"
 	}
 
 
@@ -173,12 +217,12 @@ project "CBEngine"
 	    }
 
 	filter "configurations:Debug"
-		defines "CB_DEBUG"
+		defines { "CB_DEBUG", "CB_ENABLE_IMGUI" }
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Release"
-		defines "CB_RELEASE"
+		defines { "CB_RELEASE", "CB_ENABLE_IMGUI" }
 		runtime "Release"
 		optimize "on"
 
@@ -234,7 +278,9 @@ project "Sandbox"
 		"%{IncludeDir.voxelizer}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
-		"%{IncludeDir.JoltPhysics}"
+		"%{IncludeDir.JoltPhysics}",
+		"%{IncludeDir.lua}",
+		"%{IncludeDir.sol2}"
     }
 
     links { "CBEngine" }
@@ -254,12 +300,12 @@ project "Sandbox"
 		}
 
 	filter "configurations:Debug"
-		defines "CB_DEBUG"
+		defines { "CB_DEBUG", "CB_ENABLE_IMGUI" }
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Release"
-		defines "CB_RELEASE"
+		defines { "CB_RELEASE", "CB_ENABLE_IMGUI" }
 		runtime "Release"
 		optimize "on"
 
@@ -316,7 +362,9 @@ project "CBEngine-Editor"
 		"%{IncludeDir.voxelizer}",
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.yaml_cpp}",
-		"%{IncludeDir.JoltPhysics}"
+		"%{IncludeDir.JoltPhysics}",
+		"%{IncludeDir.lua}",
+		"%{IncludeDir.sol2}"
     }
 
     links { "CBEngine" }
@@ -336,12 +384,12 @@ project "CBEngine-Editor"
 		}
 
 	filter "configurations:Debug"
-		defines "CB_DEBUG"
+		defines { "CB_DEBUG", "CB_ENABLE_IMGUI" }
 		runtime "Debug"
 		symbols "on"
 
 	filter "configurations:Release"
-		defines "CB_RELEASE"
+		defines { "CB_RELEASE", "CB_ENABLE_IMGUI" }
 		runtime "Release"
 		optimize "on"
 
