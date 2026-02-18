@@ -13,3 +13,6 @@
 [submodule "CBEngine/vendor/yaml-cpp"]
 	path = CBEngine/vendor/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "CBEngine/vendor/JoltPhysics"]
+	path = CBEngine/vendor/JoltPhysics
+	url = https://github.com/canberkbekir/jolt-physics-premake.git
