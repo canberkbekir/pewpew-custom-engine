@@ -768,7 +768,9 @@ namespace CB
             // Assign script to entity
             if (!parentEntity.HasComponent<ScriptComponent>())
                 parentEntity.AddComponent<ScriptComponent>();
-            parentEntity.GetComponent<ScriptComponent>().ScriptPath = droppedPath.string();
+            ScriptEntry entry;
+            entry.ScriptPath = droppedPath.string();
+            parentEntity.GetComponent<ScriptComponent>().Scripts.push_back(entry);
         }
         else if (ext == ".fbx" || ext == ".obj" || ext == ".gltf" || ext == ".glb")
         {

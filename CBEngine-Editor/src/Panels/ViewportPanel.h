@@ -25,6 +25,7 @@ namespace CB
 
     private:
         void RenderToolbar();
+        void RenderPlayButtonInTabBar();
         void RenderStatsOverlay();
         void RenderScene();
         void RenderGizmo();
@@ -59,6 +60,11 @@ namespace CB
         //Icons
         ImVec2 m_IconSize = {20.f,20.f};
         Ref<Texture2D> m_WireframeButtonIcon;
+        Ref<Texture2D> m_PlayButtonIcon;
+        Ref<Texture2D> m_ResumeButtonIcon;
+        Ref<Texture2D> m_PauseButtonIcon;
+        Ref<Texture2D> m_StopButtonIcon;
+        Ref<Texture2D> m_NextFrameButtonIcon;
         
     };
 }

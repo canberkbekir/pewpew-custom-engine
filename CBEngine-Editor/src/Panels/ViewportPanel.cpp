@@ -59,7 +59,11 @@ namespace CB
         m_DefaultMaterial->SetMetallic(0.0f);
 
         m_WireframeButtonIcon = Texture2D::Create("resources/icons/wireframe_btn.png");
-        
+        m_PlayButtonIcon = Texture2D::Create("resources/icons/play_btn.png");
+        m_PauseButtonIcon = Texture2D::Create("resources/icons/pause_btn.png");
+        m_StopButtonIcon = Texture2D::Create("resources/icons/stop_btn.png");
+        m_NextFrameButtonIcon = Texture2D::Create("resources/icons/next_frame_btn.png");
+        m_ResumeButtonIcon = Texture2D::Create("resources/icons/resume_btn.png");
     }
 
     //--------------------------------------------------------------------------
@@ -194,6 +198,9 @@ namespace CB
         m_Focused = ImGui::IsWindowFocused();
         m_Hovered = ImGui::IsWindowHovered();
 
+        // Play/Stop buttons centered in the tab bar
+        RenderPlayButtonInTabBar();
+
         // Toolbar
         RenderToolbar();
 
@@ -305,7 +312,9 @@ namespace CB
                             {
                                 if (!entity.HasComponent<ScriptComponent>())
                                     entity.AddComponent<ScriptComponent>();
-                                entity.GetComponent<ScriptComponent>().ScriptPath = droppedPath.string();
+                                ScriptEntry entry;
+                                entry.ScriptPath = droppedPath.string();
+                                entity.GetComponent<ScriptComponent>().Scripts.push_back(entry);
                             }
                         }
                     }
@@ -482,11 +491,122 @@ namespace CB
         if (ImGui::Selectable("Stats", m_ShowStats, 0, ImVec2(40, 0)))
             m_ShowStats = !m_ShowStats;
 
-
         ImGui::EndChild();
         ImGui::Separator();
 
         ImGui::PopStyleColor();
+        ImGui::PopStyleVar(2);
+    }
+
+    void ViewportPanel::RenderPlayButtonInTabBar()
+    {
+        ImGuiWindow* window = ImGui::GetCurrentWindow();
+        if (!window->DockNode || !window->DockNode->TabBar)
+            return;
+
+        ImGuiTabBar* tabBar = window->DockNode->TabBar;
+        float tabBarHeight = tabBar->BarRect.GetHeight();
+        float btnSize = tabBarHeight - 6.0f;
+        if (btnSize < 8.0f) return;
+
+        Ref<Scene> scene = SceneManager::GetActiveScene();
+        bool simulating = scene && scene->IsPhysicsInitialized();
+        bool paused     = scene && scene->IsPhysicsPaused();
+
+        float spacing = 4.0f;
+        int   numBtns = simulating ? 3 : 1;
+        float totalW  = numBtns * btnSize + (numBtns - 1) * spacing;
+
+        float centerX = (tabBar->BarRect.Min.x + tabBar->BarRect.Max.x) * 0.5f;
+        float startX  = centerX - totalW * 0.5f;
+        float posY    = tabBar->BarRect.Min.y;
+        float padY    = (tabBarHeight - btnSize) * 0.5f;
+
+        ImGui::SetNextWindowPos(ImVec2(startX - 2.0f, posY), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(totalW + 4.0f, tabBarHeight), ImGuiCond_Always);
+        ImGui::SetNextWindowBgAlpha(0.0f);
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.0f, padY));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
+
+        constexpr ImGuiWindowFlags overlayFlags =
+            ImGuiWindowFlags_NoDecoration      |
+            ImGuiWindowFlags_NoDocking         |
+            ImGuiWindowFlags_NoSavedSettings   |
+            ImGuiWindowFlags_NoFocusOnAppearing|
+            ImGuiWindowFlags_NoNav             |
+            ImGuiWindowFlags_NoMove            |
+            ImGuiWindowFlags_NoScrollbar       |
+            ImGuiWindowFlags_NoScrollWithMouse;
+
+        if (ImGui::Begin("##VP_PlayBtns", nullptr, overlayFlags))
+        {
+            if (!simulating)
+            {
+                if (ImGui::ImageButton("##tb_play",
+                    (ImTextureID)(uintptr_t)m_PlayButtonIcon->GetRendererID(),
+                    ImVec2(btnSize, btnSize), ImVec2(0,1), ImVec2(1,0)))
+                {
+                    if (scene) scene->InitPhysics();
+                }
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Play (F5)");
+            }
+            else
+            {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.15f, 0.15f, 0.3f));
+                if (ImGui::ImageButton("##tb_stop",
+                    (ImTextureID)(uintptr_t)m_StopButtonIcon->GetRendererID(),
+                    ImVec2(btnSize, btnSize), ImVec2(0,1), ImVec2(1,0)))
+                {
+                    scene->ShutdownPhysics();
+                }
+                ImGui::PopStyleColor();
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Stop (F5)");
+
+                ImGui::SameLine(0.0f, spacing);
+
+                if (paused)
+                {
+                    if (ImGui::ImageButton("##tb_resume",
+                        (ImTextureID)(uintptr_t)m_ResumeButtonIcon->GetRendererID(),
+                        ImVec2(btnSize, btnSize), ImVec2(0,1), ImVec2(1,0)))
+                    {
+                        scene->ResumePhysics();
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Resume");
+                }
+                else
+                {
+                    if (ImGui::ImageButton("##tb_pause",
+                        (ImTextureID)(uintptr_t)m_PauseButtonIcon->GetRendererID(),
+                        ImVec2(btnSize, btnSize), ImVec2(0,1), ImVec2(1,0)))
+                    {
+                        scene->PausePhysics();
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pause");
+                }
+
+                ImGui::SameLine(0.0f, spacing);
+
+                bool canStep = paused;
+                if (!canStep) ImGui::BeginDisabled();
+                if (ImGui::ImageButton("##tb_step",
+                    (ImTextureID)(uintptr_t)m_NextFrameButtonIcon->GetRendererID(),
+                    ImVec2(btnSize, btnSize), ImVec2(0,1), ImVec2(1,0)))
+                {
+                    if (canStep) scene->StepOneFrame();
+                }
+                if (!canStep) ImGui::EndDisabled();
+                if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                    ImGui::SetTooltip("Step One Frame (only when paused)");
+            }
+        }
+        ImGui::End();
+
+        ImGui::PopStyleColor(3);
         ImGui::PopStyleVar(2);
     }
 

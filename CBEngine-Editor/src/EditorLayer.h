@@ -44,7 +44,6 @@ namespace CB
         void BeginDockspace();
         void EndDockspace();
         void DrawMenuBar();
-        void DrawToolbar();
         void SetupDefaultLayout(ImGuiID dockspace_id);
 
         // Scene file operations
@@ -70,14 +69,6 @@ namespace CB
         MeshImportPanel m_MeshImportPanel;
         VoxelTextureEditorPanel m_VoxelTextureEditorPanel;
         GameViewportPanel m_GameViewportPanel;
-
-        // Toolbar icons
-        ImVec2 m_IconSize = {20.f, 20.f};
-        Ref<Texture2D> m_PlayButtonIcon;
-        Ref<Texture2D> m_ResumeButtonIcon;
-        Ref<Texture2D> m_PauseButtonIcon;
-        Ref<Texture2D> m_StopButtonIcon;
-        Ref<Texture2D> m_NextFrameButtonIcon;
 
         // Pending import queue (thread-safe, for FileWatcher callback)
         struct ImportRequest

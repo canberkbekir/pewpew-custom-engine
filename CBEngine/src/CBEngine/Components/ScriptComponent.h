@@ -56,7 +56,7 @@ namespace CB
 		bool HasOverride = false;
 	};
 
-	struct ScriptComponent
+	struct ScriptEntry
 	{
 		String ScriptPath; // e.g., "assets/scripts/player.lua"
 		String ClassName;  // Lua class table name (e.g. "CharacterController")
@@ -66,58 +66,67 @@ namespace CB
 		bool ScriptLoaded = false;
 		bool FieldsParsed = false;
 
-		static constexpr auto YAMLKey = "ScriptComponent";
-
-		ScriptComponent() = default;
-		ScriptComponent(const ScriptComponent&) = default;
+		ScriptEntry() = default;
+		ScriptEntry(const ScriptEntry&) = default;
 
 		void Serialize(YAML::Emitter& out) const
 		{
+			out << YAML::BeginMap;
 			out << YAML::Key << "ScriptPath" << YAML::Value << ScriptPath;
 			out << YAML::Key << "ClassName" << YAML::Value << ClassName;
 
 			if (!Fields.empty())
 			{
-				out << YAML::Key << "Fields" << YAML::Value << YAML::BeginSeq;
+				bool hasOverrides = false;
 				for (const auto& field : Fields)
 				{
-					if (!field.HasOverride)
-						continue;
-
-					out << YAML::BeginMap;
-					out << YAML::Key << "Name" << YAML::Value << field.Name;
-					out << YAML::Key << "Type" << YAML::Value << ScriptFieldTypeToString(field.Type);
-
-					switch (field.Type)
-					{
-						case ScriptFieldType::Float:
-							out << YAML::Key << "Value" << YAML::Value << field.FloatValue;
-							break;
-						case ScriptFieldType::Int:
-							out << YAML::Key << "Value" << YAML::Value << field.IntValue;
-							break;
-						case ScriptFieldType::Bool:
-							out << YAML::Key << "Value" << YAML::Value << field.BoolValue;
-							break;
-						case ScriptFieldType::String:
-							out << YAML::Key << "Value" << YAML::Value << field.StringValue;
-							break;
-						case ScriptFieldType::Color:
-							out << YAML::Key << "Value" << YAML::Value << YAML::Flow
-								<< YAML::BeginSeq << field.ColorValue.r << field.ColorValue.g
-								<< field.ColorValue.b << field.ColorValue.a << YAML::EndSeq;
-							break;
-						case ScriptFieldType::Vector3:
-							out << YAML::Key << "Value" << YAML::Value << YAML::Flow
-								<< YAML::BeginSeq << field.Vector3Value.x << field.Vector3Value.y
-								<< field.Vector3Value.z << YAML::EndSeq;
-							break;
-					}
-
-					out << YAML::EndMap;
+					if (field.HasOverride) { hasOverrides = true; break; }
 				}
-				out << YAML::EndSeq;
+
+				if (hasOverrides)
+				{
+					out << YAML::Key << "Fields" << YAML::Value << YAML::BeginSeq;
+					for (const auto& field : Fields)
+					{
+						if (!field.HasOverride)
+							continue;
+
+						out << YAML::BeginMap;
+						out << YAML::Key << "Name" << YAML::Value << field.Name;
+						out << YAML::Key << "Type" << YAML::Value << ScriptFieldTypeToString(field.Type);
+
+						switch (field.Type)
+						{
+							case ScriptFieldType::Float:
+								out << YAML::Key << "Value" << YAML::Value << field.FloatValue;
+								break;
+							case ScriptFieldType::Int:
+								out << YAML::Key << "Value" << YAML::Value << field.IntValue;
+								break;
+							case ScriptFieldType::Bool:
+								out << YAML::Key << "Value" << YAML::Value << field.BoolValue;
+								break;
+							case ScriptFieldType::String:
+								out << YAML::Key << "Value" << YAML::Value << field.StringValue;
+								break;
+							case ScriptFieldType::Color:
+								out << YAML::Key << "Value" << YAML::Value << YAML::Flow
+									<< YAML::BeginSeq << field.ColorValue.r << field.ColorValue.g
+									<< field.ColorValue.b << field.ColorValue.a << YAML::EndSeq;
+								break;
+							case ScriptFieldType::Vector3:
+								out << YAML::Key << "Value" << YAML::Value << YAML::Flow
+									<< YAML::BeginSeq << field.Vector3Value.x << field.Vector3Value.y
+									<< field.Vector3Value.z << YAML::EndSeq;
+								break;
+						}
+
+						out << YAML::EndMap;
+					}
+					out << YAML::EndSeq;
+				}
 			}
+			out << YAML::EndMap;
 		}
 
 		void Deserialize(const YAML::Node& node)
@@ -175,6 +184,45 @@ namespace CB
 
 					Fields.push_back(field);
 				}
+			}
+		}
+	};
+
+	struct ScriptComponent
+	{
+		std::vector<ScriptEntry> Scripts;
+
+		static constexpr auto YAMLKey = "ScriptComponent";
+
+		ScriptComponent() = default;
+		ScriptComponent(const ScriptComponent&) = default;
+
+		void Serialize(YAML::Emitter& out) const
+		{
+			out << YAML::Key << "Scripts" << YAML::Value << YAML::BeginSeq;
+			for (const auto& entry : Scripts)
+				entry.Serialize(out);
+			out << YAML::EndSeq;
+		}
+
+		void Deserialize(const YAML::Node& node)
+		{
+			if (node["Scripts"])
+			{
+				// New multi-script format
+				for (auto scriptNode : node["Scripts"])
+				{
+					ScriptEntry entry;
+					entry.Deserialize(scriptNode);
+					Scripts.push_back(entry);
+				}
+			}
+			else if (node["ScriptPath"])
+			{
+				// Legacy single-script format -- auto-migrate
+				ScriptEntry entry;
+				entry.Deserialize(node);
+				Scripts.push_back(entry);
 			}
 		}
 	};

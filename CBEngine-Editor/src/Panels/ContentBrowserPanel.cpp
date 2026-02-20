@@ -489,6 +489,10 @@ namespace CB
                 {
                     CreateLuaScript("New Script");
                 }
+                if (ImGui::MenuItem("GameManager Script"))
+                {
+                    CreateGameManagerScript("CustomGameManager");
+                }
                 ImGui::EndMenu();
             }
 
@@ -1661,6 +1665,36 @@ namespace CB
         }
     }
 
+    // Convert a name like "player controller" to PascalCase "PlayerController"
+    static std::string SanitizeLuaClassName(const std::string& name)
+    {
+        std::string result;
+        bool capitalizeNext = true;
+        for (char c : name)
+        {
+            if (c == ' ' || c == '-' || c == '_')
+            {
+                capitalizeNext = true;
+                continue;
+            }
+            if (capitalizeNext)
+            {
+                result += static_cast<char>(toupper(c));
+                capitalizeNext = false;
+            }
+            else
+            {
+                result += c;
+            }
+        }
+        // Ensure starts with letter
+        if (!result.empty() && isdigit(result[0]))
+            result = "Script" + result;
+        if (result.empty())
+            result = "NewScript";
+        return result;
+    }
+
     void ContentBrowserPanel::CreateLuaScript(const std::string& name)
     {
         std::filesystem::path scriptPath = m_CurrentDirectory / (name + ".lua");
@@ -1672,18 +1706,26 @@ namespace CB
             counter++;
         }
 
+        std::string className = SanitizeLuaClassName(name);
+
         std::ofstream fout(scriptPath);
         if (fout.is_open())
         {
             fout << "-- " << name << ".lua\n\n";
-            fout << "function OnCreate()\n";
+            fout << className << " = {\n";
+            fout << "    __fields = {\n";
+            fout << "        -- Speed = Float(5.0, 0, 100),\n";
+            fout << "        -- Health = Int(100),\n";
+            fout << "    }\n";
+            fout << "}\n\n";
+            fout << "function " << className << ":OnCreate()\n";
             fout << "    -- Called when the entity is created\n";
             fout << "end\n\n";
-            fout << "function OnUpdate(dt)\n";
+            fout << "function " << className << ":OnUpdate(dt)\n";
             fout << "    -- Called every frame\n";
             fout << "    -- dt = delta time in seconds\n";
             fout << "end\n\n";
-            fout << "function OnDestroy()\n";
+            fout << "function " << className << ":OnDestroy()\n";
             fout << "    -- Called when the entity is destroyed\n";
             fout << "end\n";
             fout.close();
@@ -1692,6 +1734,52 @@ namespace CB
             AssetManager::ImportAsset(relativePath);
 
             CB_CORE_INFO("Created Lua script: {0}", scriptPath.string());
+            m_EntriesDirty = true;
+
+            m_IsRenaming = true;
+            m_RenamingPath = scriptPath;
+            strncpy_s(m_RenameBuffer, name.c_str(), sizeof(m_RenameBuffer) - 1);
+        }
+    }
+
+    void ContentBrowserPanel::CreateGameManagerScript(const std::string& name)
+    {
+        std::filesystem::path scriptPath = m_CurrentDirectory / (name + ".lua");
+
+        int counter = 1;
+        while (exists(scriptPath))
+        {
+            scriptPath = m_CurrentDirectory / (name + " " + std::to_string(counter) + ".lua");
+            counter++;
+        }
+
+        std::string className = SanitizeLuaClassName(name);
+
+        std::ofstream fout(scriptPath);
+        if (fout.is_open())
+        {
+            fout << "-- " << name << ".lua\n";
+            fout << "-- Inherits from GameManager base class\n\n";
+            fout << className << " = GameManager:Extend()\n\n";
+            fout << className << ".__fields = {\n";
+            fout << "    -- MaxScore = Int(100),\n";
+            fout << "    -- GameTime = Float(120.0, 0, 600),\n";
+            fout << "}\n\n";
+            fout << "function " << className << ":OnCreate()\n";
+            fout << "    -- Called when the game manager is created\n";
+            fout << "end\n\n";
+            fout << "function " << className << ":OnUpdate(dt)\n";
+            fout << "    -- Called every frame\n";
+            fout << "end\n\n";
+            fout << "function " << className << ":OnDestroy()\n";
+            fout << "    -- Called when the game manager is destroyed\n";
+            fout << "end\n";
+            fout.close();
+
+            std::filesystem::path relativePath = relative(scriptPath, m_BaseDirectory);
+            AssetManager::ImportAsset(relativePath);
+
+            CB_CORE_INFO("Created GameManager script: {0}", scriptPath.string());
             m_EntriesDirty = true;
 
             m_IsRenaming = true;

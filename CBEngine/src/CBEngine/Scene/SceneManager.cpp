@@ -3,6 +3,9 @@
 #include "SceneSerializer.h"
 #include "CBEngine/Core/Log.h"
 #include "CBEngine/Core/Application.h"
+#include "CBEngine/Components/GameManagerComponent.h"
+#include "CBEngine/Components/ScriptComponent.h"
+#include "CBEngine/Scene/Entity.h"
 
 namespace CB
 {
@@ -40,6 +43,14 @@ namespace CB
         s_ActiveScenePath = "";
         s_ActiveSceneName = name;
         s_SceneModified = false;
+
+        // Auto-create GameManager entity
+        Entity gmEntity = s_ActiveScene->CreateEntity("GameManager");
+        gmEntity.AddComponent<GameManagerComponent>();
+        auto& scriptComp = gmEntity.AddComponent<ScriptComponent>();
+        ScriptEntry gmScript;
+        gmScript.ScriptPath = "lua/GameManager.lua";
+        scriptComp.Scripts.push_back(gmScript);
 
         NotifySceneChanged();
 

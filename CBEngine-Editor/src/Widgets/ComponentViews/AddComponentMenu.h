@@ -11,6 +11,7 @@
 #include "CBEngine/Components/ColliderComponent.h"
 #include "CBEngine/Components/ScriptComponent.h"
 #include "CBEngine/Components/CameraComponent.h"
+#include "CBEngine/Components/GameManagerComponent.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/AssetRegistry.h"
 
@@ -139,14 +140,30 @@ namespace CB
                     }
                 }
 
+                // Script — always available (adds a new ScriptEntry to the vector)
                 if (!hasFilter || MatchesFilter("Script"))
                 {
-                    if (!entity.HasComponent<ScriptComponent>())
+                    anyComponentShown = true;
+                    if (ImGui::MenuItem("Script"))
+                    {
+                        if (!entity.HasComponent<ScriptComponent>())
+                            entity.AddComponent<ScriptComponent>();
+                        entity.GetComponent<ScriptComponent>().Scripts.push_back(ScriptEntry{});
+                        ImGui::CloseCurrentPopup();
+                    }
+                }
+
+                // Game Manager — singleton per scene
+                if (!hasFilter || MatchesFilter("Game Manager"))
+                {
+                    Scene* scene = entity.GetScene();
+                    bool sceneHasGM = scene && !scene->GetRegistry().view<GameManagerComponent>().empty();
+                    if (!entity.HasComponent<GameManagerComponent>() && !sceneHasGM)
                     {
                         anyComponentShown = true;
-                        if (ImGui::MenuItem("Script"))
+                        if (ImGui::MenuItem("Game Manager"))
                         {
-                            entity.AddComponent<ScriptComponent>();
+                            entity.AddComponent<GameManagerComponent>();
                             ImGui::CloseCurrentPopup();
                         }
                     }
@@ -187,9 +204,10 @@ namespace CB
                             if (!entity.HasComponent<ScriptComponent>())
                                 entity.AddComponent<ScriptComponent>();
 
-                            auto& script = entity.GetComponent<ScriptComponent>();
-                            script.ScriptPath = fullPath;
-                            script.ScriptLoaded = false;
+                            auto& scriptComp = entity.GetComponent<ScriptComponent>();
+                            ScriptEntry entry;
+                            entry.ScriptPath = fullPath;
+                            scriptComp.Scripts.push_back(entry);
                             ImGui::CloseCurrentPopup();
                         }
 

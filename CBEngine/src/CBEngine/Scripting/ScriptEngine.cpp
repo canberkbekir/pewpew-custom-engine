@@ -5,16 +5,45 @@
 #include "CBEngine/Scene/Scene.h"
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Components/ScriptComponent.h"
+#include "CBEngine/Components/GameManagerComponent.h"
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Components/CoreComponents.h"
+#include "CBEngine/Asset/AssetManager.h"
+#include "CBEngine/Asset/Asset.h"
 
 #define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
 
+#include <filesystem>
+
 namespace CB
 {
 	static sol::state* s_LuaState = nullptr;
-	static std::unordered_map<uint64_t, sol::table> s_ScriptInstances;
+
+	// Per-entity: vector of script instances (indexed same as ScriptComponent::Scripts)
+	static std::unordered_map<uint64_t, std::vector<sol::table>> s_ScriptInstances;
+
+	// Cached class tables by script path — ensures same class table reference for GetScript
+	static std::unordered_map<std::string, sol::table> s_ClassTables;
+
+	// Class names already registered as globals — so FindClassTable skips them
+	static std::unordered_set<std::string> s_KnownClassNames;
+
+	// Discovered scripts that inherit from GameManager
+	static std::unordered_set<std::string> s_GameManagerScripts;
+
+	// =========================================================================
+	// File-scope helpers (forward declarations)
+	// =========================================================================
+	static std::string FindClassTable();
+	static void InjectFields(sol::state& lua, sol::table& self, const std::vector<ScriptFieldDef>& fields);
+	static sol::table GetOrLoadClassTable(const std::string& scriptPath, std::string& outClassName);
+	static sol::table CreateScriptInstance(Scene* scene, Entity entity, ScriptEntry& entry);
+	static sol::object GetScriptInstanceByTable(UUID entityUUID, sol::table classTableArg, sol::this_state L);
+
+	// =========================================================================
+	// ScriptEngine public API
+	// =========================================================================
 
 	void ScriptEngine::Init()
 	{
@@ -28,10 +57,16 @@ namespace CB
 			sol::lib::string,
 			sol::lib::table,
 			sol::lib::os,
-			sol::lib::coroutine
+			sol::lib::coroutine,
+			sol::lib::package
 		);
 
 		RegisterBindings();
+
+		// Configure Lua package.path for engine and user scripts
+		(*s_LuaState)["package"]["path"] = "lua/?.lua;assets/scripts/?.lua";
+
+		PreloadBaseScripts();
 
 		CB_CORE_INFO("ScriptEngine initialized (Lua 5.4)");
 	}
@@ -39,6 +74,9 @@ namespace CB
 	void ScriptEngine::Shutdown()
 	{
 		s_ScriptInstances.clear();
+		s_ClassTables.clear();
+		s_KnownClassNames.clear();
+		s_GameManagerScripts.clear();
 		delete s_LuaState;
 		s_LuaState = nullptr;
 		CB_CORE_INFO("ScriptEngine shut down");
@@ -53,6 +91,32 @@ namespace CB
 	void ScriptEngine::RegisterBindings()
 	{
 		LuaBindings::RegisterAll(*s_LuaState);
+		RegisterScriptBindings();
+	}
+
+	void ScriptEngine::RegisterScriptBindings()
+	{
+		auto& lua = *s_LuaState;
+
+		// Add entity:GetScript(ClassTable) to the existing Entity usertype
+		sol::usertype<Entity> et = lua["Entity"];
+		et["GetScript"] = [](Entity& e, sol::table classTableArg, sol::this_state L) -> sol::object {
+			if (!e || !e.HasComponent<ScriptComponent>())
+				return sol::make_object(L, sol::nil);
+			return GetScriptInstanceByTable(e.GetUUID(), classTableArg, L);
+		};
+
+		// Add scene:GetGameManager() to the existing Scene usertype
+		sol::usertype<Scene> st = lua["Scene"];
+		st["GetGameManager"] = [](Scene& scene, sol::this_state L) -> sol::object {
+			auto view = scene.GetRegistry().view<GameManagerComponent>();
+			for (auto entity : view)
+			{
+				return sol::make_object(L, Entity{ entity, &scene });
+			}
+			CB_CORE_WARN("[Lua] No GameManager entity found in scene");
+			return sol::make_object(L, sol::nil);
+		};
 	}
 
 	bool ScriptEngine::HasScriptInstance(UUID entityUUID)
@@ -61,9 +125,9 @@ namespace CB
 	}
 
 	// =========================================================================
-	// FindClassTable — scan globals for a table containing a __fields sub-table
+	// FindClassTable — scan globals for a NEW table containing __fields
 	// =========================================================================
-	std::string ScriptEngine::FindClassTable()
+	static std::string FindClassTable()
 	{
 		sol::table globals = s_LuaState->globals();
 		for (auto& pair : globals)
@@ -81,7 +145,13 @@ namespace CB
 				key == "utf8" || key == "_G" || key == "Log" || key == "Input" ||
 				key == "Key" || key == "Mouse" || key == "Vec3" || key == "Vec4" ||
 				key == "Float" || key == "Int" || key == "Bool" || key == "String" ||
-				key == "Color" || key == "Vector3")
+				key == "Color" || key == "Vector3" || key == "BodyType" ||
+				key == "Layer" || key == "Debug" || key == "Quat" ||
+				key == "Entity" || key == "Scene" || key == "Mouse")
+				continue;
+
+			// Skip already-known class tables
+			if (s_KnownClassNames.count(key))
 				continue;
 
 			sol::table tbl = pair.second;
@@ -93,47 +163,46 @@ namespace CB
 	}
 
 	// =========================================================================
-	// ParseScriptFields — parse __fields from a script without play mode
+	// ParseScriptFields — parse __fields from a script entry without play mode
 	// =========================================================================
-	void ScriptEngine::ParseScriptFields(ScriptComponent& script)
+	void ScriptEngine::ParseScriptFields(ScriptEntry& entry)
 	{
-		if (!s_LuaState || script.ScriptPath.empty())
+		if (!s_LuaState || entry.ScriptPath.empty())
 			return;
 
 		try
 		{
-			auto result = s_LuaState->script_file(script.ScriptPath, sol::script_pass_on_error);
+			auto result = s_LuaState->script_file(entry.ScriptPath, sol::script_pass_on_error);
 			if (!result.valid())
 			{
 				sol::error err = result;
-				CB_CORE_ERROR("ParseScriptFields error ({0}): {1}", script.ScriptPath, err.what());
-				script.FieldsParsed = true;
+				CB_CORE_ERROR("ParseScriptFields error ({0}): {1}", entry.ScriptPath, err.what());
+				entry.FieldsParsed = true;
 				return;
 			}
 
 			std::string className = FindClassTable();
 			if (className.empty())
 			{
-				script.ClassName = "";
-				script.FieldsParsed = true;
-				// Clean up — no class table found
+				entry.ClassName = "";
+				entry.FieldsParsed = true;
 				return;
 			}
 
-			script.ClassName = className;
+			entry.ClassName = className;
 
 			sol::table classTable = (*s_LuaState)[className];
 			sol::table fieldsTable = classTable["__fields"];
 
 			// Save existing overrides keyed by name
 			std::unordered_map<std::string, ScriptFieldDef> existingOverrides;
-			for (auto& f : script.Fields)
+			for (auto& f : entry.Fields)
 			{
 				if (f.HasOverride)
 					existingOverrides[f.Name] = f;
 			}
 
-			script.Fields.clear();
+			entry.Fields.clear();
 
 			for (auto& pair : fieldsTable)
 			{
@@ -148,12 +217,10 @@ namespace CB
 				ScriptFieldDef def;
 				def.Name = fieldName;
 
-				// Parse type
 				sol::object typeObj = fieldDef["type"];
 				if (typeObj.valid() && typeObj.get_type() == sol::type::string)
 					def.Type = ScriptFieldTypeFromString(typeObj.as<std::string>());
 
-				// Parse min/max
 				sol::object minObj = fieldDef["min"];
 				if (minObj.valid() && minObj.get_type() == sol::type::number)
 					def.Min = minObj.as<float>();
@@ -161,7 +228,6 @@ namespace CB
 				if (maxObj.valid() && maxObj.get_type() == sol::type::number)
 					def.Max = maxObj.as<float>();
 
-				// Parse default value
 				sol::object defaultObj = fieldDef["default"];
 				if (defaultObj.valid())
 				{
@@ -211,7 +277,6 @@ namespace CB
 					}
 				}
 
-				// Merge with existing override if the user previously edited this field
 				auto it = existingOverrides.find(fieldName);
 				if (it != existingOverrides.end() && it->second.Type == def.Type)
 				{
@@ -224,36 +289,41 @@ namespace CB
 					def.Vector3Value = it->second.Vector3Value;
 				}
 
-				script.Fields.push_back(def);
+				entry.Fields.push_back(def);
 			}
 
-			// Clean up: remove the class table from Lua globals to avoid pollution
-			(*s_LuaState)[className] = sol::nil;
+			// Keep class table in globals for GetScript access, but track it
+			s_KnownClassNames.insert(className);
 
-			script.FieldsParsed = true;
+			// Check if this script inherits from GameManager
+			sol::object isGM = classTable["__isGameManager"];
+			if (isGM.valid() && isGM.get_type() == sol::type::boolean && isGM.as<bool>())
+				s_GameManagerScripts.insert(entry.ScriptPath);
+
+			entry.FieldsParsed = true;
 		}
 		catch (const std::exception& e)
 		{
-			CB_CORE_ERROR("ParseScriptFields exception ({0}): {1}", script.ScriptPath, e.what());
-			script.FieldsParsed = true;
+			CB_CORE_ERROR("ParseScriptFields exception ({0}): {1}", entry.ScriptPath, e.what());
+			entry.FieldsParsed = true;
 		}
 	}
 
 	// =========================================================================
 	// CallOnValidate — invoke OnValidate on the class table when a field changes
 	// =========================================================================
-	void ScriptEngine::CallOnValidate(ScriptComponent& script, const std::string& changedField)
+	void ScriptEngine::CallOnValidate(ScriptEntry& entry, const std::string& changedField)
 	{
-		if (!s_LuaState || script.ScriptPath.empty() || script.ClassName.empty())
+		if (!s_LuaState || entry.ScriptPath.empty() || entry.ClassName.empty())
 			return;
 
 		try
 		{
-			auto result = s_LuaState->script_file(script.ScriptPath, sol::script_pass_on_error);
+			auto result = s_LuaState->script_file(entry.ScriptPath, sol::script_pass_on_error);
 			if (!result.valid())
 			{
 				sol::error err = result;
-				CB_CORE_ERROR("CallOnValidate script error ({0}): {1}", script.ScriptPath, err.what());
+				CB_CORE_ERROR("CallOnValidate script error ({0}): {1}", entry.ScriptPath, err.what());
 				return;
 			}
 
@@ -265,13 +335,12 @@ namespace CB
 			sol::object onValidateObj = classTable["OnValidate"];
 			if (!onValidateObj.is<sol::protected_function>())
 			{
-				(*s_LuaState)[className] = sol::nil;
+				s_KnownClassNames.insert(className);
 				return;
 			}
 
-			// Build a table of current field values
 			sol::table fieldsTable = s_LuaState->create_table();
-			for (const auto& field : script.Fields)
+			for (const auto& field : entry.Fields)
 			{
 				switch (field.Type)
 				{
@@ -301,19 +370,17 @@ namespace CB
 				}
 			}
 
-			// Call OnValidate(classTable, fieldsTable, changedFieldName)
 			sol::protected_function onValidate = onValidateObj;
 			auto callResult = onValidate(classTable, fieldsTable, changedField);
 			if (!callResult.valid())
 			{
 				sol::error err = callResult;
-				CB_CORE_ERROR("OnValidate error ({0}): {1}", script.ScriptPath, err.what());
+				CB_CORE_ERROR("OnValidate error ({0}): {1}", entry.ScriptPath, err.what());
 			}
 			else if (callResult.get_type() == sol::type::table)
 			{
-				// Apply corrected values back
 				sol::table corrected = callResult;
-				for (auto& field : script.Fields)
+				for (auto& field : entry.Fields)
 				{
 					sol::object val = corrected[field.Name];
 					if (!val.valid())
@@ -358,97 +425,434 @@ namespace CB
 				}
 			}
 
-			(*s_LuaState)[className] = sol::nil;
+			s_KnownClassNames.insert(className);
 		}
 		catch (const std::exception& e)
 		{
-			CB_CORE_ERROR("CallOnValidate exception ({0}): {1}", script.ScriptPath, e.what());
+			CB_CORE_ERROR("CallOnValidate exception ({0}): {1}", entry.ScriptPath, e.what());
 		}
 	}
 
 	// =========================================================================
-	// OnEntityCreate — class-method style with __fields support
+	// OnEntityCreate — create instances for all script entries on an entity
 	// =========================================================================
 	void ScriptEngine::OnEntityCreate(Scene* scene, Entity entity)
 	{
 		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
 			return;
 
-		auto& script = entity.GetComponent<ScriptComponent>();
-		if (script.ScriptPath.empty())
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
+		if (scriptComp.Scripts.empty())
 			return;
 
 		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
 
+		auto& instances = s_ScriptInstances[uuid];
+		instances.clear();
+
+		for (auto& entry : scriptComp.Scripts)
+		{
+			sol::table self = CreateScriptInstance(scene, entity, entry);
+			instances.push_back(self);
+		}
+	}
+
+	// =========================================================================
+	// OnEntityUpdate — call OnUpdate on all script instances for an entity
+	// =========================================================================
+	void ScriptEngine::OnEntityUpdate(Scene* scene, Entity entity, Timestep ts)
+	{
+		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
+			return;
+
+		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
+		auto it = s_ScriptInstances.find(uuid);
+		if (it == s_ScriptInstances.end())
+			return;
+
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
+
+		for (size_t i = 0; i < it->second.size(); i++)
+		{
+			sol::table& self = it->second[i];
+			if (!self.valid()) continue;
+
+			sol::object onUpdateObj = self["OnUpdate"];
+			if (onUpdateObj.is<sol::protected_function>())
+			{
+				sol::protected_function onUpdate = onUpdateObj;
+				auto result = onUpdate(self, ts.GetSeconds());
+				if (!result.valid())
+				{
+					sol::error err = result;
+					const String& path = (i < scriptComp.Scripts.size())
+						? scriptComp.Scripts[i].ScriptPath : "unknown";
+					CB_CORE_ERROR("Lua OnUpdate error ({0}): {1}", path, err.what());
+				}
+			}
+		}
+	}
+
+	// =========================================================================
+	// OnEntityDestroy — call OnDestroy on all instances, then clean up
+	// =========================================================================
+	void ScriptEngine::OnEntityDestroy(Scene* scene, Entity entity)
+	{
+		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
+			return;
+
+		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
+		auto it = s_ScriptInstances.find(uuid);
+		if (it == s_ScriptInstances.end())
+			return;
+
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
+
+		for (size_t i = 0; i < it->second.size(); i++)
+		{
+			sol::table& self = it->second[i];
+			if (!self.valid()) continue;
+
+			sol::object onDestroyObj = self["OnDestroy"];
+			if (onDestroyObj.is<sol::protected_function>())
+			{
+				sol::protected_function onDestroy = onDestroyObj;
+				auto result = onDestroy(self);
+				if (!result.valid())
+				{
+					sol::error err = result;
+					const String& path = (i < scriptComp.Scripts.size())
+						? scriptComp.Scripts[i].ScriptPath : "unknown";
+					CB_CORE_ERROR("Lua OnDestroy error ({0}): {1}", path, err.what());
+				}
+			}
+		}
+
+		s_ScriptInstances.erase(it);
+
+		for (auto& entry : scriptComp.Scripts)
+			entry.ScriptLoaded = false;
+	}
+
+	// =========================================================================
+	// OnCollision / OnCollisionEnd — call on all instances
+	// =========================================================================
+	void ScriptEngine::OnCollision(Scene* scene, Entity entity, Entity other,
+		const Vector3& contactPoint, const Vector3& contactNormal)
+	{
+		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
+			return;
+
+		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
+		auto it = s_ScriptInstances.find(uuid);
+		if (it == s_ScriptInstances.end())
+			return;
+
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
+
+		for (size_t i = 0; i < it->second.size(); i++)
+		{
+			sol::table& self = it->second[i];
+			if (!self.valid()) continue;
+
+			sol::object onCollisionObj = self["OnCollisionBegin"];
+			if (onCollisionObj.is<sol::protected_function>())
+			{
+				sol::protected_function onCollisionBegin = onCollisionObj;
+				auto result = onCollisionBegin(self, other, contactPoint, contactNormal);
+				if (!result.valid())
+				{
+					sol::error err = result;
+					const String& path = (i < scriptComp.Scripts.size())
+						? scriptComp.Scripts[i].ScriptPath : "unknown";
+					CB_CORE_ERROR("Lua OnCollisionBegin error ({0}): {1}", path, err.what());
+				}
+			}
+		}
+	}
+
+	void ScriptEngine::OnCollisionEnd(Scene* scene, Entity entity, Entity other)
+	{
+		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
+			return;
+
+		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
+		auto it = s_ScriptInstances.find(uuid);
+		if (it == s_ScriptInstances.end())
+			return;
+
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
+
+		for (size_t i = 0; i < it->second.size(); i++)
+		{
+			sol::table& self = it->second[i];
+			if (!self.valid()) continue;
+
+			sol::object onCollisionEndObj = self["OnCollisionEnd"];
+			if (onCollisionEndObj.is<sol::protected_function>())
+			{
+				sol::protected_function onCollisionEnd = onCollisionEndObj;
+				auto result = onCollisionEnd(self, other);
+				if (!result.valid())
+				{
+					sol::error err = result;
+					const String& path = (i < scriptComp.Scripts.size())
+						? scriptComp.Scripts[i].ScriptPath : "unknown";
+					CB_CORE_ERROR("Lua OnCollisionEnd error ({0}): {1}", path, err.what());
+				}
+			}
+		}
+	}
+
+	void ScriptEngine::ReloadScript(const std::string& path)
+	{
+		s_ClassTables.erase(path);
+		CB_CORE_INFO("Script hot-reload requested: {0}", path);
+	}
+
+	void ScriptEngine::ReloadAllScripts()
+	{
+		s_ClassTables.clear();
+		s_KnownClassNames.clear();
+		CB_CORE_INFO("Reloading all scripts...");
+	}
+
+	// =========================================================================
+	// GameManager discovery
+	// =========================================================================
+
+	void ScriptEngine::PreloadBaseScripts()
+	{
+		if (!s_LuaState)
+			return;
+
+		// Embed GameManager base class directly so it works regardless of working directory
+		static const char* s_GameManagerLua = R"lua(
+GameManager = {
+    __fields = {},
+    __isGameManager = true
+}
+
+function GameManager:Extend()
+    local child = {}
+    child.__fields = {}
+    for k, v in pairs(self.__fields) do child.__fields[k] = v end
+    setmetatable(child, { __index = self })
+    child.__isGameManager = true
+    return child
+end
+
+function GameManager:OnCreate() end
+function GameManager:OnUpdate(dt) end
+function GameManager:OnDestroy() end
+)lua";
+
+		auto result = s_LuaState->script(s_GameManagerLua, sol::script_pass_on_error);
+		if (result.valid())
+		{
+			s_KnownClassNames.insert("GameManager");
+			CB_CORE_INFO("Preloaded GameManager base class");
+		}
+		else
+		{
+			sol::error err = result;
+			CB_CORE_ERROR("Failed to preload GameManager base class: {0}", err.what());
+		}
+	}
+
+	bool ScriptEngine::IsGameManagerScript(const std::string& scriptPath)
+	{
+		if (!s_LuaState || scriptPath.empty())
+			return false;
+
+		// Check cache first
+		if (s_GameManagerScripts.count(scriptPath))
+			return true;
+
 		try
 		{
-			// Load and execute the script file
-			auto result = s_LuaState->script_file(script.ScriptPath, sol::script_pass_on_error);
-			if (!result.valid())
+			std::string className;
+			sol::table classTable = GetOrLoadClassTable(scriptPath, className);
+			if (!classTable.valid())
+				return false;
+
+			sol::object isGM = classTable["__isGameManager"];
+			if (isGM.valid() && isGM.get_type() == sol::type::boolean && isGM.as<bool>())
 			{
-				sol::error err = result;
-				CB_CORE_ERROR("Lua script error ({0}): {1}", script.ScriptPath, err.what());
-				return;
+				s_GameManagerScripts.insert(scriptPath);
+				return true;
 			}
+		}
+		catch (const std::exception& e)
+		{
+			CB_CORE_ERROR("IsGameManagerScript error ({0}): {1}", scriptPath, e.what());
+		}
 
-			// Find the class table (global with __fields)
-			std::string className = FindClassTable();
+		return false;
+	}
 
-			// Create per-entity instance table (self)
+	std::vector<std::string> ScriptEngine::GetGameManagerScripts()
+	{
+		return std::vector<std::string>(s_GameManagerScripts.begin(), s_GameManagerScripts.end());
+	}
+
+	void ScriptEngine::ScanForGameManagerScripts()
+	{
+		s_GameManagerScripts.clear();
+
+		auto& registry = AssetManager::GetRegistry();
+		for (auto& [uuid, metadata] : registry.GetAllAssets())
+		{
+			if (metadata.Type != AssetType::Script)
+				continue;
+
+			std::string scriptPath = "assets/" + metadata.FilePath.string();
+
+			// Normalize path separators
+			std::replace(scriptPath.begin(), scriptPath.end(), '\\', '/');
+
+			IsGameManagerScript(scriptPath);
+		}
+
+		CB_CORE_INFO("Scanned for GameManager scripts, found {0}", s_GameManagerScripts.size());
+	}
+
+	// =========================================================================
+	// File-scope helper implementations
+	// =========================================================================
+
+	static void InjectFields(sol::state& lua, sol::table& self, const std::vector<ScriptFieldDef>& fields)
+	{
+		for (const auto& field : fields)
+		{
+			switch (field.Type)
+			{
+				case ScriptFieldType::Float:
+					self[field.Name] = field.FloatValue;
+					break;
+				case ScriptFieldType::Int:
+					self[field.Name] = field.IntValue;
+					break;
+				case ScriptFieldType::Bool:
+					self[field.Name] = field.BoolValue;
+					break;
+				case ScriptFieldType::String:
+					self[field.Name] = field.StringValue;
+					break;
+				case ScriptFieldType::Color:
+				{
+					const Vector4& c = field.ColorValue;
+					sol::table ct = lua.create_table();
+					ct[1] = c.r; ct[2] = c.g; ct[3] = c.b; ct[4] = c.a;
+					self[field.Name] = ct;
+					break;
+				}
+				case ScriptFieldType::Vector3:
+					self[field.Name] = field.Vector3Value;
+					break;
+			}
+		}
+	}
+
+	static sol::table GetOrLoadClassTable(const std::string& scriptPath, std::string& outClassName)
+	{
+		auto cacheIt = s_ClassTables.find(scriptPath);
+		if (cacheIt != s_ClassTables.end())
+		{
+			outClassName = ""; // Caller should use entry.ClassName
+			return cacheIt->second;
+		}
+
+		auto result = s_LuaState->script_file(scriptPath, sol::script_pass_on_error);
+		if (!result.valid())
+		{
+			sol::error err = result;
+			CB_CORE_ERROR("Lua script error ({0}): {1}", scriptPath, err.what());
+			outClassName = "";
+			return sol::table();
+		}
+
+		std::string className = FindClassTable();
+		if (className.empty())
+		{
+			outClassName = "";
+			return sol::table();
+		}
+
+		sol::table classTable = (*s_LuaState)[className];
+
+		s_ClassTables[scriptPath] = classTable;
+		s_KnownClassNames.insert(className);
+
+		outClassName = className;
+		return classTable;
+	}
+
+	static sol::object GetScriptInstanceByTable(UUID entityUUID, sol::table classTableArg, sol::this_state L)
+	{
+		uint64_t uuid = static_cast<uint64_t>(entityUUID);
+		auto it = s_ScriptInstances.find(uuid);
+		if (it == s_ScriptInstances.end())
+			return sol::make_object(L, sol::nil);
+
+		for (auto& self : it->second)
+		{
+			if (!self.valid()) continue;
+
+			sol::table mt = self[sol::metatable_key];
+			if (!mt.valid()) continue;
+
+			sol::object indexObj = mt["__index"];
+			if (!indexObj.valid() || indexObj.get_type() != sol::type::table)
+				continue;
+
+			sol::table instanceClass = indexObj;
+			if (instanceClass.pointer() == classTableArg.pointer())
+				return sol::make_object(L, self);
+		}
+
+		return sol::make_object(L, sol::nil);
+	}
+
+	static sol::table CreateScriptInstance(Scene* scene, Entity entity, ScriptEntry& entry)
+	{
+		if (entry.ScriptPath.empty())
+			return sol::table();
+
+		try
+		{
+			std::string className;
+			sol::table classTable = GetOrLoadClassTable(entry.ScriptPath, className);
+
 			sol::table self = s_LuaState->create_table();
 
-			if (!className.empty())
+			if (classTable.valid())
 			{
-				// Class-method style: set metatable with __index pointing to class table
-				sol::table classTable = (*s_LuaState)[className];
+				if (className.empty())
+					className = entry.ClassName;
+				else
+					entry.ClassName = className;
 
 				sol::table mt = s_LuaState->create_table();
 				mt["__index"] = classTable;
 				self[sol::metatable_key] = mt;
 
-				script.ClassName = className;
+				if (!entry.FieldsParsed)
+					ScriptEngine::ParseScriptFields(entry);
 
-				// Parse fields if not already done
-				if (!script.FieldsParsed)
-					ParseScriptFields(script);
-
-				// Inject field values into self (override or default)
-				for (const auto& field : script.Fields)
-				{
-					switch (field.Type)
-					{
-						case ScriptFieldType::Float:
-							self[field.Name] = field.HasOverride ? field.FloatValue : field.FloatValue;
-							break;
-						case ScriptFieldType::Int:
-							self[field.Name] = field.HasOverride ? field.IntValue : field.IntValue;
-							break;
-						case ScriptFieldType::Bool:
-							self[field.Name] = field.HasOverride ? field.BoolValue : field.BoolValue;
-							break;
-						case ScriptFieldType::String:
-							self[field.Name] = field.HasOverride ? field.StringValue : field.StringValue;
-							break;
-						case ScriptFieldType::Color:
-						{
-							const Vector4& c = field.ColorValue;
-							sol::table ct = s_LuaState->create_table();
-							ct[1] = c.r; ct[2] = c.g; ct[3] = c.b; ct[4] = c.a;
-							self[field.Name] = ct;
-							break;
-						}
-						case ScriptFieldType::Vector3:
-							self[field.Name] = field.Vector3Value;
-							break;
-					}
-				}
-
-				// Clean up global to avoid pollution between scripts
-				(*s_LuaState)[className] = sol::nil;
+				InjectFields(*s_LuaState, self, entry.Fields);
 			}
 			else
 			{
-				// Legacy flat-function style: copy global functions into self
+				// Legacy flat-function style
+				auto result = s_LuaState->script_file(entry.ScriptPath, sol::script_pass_on_error);
+				if (!result.valid())
+				{
+					sol::error err = result;
+					CB_CORE_ERROR("Lua script error ({0}): {1}", entry.ScriptPath, err.what());
+					return sol::table();
+				}
+
 				sol::table globals = s_LuaState->globals();
 				for (auto& pair : globals)
 				{
@@ -463,14 +867,17 @@ namespace CB
 				}
 			}
 
-			// Store entity/scene references
 			self["_entity"] = entity;
 			self["_scene"] = scene;
 
-			s_ScriptInstances[uuid] = self;
-			script.ScriptLoaded = true;
+			// self:GetScript(ClassTable) — cross-script access on same entity
+			uint64_t entityUUID = static_cast<uint64_t>(entity.GetUUID());
+			self["GetScript"] = [entityUUID](sol::table /*self*/, sol::table classTableArg, sol::this_state L) -> sol::object {
+				return GetScriptInstanceByTable(UUID(entityUUID), classTableArg, L);
+			};
 
-			// Call OnCreate if defined
+			entry.ScriptLoaded = true;
+
 			sol::object onCreateObj = self["OnCreate"];
 			if (onCreateObj.is<sol::protected_function>())
 			{
@@ -479,140 +886,16 @@ namespace CB
 				if (!callResult.valid())
 				{
 					sol::error err = callResult;
-					CB_CORE_ERROR("Lua OnCreate error ({0}): {1}", script.ScriptPath, err.what());
+					CB_CORE_ERROR("Lua OnCreate error ({0}): {1}", entry.ScriptPath, err.what());
 				}
 			}
+
+			return self;
 		}
 		catch (const std::exception& e)
 		{
-			CB_CORE_ERROR("Lua script load error ({0}): {1}", script.ScriptPath, e.what());
+			CB_CORE_ERROR("Lua script load error ({0}): {1}", entry.ScriptPath, e.what());
+			return sol::table();
 		}
-	}
-
-	void ScriptEngine::OnEntityUpdate(Scene* scene, Entity entity, Timestep ts)
-	{
-		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
-			return;
-
-		auto& script = entity.GetComponent<ScriptComponent>();
-		if (!script.ScriptLoaded)
-			return;
-
-		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
-		auto it = s_ScriptInstances.find(uuid);
-		if (it == s_ScriptInstances.end())
-			return;
-
-		sol::table& self = it->second;
-		sol::object onUpdateObj = self["OnUpdate"];
-		if (onUpdateObj.is<sol::protected_function>())
-		{
-			sol::protected_function onUpdate = onUpdateObj;
-			auto result = onUpdate(self, ts.GetSeconds());
-			if (!result.valid())
-			{
-				sol::error err = result;
-				CB_CORE_ERROR("Lua OnUpdate error ({0}): {1}", script.ScriptPath, err.what());
-			}
-		}
-	}
-
-	void ScriptEngine::OnEntityDestroy(Scene* scene, Entity entity)
-	{
-		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
-			return;
-
-		auto& script = entity.GetComponent<ScriptComponent>();
-		if (!script.ScriptLoaded)
-			return;
-
-		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
-		auto it = s_ScriptInstances.find(uuid);
-		if (it == s_ScriptInstances.end())
-			return;
-
-		sol::table& self = it->second;
-		sol::object onDestroyObj = self["OnDestroy"];
-		if (onDestroyObj.is<sol::protected_function>())
-		{
-			sol::protected_function onDestroy = onDestroyObj;
-			auto result = onDestroy(self);
-			if (!result.valid())
-			{
-				sol::error err = result;
-				CB_CORE_ERROR("Lua OnDestroy error ({0}): {1}", script.ScriptPath, err.what());
-			}
-		}
-
-		s_ScriptInstances.erase(it);
-		script.ScriptLoaded = false;
-	}
-
-	void ScriptEngine::OnCollision(Scene* scene, Entity entity, Entity other,
-		const Vector3& contactPoint, const Vector3& contactNormal)
-	{
-		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
-			return;
-
-		auto& script = entity.GetComponent<ScriptComponent>();
-		if (!script.ScriptLoaded)
-			return;
-
-		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
-		auto it = s_ScriptInstances.find(uuid);
-		if (it == s_ScriptInstances.end())
-			return;
-
-		sol::table& self = it->second;
-		sol::object onCollisionObj = self["OnCollisionBegin"];
-		if (onCollisionObj.is<sol::protected_function>())
-		{
-			sol::protected_function onCollisionBegin = onCollisionObj;
-			auto result = onCollisionBegin(self, other, contactPoint, contactNormal);
-			if (!result.valid())
-			{
-				sol::error err = result;
-				CB_CORE_ERROR("Lua OnCollisionBegin error ({0}): {1}", script.ScriptPath, err.what());
-			}
-		}
-	}
-
-	void ScriptEngine::OnCollisionEnd(Scene* scene, Entity entity, Entity other)
-	{
-		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
-			return;
-
-		auto& script = entity.GetComponent<ScriptComponent>();
-		if (!script.ScriptLoaded)
-			return;
-
-		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
-		auto it = s_ScriptInstances.find(uuid);
-		if (it == s_ScriptInstances.end())
-			return;
-
-		sol::table& self = it->second;
-		sol::object onCollisionEndObj = self["OnCollisionEnd"];
-		if (onCollisionEndObj.is<sol::protected_function>())
-		{
-			sol::protected_function onCollisionEnd = onCollisionEndObj;
-			auto result = onCollisionEnd(self, other);
-			if (!result.valid())
-			{
-				sol::error err = result;
-				CB_CORE_ERROR("Lua OnCollisionEnd error ({0}): {1}", script.ScriptPath, err.what());
-			}
-		}
-	}
-
-	void ScriptEngine::ReloadScript(const std::string& path)
-	{
-		// TODO: Implement per-path reload
-		CB_CORE_INFO("Script hot-reload requested: {0}", path);
-	}
-
-	void ScriptEngine::ReloadAllScripts()
-	{
-		CB_CORE_INFO("Reloading all scripts...");
 	}
 }

@@ -20,6 +20,7 @@
 #include "ComponentViews/RigidBodyComponentView.h"
 #include "ComponentViews/ColliderComponentView.h"
 #include "ComponentViews/ScriptComponentView.h"
+#include "ComponentViews/GameManagerComponentView.h"
 #include "ComponentViews/CameraComponentView.h"
 #include "ComponentViews/BlueprintInstanceComponentView.h"
 #include "ComponentViews/AddComponentMenu.h"
@@ -125,6 +126,7 @@ namespace CB
             RigidBodyComponentView::Draw(entity);
             ColliderComponentView::Draw(entity);
             ScriptComponentView::Draw(entity);
+            GameManagerComponentView::Draw(entity);
             BlueprintInstanceComponentView::Draw(entity);
 
             ImGui::Separator();

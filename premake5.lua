@@ -294,9 +294,12 @@ project "Sandbox"
 	    }
 
 		-- Copy Assimp DLL to output folder after build
+		-- Copy engine Lua library to output folder
 		postbuildcommands
 		{
-			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}"
+			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}",
+			"{MKDIR} %{cfg.targetdir}/lua",
+			"{COPYDIR} %{wks.location}CBEngine/src/lua %{cfg.targetdir}/lua"
 		}
 
 	filter "configurations:Debug"
@@ -378,9 +381,12 @@ project "CBEngine-Editor"
 	    }
 
 		-- Copy Assimp DLL to output folder after build
+		-- Copy engine Lua library to output folder
 		postbuildcommands
 		{
-			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}"
+			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}",
+			"{MKDIR} %{cfg.targetdir}/lua",
+			"{COPYDIR} %{wks.location}CBEngine/src/lua %{cfg.targetdir}/lua"
 		}
 
 	filter "configurations:Debug"

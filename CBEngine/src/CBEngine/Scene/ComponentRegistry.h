@@ -24,7 +24,8 @@ namespace CB
         CameraComponent,
         RigidBodyComponent,
         ColliderComponent,
-        ScriptComponent
+        ScriptComponent,
+        GameManagerComponent
     >;
 
     // NOTE: BlueprintInstanceComponent is NOT in SerializableComponents.

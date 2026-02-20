@@ -59,6 +59,7 @@ namespace CB
         void CreateShader(const std::string& name);
         void CreateBlueprint(const std::string& name);
         void CreateLuaScript(const std::string& name);
+        void CreateGameManagerScript(const std::string& name);
 
         // Context Menu Actions
         void ShowInExplorer(const std::filesystem::path& path);

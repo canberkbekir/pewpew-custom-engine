@@ -10,3 +10,4 @@
 #include "ScriptComponent.h"
 #include "CameraComponent.h"
 #include "BlueprintInstanceComponent.h"
+#include "GameManagerComponent.h"

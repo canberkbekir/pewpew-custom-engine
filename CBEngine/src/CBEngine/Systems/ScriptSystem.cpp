@@ -33,10 +33,20 @@ namespace CB
 		for (auto entity : view)
 		{
 			Entity e{entity, scene};
-			auto& script = view.get<ScriptComponent>(entity);
+			auto& scriptComp = view.get<ScriptComponent>(entity);
 
-			// Lazy initialization for scripts added at runtime
-			if (!script.ScriptLoaded && !script.ScriptPath.empty())
+			// Lazy initialization: check if any script entry needs loading
+			bool anyUnloaded = false;
+			for (auto& entry : scriptComp.Scripts)
+			{
+				if (!entry.ScriptLoaded && !entry.ScriptPath.empty())
+				{
+					anyUnloaded = true;
+					break;
+				}
+			}
+
+			if (anyUnloaded)
 			{
 				ScriptEngine::OnEntityCreate(scene, e);
 			}
