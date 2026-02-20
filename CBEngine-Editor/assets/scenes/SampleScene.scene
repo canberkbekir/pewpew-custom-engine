@@ -76,9 +76,7 @@ Entities:
       ScriptPath: C:\Codes\GitKraken\pewpew-custom-engine\CBEngine-Editor\assets\scripts\charactercontroller.lua
       ClassName: CharacterController
       Fields:
-        - Name: JumpForce
-          Type: float
-          Value: 0.5
+        []
   - Entity: 17195169648695367070
     TagComponent:
       Tag: Empty Entity

@@ -15,6 +15,7 @@ CharacterController = {
         GroundSnapEps    = Float(0.08, 0, 1),    -- small tolerance for slopes/steps
         GroundRayStartUp = Float(0.25, 0, 2),    -- start ray a bit above feet
         DebugLogs        = Bool(true),
+        Test             = Vector3(0),
     }
 }
 

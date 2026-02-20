@@ -4,41 +4,41 @@
 ---@meta
 
 --------------------------------------------------------------------------------
--- Vec3
+-- Vector3
 --------------------------------------------------------------------------------
 
----@class Vec3
+---@class Vector3
 ---@field x number
 ---@field y number
 ---@field z number
----@operator add(Vec3): Vec3
----@operator sub(Vec3): Vec3
----@operator mul(number): Vec3
-local Vec3 = {}
+---@operator add(Vector3): Vector3
+---@operator sub(Vector3): Vector3
+---@operator mul(number): Vector3
+local Vector3 = {}
 
----@overload fun(): Vec3
----@overload fun(scalar: number): Vec3
----@overload fun(x: number, y: number, z: number): Vec3
----@return Vec3
-function Vec3(...) end
+---@overload fun(): Vector3
+---@overload fun(scalar: number): Vector3
+---@overload fun(x: number, y: number, z: number): Vector3
+---@return Vector3
+function Vector3(...) end
 
 ---Returns the length (magnitude) of this vector.
 ---@return number
-function Vec3:Length() end
+function Vector3:Length() end
 
 ---Returns a normalized copy of this vector.
----@return Vec3
-function Vec3:Normalized() end
+---@return Vector3
+function Vector3:Normalized() end
 
 ---Returns the dot product of two vectors.
----@param other Vec3
+---@param other Vector3
 ---@return number
-function Vec3:Dot(other) end
+function Vector3:Dot(other) end
 
 ---Returns the cross product of two vectors.
----@param other Vec3
----@return Vec3
-function Vec3:Cross(other) end
+---@param other Vector3
+---@return Vector3
+function Vector3:Cross(other) end
 
 --------------------------------------------------------------------------------
 -- Quat
@@ -56,8 +56,8 @@ local Quat = {}
 ---@return Quat
 function Quat(...) end
 
----Returns euler angles (in radians) as a Vec3.
----@return Vec3
+---Returns euler angles (in radians) as a Vector3.
+---@return Vector3
 function Quat:EulerAngles() end
 
 --------------------------------------------------------------------------------
@@ -70,43 +70,43 @@ local Entity = {}
 -- Transform --
 
 ---Get entity local position.
----@return Vec3
+---@return Vector3
 function Entity:GetPosition() end
 
 ---Set entity local position.
----@param position Vec3
+---@param position Vector3
 function Entity:SetPosition(position) end
 
 ---Get entity world position (takes parent hierarchy into account).
----@return Vec3
+---@return Vector3
 function Entity:GetWorldPosition() end
 
 ---Get entity local rotation as euler angles (radians).
----@return Vec3
+---@return Vector3
 function Entity:GetRotation() end
 
 ---Set entity local rotation from euler angles (radians).
----@param rotation Vec3
+---@param rotation Vector3
 function Entity:SetRotation(rotation) end
 
 ---Get entity local scale.
----@return Vec3
+---@return Vector3
 function Entity:GetScale() end
 
 ---Set entity local scale.
----@param scale Vec3
+---@param scale Vector3
 function Entity:SetScale(scale) end
 
 ---Get the entity's local forward direction vector.
----@return Vec3
+---@return Vector3
 function Entity:GetForward() end
 
 ---Get the entity's local right direction vector.
----@return Vec3
+---@return Vector3
 function Entity:GetRight() end
 
 ---Get the entity's local up direction vector.
----@return Vec3
+---@return Vector3
 function Entity:GetUp() end
 
 -- Identity --
@@ -317,37 +317,37 @@ function Scene:EntityExists(uuid) end
 
 ---Apply a force to an entity (requires RigidBody with active body).
 ---@param entity Entity
----@param force Vec3
+---@param force Vector3
 function Scene:AddForce(entity, force) end
 
 ---Apply a torque to an entity.
 ---@param entity Entity
----@param torque Vec3
+---@param torque Vector3
 function Scene:AddTorque(entity, torque) end
 
 ---Apply an instantaneous impulse to an entity.
 ---@param entity Entity
----@param impulse Vec3
+---@param impulse Vector3
 function Scene:AddImpulse(entity, impulse) end
 
 ---Get the linear velocity of an entity.
 ---@param entity Entity
----@return Vec3
+---@return Vector3
 function Scene:GetLinearVelocity(entity) end
 
 ---Set the linear velocity of an entity.
 ---@param entity Entity
----@param velocity Vec3
+---@param velocity Vector3
 function Scene:SetLinearVelocity(entity, velocity) end
 
 ---Get the angular velocity of an entity.
 ---@param entity Entity
----@return Vec3
+---@return Vector3
 function Scene:GetAngularVelocity(entity) end
 
 ---Set the angular velocity of an entity.
 ---@param entity Entity
----@param velocity Vec3
+---@param velocity Vector3
 function Scene:SetAngularVelocity(entity, velocity) end
 
 --------------------------------------------------------------------------------
@@ -531,8 +531,8 @@ function OnDestroy(self) end
 ---Called when this entity collides with another entity.
 ---@param self ScriptSelf
 ---@param other Entity @ The other entity in the collision
----@param contactPoint Vec3 @ World-space contact point
----@param contactNormal Vec3 @ Contact normal pointing from other towards self
+---@param contactPoint Vector3 @ World-space contact point
+---@param contactNormal Vector3 @ Contact normal pointing from other towards self
 function OnCollisionBegin(self, other, contactPoint, contactNormal) end
 
 ---Called when a collision with another entity ends.
