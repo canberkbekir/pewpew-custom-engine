@@ -1,6 +1,7 @@
 #include "cbpch.h"
 #include "ScriptEngine.h"
 #include "LuaBindings.h"
+#include "ComponentProxies.h"
 
 #include "CBEngine/Scene/Scene.h"
 #include "CBEngine/Scene/Entity.h"
@@ -8,6 +9,12 @@
 #include "CBEngine/Components/GameManagerComponent.h"
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Components/CoreComponents.h"
+#include "CBEngine/Components/RigidBodyComponent.h"
+#include "CBEngine/Components/ColliderComponent.h"
+#include "CBEngine/Components/CameraComponent.h"
+#include "CBEngine/Components/MeshRendererComponent.h"
+#include "CBEngine/Components/VoxelRendererComponent.h"
+#include "CBEngine/Components/DirectionalLightComponent.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/Asset.h"
 
@@ -40,6 +47,39 @@ namespace CB
 	static sol::table GetOrLoadClassTable(const std::string& scriptPath, std::string& outClassName);
 	static sol::table CreateScriptInstance(Scene* scene, Entity entity, ScriptEntry& entry);
 	static sol::object GetScriptInstanceByTable(UUID entityUUID, sol::table classTableArg, sol::this_state L);
+
+	// =========================================================================
+	// ResolveScriptPath — resolve relative script paths to actual filesystem paths
+	// =========================================================================
+	static std::string ResolveScriptPath(const std::string& scriptPath)
+	{
+		if (scriptPath.empty())
+			return scriptPath;
+
+		// If the file exists as-is, use it (handles absolute paths and already-correct relative paths)
+		if (std::filesystem::exists(scriptPath))
+			return scriptPath;
+
+		// Try resolving relative to the AssetManager's asset directory
+		// metadata.FilePath is relative to asset root (e.g. "scripts/PlayerMovement.lua")
+		const auto& assetDir = AssetManager::GetAssetDirectory();
+		if (!assetDir.empty())
+		{
+			std::filesystem::path resolved = assetDir / scriptPath;
+			if (std::filesystem::exists(resolved))
+				return resolved.string();
+		}
+
+		// Try prepending "assets/" (common when working dir is CBEngine-Editor/)
+		{
+			std::string withAssets = "assets/" + scriptPath;
+			if (std::filesystem::exists(withAssets))
+				return withAssets;
+		}
+
+		// Return original — let script_file produce the error
+		return scriptPath;
+	}
 
 	// =========================================================================
 	// ScriptEngine public API
@@ -98,16 +138,115 @@ namespace CB
 	{
 		auto& lua = *s_LuaState;
 
-		// Add entity:GetScript(ClassTable) to the existing Entity usertype
 		sol::usertype<Entity> et = lua["Entity"];
+
+		// --- Unified GetComponent(token_or_table) ---
+		// If arg is a table with __component field -> built-in component proxy
+		// If arg is a table without __component -> script class lookup
+		// Also supports legacy string arg for backwards compat
+		et["GetComponent"] = [](Entity& e, sol::object arg, sol::this_state L) -> sol::object {
+			if (!e) return sol::make_object(L, sol::nil);
+
+			std::string componentName;
+
+			if (arg.get_type() == sol::type::string)
+			{
+				// Legacy string-based: entity:GetComponent("RigidBody")
+				componentName = arg.as<std::string>();
+			}
+			else if (arg.get_type() == sol::type::table)
+			{
+				sol::table tbl = arg;
+				sol::object comp = tbl["__component"];
+				if (comp.valid() && comp.get_type() == sol::type::string)
+				{
+					// Built-in component token
+					componentName = comp.as<std::string>();
+				}
+				else
+				{
+					// Script class table — delegate to script instance lookup
+					if (!e.HasComponent<ScriptComponent>())
+						return sol::make_object(L, sol::nil);
+					return GetScriptInstanceByTable(e.GetUUID(), tbl, L);
+				}
+			}
+			else
+			{
+				CB_CORE_WARN("[Lua] GetComponent: expected a component token or class table");
+				return sol::make_object(L, sol::nil);
+			}
+
+			// Dispatch built-in component proxies
+			if (componentName == "RigidBody" || componentName == "RigidBodyComponent")
+			{
+				if (!e.HasComponent<RigidBodyComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, RigidBodyProxy{e});
+			}
+			if (componentName == "Transform" || componentName == "TransformComponent")
+			{
+				if (!e.HasComponent<TransformComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, TransformProxy{e});
+			}
+			if (componentName == "Camera" || componentName == "CameraComponent")
+			{
+				if (!e.HasComponent<CameraComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, CameraProxy{e});
+			}
+			if (componentName == "Collider" || componentName == "ColliderComponent")
+			{
+				if (!e.HasComponent<ColliderComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, ColliderProxy{e});
+			}
+			if (componentName == "MeshRenderer" || componentName == "MeshRendererComponent")
+			{
+				if (!e.HasComponent<MeshRendererComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, MeshRendererProxy{e});
+			}
+			if (componentName == "VoxelRenderer" || componentName == "VoxelRendererComponent")
+			{
+				if (!e.HasComponent<VoxelRendererComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, VoxelRendererProxy{e});
+			}
+			if (componentName == "DirectionalLight" || componentName == "DirectionalLightComponent")
+			{
+				if (!e.HasComponent<DirectionalLightComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, DirectionalLightProxy{e});
+			}
+
+			CB_CORE_WARN("[Lua] GetComponent: unknown component type '{0}'", componentName);
+			return sol::make_object(L, sol::nil);
+		};
+
+		// Keep GetScript as alias for backwards compat (script-class-only lookup)
 		et["GetScript"] = [](Entity& e, sol::table classTableArg, sol::this_state L) -> sol::object {
 			if (!e || !e.HasComponent<ScriptComponent>())
 				return sol::make_object(L, sol::nil);
 			return GetScriptInstanceByTable(e.GetUUID(), classTableArg, L);
 		};
 
-		// Add scene:GetGameManager() to the existing Scene usertype
+		// Add scene methods to the existing Scene usertype
 		sol::usertype<Scene> st = lua["Scene"];
+
+		// scene:GetMainCamera() — returns the entity with Primary=true CameraComponent
+		st["GetMainCamera"] = [](Scene& scene, sol::this_state L) -> sol::object {
+			auto view = scene.GetRegistry().view<CameraComponent>();
+			for (auto entity : view)
+			{
+				auto& cam = view.get<CameraComponent>(entity);
+				if (cam.Primary)
+					return sol::make_object(L, Entity{ entity, &scene });
+			}
+			return sol::make_object(L, sol::nil);
+		};
+
 		st["GetGameManager"] = [](Scene& scene, sol::this_state L) -> sol::object {
 			auto view = scene.GetRegistry().view<GameManagerComponent>();
 			for (auto entity : view)
@@ -134,12 +273,14 @@ namespace CB
 		{
 			if (pair.first.get_type() != sol::type::string)
 				continue;
-			if (pair.second.get_type() != sol::type::table)
-				continue;
 
 			std::string key = pair.first.as<std::string>();
 
-			// Skip built-in Lua globals
+			// Skip non-table types
+			if (pair.second.get_type() != sol::type::table)
+				continue;
+
+			// Skip built-in Lua globals and component token tables
 			if (key == "string" || key == "table" || key == "math" || key == "io" ||
 				key == "os" || key == "coroutine" || key == "debug" || key == "package" ||
 				key == "utf8" || key == "_G" || key == "Log" || key == "Input" ||
@@ -147,7 +288,10 @@ namespace CB
 				key == "Float" || key == "Int" || key == "Bool" || key == "String" ||
 				key == "Color" || key == "Vector3" || key == "BodyType" ||
 				key == "Layer" || key == "Debug" || key == "Quat" ||
-				key == "Entity" || key == "Scene" || key == "Mouse")
+				key == "Entity" || key == "Scene" || key == "Mouse" ||
+				key == "RigidBody" || key == "Transform" || key == "Camera" ||
+				key == "Collider" || key == "MeshRenderer" || key == "VoxelRenderer" ||
+				key == "DirectionalLight" || key == "RaycastHit")
 				continue;
 
 			// Skip already-known class tables
@@ -172,26 +316,41 @@ namespace CB
 
 		try
 		{
-			auto result = s_LuaState->script_file(entry.ScriptPath, sol::script_pass_on_error);
-			if (!result.valid())
-			{
-				sol::error err = result;
-				CB_CORE_ERROR("ParseScriptFields error ({0}): {1}", entry.ScriptPath, err.what());
-				entry.FieldsParsed = true;
-				return;
-			}
+			// Use GetOrLoadClassTable which handles caching — avoids the bug where
+			// ScanForGameManagerScripts adds class names to s_KnownClassNames before
+			// ParseScriptFields runs, making FindClassTable unable to find them.
+			std::string className;
+			sol::table classTable = GetOrLoadClassTable(entry.ScriptPath, className);
 
-			std::string className = FindClassTable();
-			if (className.empty())
+			if (!classTable.valid())
 			{
 				entry.ClassName = "";
 				entry.FieldsParsed = true;
 				return;
 			}
 
-			entry.ClassName = className;
+			// GetOrLoadClassTable returns empty className when using cache;
+			// use entry.ClassName as fallback, or discover from global
+			if (className.empty())
+				className = entry.ClassName;
+			if (className.empty())
+			{
+				// Try to find the class name from the global that points to this table
+				sol::table globals = s_LuaState->globals();
+				for (auto& pair : globals)
+				{
+					if (pair.first.get_type() != sol::type::string) continue;
+					if (pair.second.get_type() != sol::type::table) continue;
+					sol::table tbl = pair.second;
+					if (tbl.pointer() == classTable.pointer())
+					{
+						className = pair.first.as<std::string>();
+						break;
+					}
+				}
+			}
 
-			sol::table classTable = (*s_LuaState)[className];
+			entry.ClassName = className;
 			sol::table fieldsTable = classTable["__fields"];
 
 			// Save existing overrides keyed by name
@@ -319,11 +478,12 @@ namespace CB
 
 		try
 		{
-			auto result = s_LuaState->script_file(entry.ScriptPath, sol::script_pass_on_error);
+			std::string resolved = ResolveScriptPath(entry.ScriptPath);
+			auto result = s_LuaState->script_file(resolved, sol::script_pass_on_error);
 			if (!result.valid())
 			{
 				sol::error err = result;
-				CB_CORE_ERROR("CallOnValidate script error ({0}): {1}", entry.ScriptPath, err.what());
+				CB_CORE_ERROR("CallOnValidate script error ({0}): {1}", resolved, err.what());
 				return;
 			}
 
@@ -756,23 +916,84 @@ function GameManager:OnDestroy() end
 
 	static sol::table GetOrLoadClassTable(const std::string& scriptPath, std::string& outClassName)
 	{
+		// Resolve the path to an actual file on disk
+		std::string resolvedPath = ResolveScriptPath(scriptPath);
+
+		// Check cache with both original and resolved paths
 		auto cacheIt = s_ClassTables.find(scriptPath);
 		if (cacheIt != s_ClassTables.end())
 		{
 			outClassName = ""; // Caller should use entry.ClassName
 			return cacheIt->second;
 		}
+		if (resolvedPath != scriptPath)
+		{
+			cacheIt = s_ClassTables.find(resolvedPath);
+			if (cacheIt != s_ClassTables.end())
+			{
+				// Cache under original path too for future lookups
+				s_ClassTables[scriptPath] = cacheIt->second;
+				outClassName = "";
+				return cacheIt->second;
+			}
+		}
 
-		auto result = s_LuaState->script_file(scriptPath, sol::script_pass_on_error);
+		// Snapshot global table keys AND their table pointers BEFORE running
+		// the script. This lets us detect both NEW globals and globals whose
+		// value was REPLACED (script re-executed and created a new table).
+		std::unordered_map<std::string, const void*> globalsBefore;
+		{
+			sol::table globals = s_LuaState->globals();
+			for (auto& pair : globals)
+			{
+				if (pair.first.get_type() != sol::type::string) continue;
+				std::string key = pair.first.as<std::string>();
+				if (pair.second.get_type() == sol::type::table)
+					globalsBefore[key] = pair.second.as<sol::table>().pointer();
+				else
+					globalsBefore[key] = nullptr;
+			}
+		}
+
+		auto result = s_LuaState->script_file(resolvedPath, sol::script_pass_on_error);
 		if (!result.valid())
 		{
 			sol::error err = result;
-			CB_CORE_ERROR("Lua script error ({0}): {1}", scriptPath, err.what());
+			CB_CORE_ERROR("Lua script error ({0}): {1}", resolvedPath, err.what());
 			outClassName = "";
 			return sol::table();
 		}
 
+		// First try the fast path: FindClassTable (works when s_KnownClassNames is clean)
 		std::string className = FindClassTable();
+
+		// If FindClassTable failed, diff globals to find the class.
+		// Detects both NEW keys and keys whose table pointer CHANGED.
+		if (className.empty())
+		{
+			sol::table globals = s_LuaState->globals();
+			for (auto& pair : globals)
+			{
+				if (pair.first.get_type() != sol::type::string) continue;
+				if (pair.second.get_type() != sol::type::table) continue;
+
+				std::string key = pair.first.as<std::string>();
+				sol::table tbl = pair.second;
+
+				// Check if this is new or changed
+				auto prevIt = globalsBefore.find(key);
+				if (prevIt != globalsBefore.end() && prevIt->second == tbl.pointer())
+					continue; // existed before with same pointer — not from this script
+
+				sol::object fieldsObj = tbl["__fields"];
+				if (fieldsObj.valid() && fieldsObj.get_type() == sol::type::table)
+				{
+					className = key;
+					break;
+				}
+			}
+		}
+
 		if (className.empty())
 		{
 			outClassName = "";
@@ -782,6 +1003,8 @@ function GameManager:OnDestroy() end
 		sol::table classTable = (*s_LuaState)[className];
 
 		s_ClassTables[scriptPath] = classTable;
+		if (resolvedPath != scriptPath)
+			s_ClassTables[resolvedPath] = classTable;
 		s_KnownClassNames.insert(className);
 
 		outClassName = className;
@@ -845,11 +1068,12 @@ function GameManager:OnDestroy() end
 			else
 			{
 				// Legacy flat-function style
-				auto result = s_LuaState->script_file(entry.ScriptPath, sol::script_pass_on_error);
+				std::string resolved = ResolveScriptPath(entry.ScriptPath);
+				auto result = s_LuaState->script_file(resolved, sol::script_pass_on_error);
 				if (!result.valid())
 				{
 					sol::error err = result;
-					CB_CORE_ERROR("Lua script error ({0}): {1}", entry.ScriptPath, err.what());
+					CB_CORE_ERROR("Lua script error ({0}): {1}", resolved, err.what());
 					return sol::table();
 				}
 

@@ -1,0 +1,6 @@
+{
+    "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+    "workspace.library": ["CBEngine/src/lua"],
+    "diagnostics.globals": ["GameManager"],
+    "runtime.version": "Lua 5.4"
+}

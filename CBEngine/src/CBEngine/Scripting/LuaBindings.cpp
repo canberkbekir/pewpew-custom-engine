@@ -1,5 +1,6 @@
 #include "cbpch.h"
 #include "LuaBindings.h"
+#include "ComponentProxies.h"
 
 #define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
@@ -27,6 +28,7 @@
 
 namespace CB
 {
+
 	void LuaBindings::RegisterAll(sol::state& lua)
 	{
 		RegisterMath(lua);
@@ -341,8 +343,18 @@ namespace CB
 			return false;
 		};
 		et["SetPrimaryCamera"] = [](Entity& e, bool primary) {
-			if (e.HasComponent<CameraComponent>())
-				e.GetComponent<CameraComponent>().Primary = primary;
+			if (!e.HasComponent<CameraComponent>()) return;
+			if (primary)
+			{
+				Scene* scene = e.GetScene();
+				if (scene)
+				{
+					auto view = scene->GetRegistry().view<CameraComponent>();
+					for (auto ent : view)
+						view.get<CameraComponent>(ent).Primary = false;
+				}
+			}
+			e.GetComponent<CameraComponent>().Primary = primary;
 		};
 	}
 
@@ -354,6 +366,336 @@ namespace CB
 		bodyType["Dynamic"] = "dynamic";
 		bodyType["Kinematic"] = "kinematic";
 
+		// --- RigidBodyProxy usertype ---
+		// Internal name uses __ prefix; the global "RigidBody" is a component token table
+		lua.new_usertype<RigidBodyProxy>("__RigidBodyProxy",
+			// Forces & impulses
+			"AddForce", [](RigidBodyProxy& rb, const Vector3& force) {
+				if (!rb.IsValid()) { CB_CORE_WARN("[Lua] RigidBody:AddForce - body not ready"); return; }
+				auto* world = rb.GetWorld();
+				if (!world) return;
+				world->GetBodyInterface().AddForce(rb.GetBodyID(), JPH::Vec3(force.x, force.y, force.z));
+			},
+			"AddTorque", [](RigidBodyProxy& rb, const Vector3& torque) {
+				if (!rb.IsValid()) { CB_CORE_WARN("[Lua] RigidBody:AddTorque - body not ready"); return; }
+				auto* world = rb.GetWorld();
+				if (!world) return;
+				world->GetBodyInterface().AddTorque(rb.GetBodyID(), JPH::Vec3(torque.x, torque.y, torque.z));
+			},
+			"AddImpulse", [](RigidBodyProxy& rb, const Vector3& impulse) {
+				if (!rb.IsValid()) { CB_CORE_WARN("[Lua] RigidBody:AddImpulse - body not ready"); return; }
+				auto* world = rb.GetWorld();
+				if (!world) return;
+				world->GetBodyInterface().AddImpulse(rb.GetBodyID(), JPH::Vec3(impulse.x, impulse.y, impulse.z));
+			},
+
+			// Velocity
+			"GetLinearVelocity", [](RigidBodyProxy& rb) -> Vector3 {
+				if (!rb.IsValid()) return Vector3(0.0f);
+				auto* world = rb.GetWorld();
+				if (!world) return Vector3(0.0f);
+				JPH::Vec3 vel = world->GetBodyInterface().GetLinearVelocity(rb.GetBodyID());
+				return Vector3(vel.GetX(), vel.GetY(), vel.GetZ());
+			},
+			"SetLinearVelocity", [](RigidBodyProxy& rb, const Vector3& vel) {
+				if (!rb.IsValid()) return;
+				auto* world = rb.GetWorld();
+				if (!world) return;
+				world->GetBodyInterface().SetLinearVelocity(rb.GetBodyID(), JPH::Vec3(vel.x, vel.y, vel.z));
+			},
+			"GetAngularVelocity", [](RigidBodyProxy& rb) -> Vector3 {
+				if (!rb.IsValid()) return Vector3(0.0f);
+				auto* world = rb.GetWorld();
+				if (!world) return Vector3(0.0f);
+				JPH::Vec3 vel = world->GetBodyInterface().GetAngularVelocity(rb.GetBodyID());
+				return Vector3(vel.GetX(), vel.GetY(), vel.GetZ());
+			},
+			"SetAngularVelocity", [](RigidBodyProxy& rb, const Vector3& vel) {
+				if (!rb.IsValid()) return;
+				auto* world = rb.GetWorld();
+				if (!world) return;
+				world->GetBodyInterface().SetAngularVelocity(rb.GetBodyID(), JPH::Vec3(vel.x, vel.y, vel.z));
+			},
+
+			// Properties
+			"GetMass", [](RigidBodyProxy& rb) -> float {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return 0.0f;
+				return rb.OwnerEntity.GetComponent<RigidBodyComponent>().Mass;
+			},
+			"SetMass", [](RigidBodyProxy& rb, float mass) {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return;
+				rb.OwnerEntity.GetComponent<RigidBodyComponent>().Mass = mass;
+			},
+			"GetFriction", [](RigidBodyProxy& rb) -> float {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return 0.0f;
+				return rb.OwnerEntity.GetComponent<RigidBodyComponent>().Friction;
+			},
+			"SetFriction", [](RigidBodyProxy& rb, float friction) {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return;
+				rb.OwnerEntity.GetComponent<RigidBodyComponent>().Friction = friction;
+			},
+			"GetRestitution", [](RigidBodyProxy& rb) -> float {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return 0.0f;
+				return rb.OwnerEntity.GetComponent<RigidBodyComponent>().Restitution;
+			},
+			"SetRestitution", [](RigidBodyProxy& rb, float restitution) {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return;
+				rb.OwnerEntity.GetComponent<RigidBodyComponent>().Restitution = restitution;
+			},
+			"GetLinearDamping", [](RigidBodyProxy& rb) -> float {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return 0.0f;
+				return rb.OwnerEntity.GetComponent<RigidBodyComponent>().LinearDamping;
+			},
+			"SetLinearDamping", [](RigidBodyProxy& rb, float damping) {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return;
+				rb.OwnerEntity.GetComponent<RigidBodyComponent>().LinearDamping = damping;
+			},
+			"GetAngularDamping", [](RigidBodyProxy& rb) -> float {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return 0.0f;
+				return rb.OwnerEntity.GetComponent<RigidBodyComponent>().AngularDamping;
+			},
+			"SetAngularDamping", [](RigidBodyProxy& rb, float damping) {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return;
+				rb.OwnerEntity.GetComponent<RigidBodyComponent>().AngularDamping = damping;
+			},
+			"IsUsingGravity", [](RigidBodyProxy& rb) -> bool {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return false;
+				return rb.OwnerEntity.GetComponent<RigidBodyComponent>().UseGravity;
+			},
+			"SetUseGravity", [](RigidBodyProxy& rb, bool useGravity) {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return;
+				rb.OwnerEntity.GetComponent<RigidBodyComponent>().UseGravity = useGravity;
+			},
+			"GetBodyType", [](RigidBodyProxy& rb) -> std::string {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return "none";
+				switch (rb.OwnerEntity.GetComponent<RigidBodyComponent>().Type) {
+				case BodyType::Static:    return "static";
+				case BodyType::Dynamic:   return "dynamic";
+				case BodyType::Kinematic: return "kinematic";
+				}
+				return "unknown";
+			},
+			"SetBodyType", [](RigidBodyProxy& rb, const std::string& type) {
+				if (!rb.OwnerEntity || !rb.OwnerEntity.HasComponent<RigidBodyComponent>()) return;
+				auto& comp = rb.OwnerEntity.GetComponent<RigidBodyComponent>();
+				if (type == "static") comp.Type = BodyType::Static;
+				else if (type == "dynamic") comp.Type = BodyType::Dynamic;
+				else if (type == "kinematic") comp.Type = BodyType::Kinematic;
+			},
+			"IsValid", [](RigidBodyProxy& rb) -> bool { return rb.IsValid(); }
+		);
+
+		// --- TransformProxy usertype ---
+		lua.new_usertype<TransformProxy>("__TransformProxy",
+			"GetPosition", [](TransformProxy& tp) -> Vector3 {
+				if (!tp.IsValid()) return Vector3(0.0f);
+				return tp.OwnerEntity.GetComponent<TransformComponent>().Position;
+			},
+			"SetPosition", [](TransformProxy& tp, const Vector3& pos) {
+				if (!tp.IsValid()) return;
+				auto& tc = tp.OwnerEntity.GetComponent<TransformComponent>();
+				tc.Position = pos;
+				tc.Dirty = true;
+			},
+			"GetWorldPosition", [](TransformProxy& tp) -> Vector3 {
+				if (!tp.IsValid()) return Vector3(0.0f);
+				return tp.OwnerEntity.GetComponent<TransformComponent>().GetWorldPosition();
+			},
+			"GetRotation", [](TransformProxy& tp) -> Vector3 {
+				if (!tp.IsValid()) return Vector3(0.0f);
+				return tp.OwnerEntity.GetComponent<TransformComponent>().Rotation;
+			},
+			"SetRotation", [](TransformProxy& tp, const Vector3& rot) {
+				if (!tp.IsValid()) return;
+				auto& tc = tp.OwnerEntity.GetComponent<TransformComponent>();
+				tc.Rotation = rot;
+				tc.Dirty = true;
+			},
+			"GetScale", [](TransformProxy& tp) -> Vector3 {
+				if (!tp.IsValid()) return Vector3(1.0f);
+				return tp.OwnerEntity.GetComponent<TransformComponent>().Scale;
+			},
+			"SetScale", [](TransformProxy& tp, const Vector3& scale) {
+				if (!tp.IsValid()) return;
+				auto& tc = tp.OwnerEntity.GetComponent<TransformComponent>();
+				tc.Scale = scale;
+				tc.Dirty = true;
+			},
+			"GetForward", [](TransformProxy& tp) -> Vector3 {
+				if (!tp.IsValid()) return Vector3(0.0f, 0.0f, 1.0f);
+				return tp.OwnerEntity.GetComponent<TransformComponent>().GetForward();
+			},
+			"GetRight", [](TransformProxy& tp) -> Vector3 {
+				if (!tp.IsValid()) return Vector3(1.0f, 0.0f, 0.0f);
+				return tp.OwnerEntity.GetComponent<TransformComponent>().GetRight();
+			},
+			"GetUp", [](TransformProxy& tp) -> Vector3 {
+				if (!tp.IsValid()) return Vector3(0.0f, 1.0f, 0.0f);
+				return tp.OwnerEntity.GetComponent<TransformComponent>().GetUp();
+			},
+			"IsValid", [](TransformProxy& tp) -> bool { return tp.IsValid(); }
+		);
+
+		// --- CameraProxy usertype ---
+		lua.new_usertype<CameraProxy>("__CameraProxy",
+			"GetFOV", [](CameraProxy& cp) -> float {
+				if (!cp.IsValid()) return 0.0f;
+				return cp.OwnerEntity.GetComponent<CameraComponent>().FOV;
+			},
+			"SetFOV", [](CameraProxy& cp, float fov) {
+				if (!cp.IsValid()) return;
+				cp.OwnerEntity.GetComponent<CameraComponent>().FOV = fov;
+			},
+			"GetNearClip", [](CameraProxy& cp) -> float {
+				if (!cp.IsValid()) return 0.0f;
+				return cp.OwnerEntity.GetComponent<CameraComponent>().NearClip;
+			},
+			"SetNearClip", [](CameraProxy& cp, float nearClip) {
+				if (!cp.IsValid()) return;
+				cp.OwnerEntity.GetComponent<CameraComponent>().NearClip = nearClip;
+			},
+			"GetFarClip", [](CameraProxy& cp) -> float {
+				if (!cp.IsValid()) return 0.0f;
+				return cp.OwnerEntity.GetComponent<CameraComponent>().FarClip;
+			},
+			"SetFarClip", [](CameraProxy& cp, float farClip) {
+				if (!cp.IsValid()) return;
+				cp.OwnerEntity.GetComponent<CameraComponent>().FarClip = farClip;
+			},
+			"IsPrimary", [](CameraProxy& cp) -> bool {
+				if (!cp.IsValid()) return false;
+				return cp.OwnerEntity.GetComponent<CameraComponent>().Primary;
+			},
+			"SetPrimary", [](CameraProxy& cp, bool primary) {
+				if (!cp.IsValid()) return;
+				if (primary)
+				{
+					Scene* scene = cp.OwnerEntity.GetScene();
+					if (scene)
+					{
+						auto view = scene->GetRegistry().view<CameraComponent>();
+						for (auto e : view)
+							view.get<CameraComponent>(e).Primary = false;
+					}
+				}
+				cp.OwnerEntity.GetComponent<CameraComponent>().Primary = primary;
+			},
+			"IsValid", [](CameraProxy& cp) -> bool { return cp.IsValid(); }
+		);
+
+		// --- ColliderProxy usertype ---
+		lua.new_usertype<ColliderProxy>("__ColliderProxy",
+			"GetShape", [](ColliderProxy& cp) -> std::string {
+				if (!cp.IsValid()) return "none";
+				switch (cp.OwnerEntity.GetComponent<ColliderComponent>().Shape) {
+				case ColliderShape::Box:           return "box";
+				case ColliderShape::Sphere:        return "sphere";
+				case ColliderShape::Capsule:       return "capsule";
+				case ColliderShape::VoxelCompound: return "voxel_compound";
+				}
+				return "unknown";
+			},
+			"IsTrigger", [](ColliderProxy& cp) -> bool {
+				if (!cp.IsValid()) return false;
+				return cp.OwnerEntity.GetComponent<ColliderComponent>().IsTrigger;
+			},
+			"GetOffset", [](ColliderProxy& cp) -> Vector3 {
+				if (!cp.IsValid()) return Vector3(0.0f);
+				return cp.OwnerEntity.GetComponent<ColliderComponent>().Offset;
+			},
+			"SetOffset", [](ColliderProxy& cp, const Vector3& offset) {
+				if (!cp.IsValid()) return;
+				cp.OwnerEntity.GetComponent<ColliderComponent>().Offset = offset;
+			},
+			"GetHalfExtents", [](ColliderProxy& cp) -> Vector3 {
+				if (!cp.IsValid()) return Vector3(0.5f);
+				return cp.OwnerEntity.GetComponent<ColliderComponent>().HalfExtents;
+			},
+			"GetRadius", [](ColliderProxy& cp) -> float {
+				if (!cp.IsValid()) return 0.0f;
+				return cp.OwnerEntity.GetComponent<ColliderComponent>().Radius;
+			},
+			"IsValid", [](ColliderProxy& cp) -> bool { return cp.IsValid(); }
+		);
+
+		// --- MeshRendererProxy usertype ---
+		lua.new_usertype<MeshRendererProxy>("__MeshRendererProxy",
+			"IsVisible", [](MeshRendererProxy& mp) -> bool {
+				if (!mp.IsValid()) return false;
+				return mp.OwnerEntity.GetComponent<MeshRendererComponent>().Visible;
+			},
+			"SetVisible", [](MeshRendererProxy& mp, bool visible) {
+				if (!mp.IsValid()) return;
+				mp.OwnerEntity.GetComponent<MeshRendererComponent>().Visible = visible;
+			},
+			"IsValid", [](MeshRendererProxy& mp) -> bool { return mp.IsValid(); }
+		);
+
+		// --- VoxelRendererProxy usertype ---
+		lua.new_usertype<VoxelRendererProxy>("__VoxelRendererProxy",
+			"IsVisible", [](VoxelRendererProxy& vp) -> bool {
+				if (!vp.IsValid()) return false;
+				return vp.OwnerEntity.GetComponent<VoxelRendererComponent>().Visible;
+			},
+			"SetVisible", [](VoxelRendererProxy& vp, bool visible) {
+				if (!vp.IsValid()) return;
+				vp.OwnerEntity.GetComponent<VoxelRendererComponent>().Visible = visible;
+			},
+			"IsValid", [](VoxelRendererProxy& vp) -> bool { return vp.IsValid(); }
+		);
+
+		// --- DirectionalLightProxy usertype ---
+		lua.new_usertype<DirectionalLightProxy>("__DirectionalLightProxy",
+			"GetColor", [](DirectionalLightProxy& lp) -> Vector3 {
+				if (!lp.IsValid()) return Vector3(1.0f);
+				return lp.OwnerEntity.GetComponent<DirectionalLightComponent>().Color;
+			},
+			"SetColor", [](DirectionalLightProxy& lp, const Vector3& color) {
+				if (!lp.IsValid()) return;
+				lp.OwnerEntity.GetComponent<DirectionalLightComponent>().Color = color;
+			},
+			"GetIntensity", [](DirectionalLightProxy& lp) -> float {
+				if (!lp.IsValid()) return 0.0f;
+				return lp.OwnerEntity.GetComponent<DirectionalLightComponent>().Intensity;
+			},
+			"SetIntensity", [](DirectionalLightProxy& lp, float intensity) {
+				if (!lp.IsValid()) return;
+				lp.OwnerEntity.GetComponent<DirectionalLightComponent>().Intensity = intensity;
+			},
+			"IsCastingShadows", [](DirectionalLightProxy& lp) -> bool {
+				if (!lp.IsValid()) return false;
+				return lp.OwnerEntity.GetComponent<DirectionalLightComponent>().CastShadows;
+			},
+			"SetCastShadows", [](DirectionalLightProxy& lp, bool cast) {
+				if (!lp.IsValid()) return;
+				lp.OwnerEntity.GetComponent<DirectionalLightComponent>().CastShadows = cast;
+			},
+			"IsVisible", [](DirectionalLightProxy& lp) -> bool {
+				if (!lp.IsValid()) return false;
+				return lp.OwnerEntity.GetComponent<DirectionalLightComponent>().Visible;
+			},
+			"SetVisible", [](DirectionalLightProxy& lp, bool visible) {
+				if (!lp.IsValid()) return;
+				lp.OwnerEntity.GetComponent<DirectionalLightComponent>().Visible = visible;
+			},
+			"IsValid", [](DirectionalLightProxy& lp) -> bool { return lp.IsValid(); }
+		);
+
+		// --- Component token globals ---
+		// Each is a plain table with __component = "TypeName" used by GetComponent dispatch
+		auto makeToken = [&](const char* name) {
+			sol::table t = lua.create_table();
+			t["__component"] = name;
+			lua[name] = t;
+		};
+		makeToken("RigidBody");
+		makeToken("Transform");
+		makeToken("Camera");
+		makeToken("Collider");
+		makeToken("MeshRenderer");
+		makeToken("VoxelRenderer");
+		makeToken("DirectionalLight");
+
 		// Physics bindings on Entity
 		auto entity_type = lua["Entity"];
 		if (!entity_type.valid())
@@ -361,7 +703,7 @@ namespace CB
 
 		sol::usertype<Entity> et = entity_type;
 
-		// --- RigidBody properties ---
+		// --- RigidBody properties (legacy direct accessors on Entity, kept for backwards compat) ---
 		et["GetMass"] = [](Entity& e) -> float {
 			if (e.HasComponent<RigidBodyComponent>())
 				return e.GetComponent<RigidBodyComponent>().Mass;
