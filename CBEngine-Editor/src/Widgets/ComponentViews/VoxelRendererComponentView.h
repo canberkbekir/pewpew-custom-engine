@@ -9,6 +9,7 @@
 #include "CBEngine/Utils/VoxelMaterialType.h"
 #include "CBEngine/Asset/VoxelTextureAsset.h"
 #include "../AssetPicker.h"
+#include "../ComponentCard.h"
 
 namespace CB
 {
@@ -20,24 +21,55 @@ namespace CB
             if (!entity.HasComponent<VoxelRendererComponent>())
                 return;
 
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed
-                | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_SpanAvailWidth;
+            bool removed = false;
+            bool reset = false;
+            bool regenerate = false;
 
-            bool opened = ImGui::TreeNodeEx("Voxel Renderer", flags);
+            std::vector<ComponentCard::MenuAction> extraActions;
+            extraActions.push_back({"Regenerate from VoxelMesh", &regenerate});
 
-            // Remove button
-            ImGui::SameLine(ImGui::GetWindowWidth() - 25);
-            if (ImGui::SmallButton("X##RemoveVoxelRenderer"))
+            bool opened = ComponentCard::Begin("Voxel Renderer", true, &removed, &reset, extraActions);
+
+            if (removed)
             {
                 entity.RemoveComponent<VoxelRendererComponent>();
-                if (opened) ImGui::TreePop();
+                ComponentCard::End();
                 return;
+            }
+
+            if (reset)
+            {
+                auto& vr = entity.GetComponent<VoxelRendererComponent>();
+                vr.VoxelMeshUUID = UUID();
+                vr.VoxelTextureUUID = UUID();
+                vr.MeshAsset = nullptr;
+                vr.VoxelTexture = nullptr;
+                vr.HasPalette = false;
+                vr.PaletteColorTexture = nullptr;
+                vr.PaletteMaterialTexture = nullptr;
+                vr.Visible = true;
+            }
+
+            auto& voxelRenderer = entity.GetComponent<VoxelRendererComponent>();
+
+            if (regenerate && voxelRenderer.VoxelMeshUUID.IsValid() && voxelRenderer.VoxelTexture)
+            {
+                auto vmesh = AssetManager::GetAsset<VoxelMeshAsset>(voxelRenderer.VoxelMeshUUID);
+                if (vmesh)
+                {
+                    auto newVtex = VoxelTextureAsset::GenerateFromVmesh(vmesh);
+                    if (newVtex)
+                    {
+                        voxelRenderer.VoxelTexture->PaletteMapping = newVtex->PaletteMapping;
+                        voxelRenderer.VoxelTexture->VoxelOverrides.clear();
+                        voxelRenderer.VoxelTexture->GridSize = newVtex->GridSize;
+                        voxelRenderer.VoxelTexture->VoxelCount = newVtex->VoxelCount;
+                    }
+                }
             }
 
             if (opened)
             {
-                auto& voxelRenderer = entity.GetComponent<VoxelRendererComponent>();
-
                 // Visible checkbox
                 ImGui::Checkbox("Visible", &voxelRenderer.Visible);
 
@@ -59,39 +91,6 @@ namespace CB
                     ImGui::TextDisabled("(%u tris)", voxelRenderer.MeshAsset->GetIndexCount() / 3);
                 }
 
-                // Color Texture picker (samples UVs to build voxel palette)
-                if (AssetPicker::DrawTexture("Color Texture", voxelRenderer.ColorTextureUUID))
-                {
-                    // Re-resolve to rebuild palette from new texture
-                    if (voxelRenderer.VoxelMeshUUID.IsValid())
-                        voxelRenderer.ResolveAssets();
-                }
-
-                // Material picker
-                if (AssetPicker::DrawMaterial("Material", voxelRenderer.MaterialUUID))
-                {
-                    if (voxelRenderer.MaterialUUID.IsValid())
-                        voxelRenderer.MaterialAsset = AssetManager::GetAsset<Material>(voxelRenderer.MaterialUUID);
-                    else
-                        voxelRenderer.MaterialAsset = nullptr;
-                }
-                if (voxelRenderer.MaterialAsset)
-                {
-                    ImGui::SameLine();
-                    Vector3 albedo = voxelRenderer.MaterialAsset->GetAlbedo();
-                    ImGui::ColorButton("##MatPreview", ImVec4(albedo.x, albedo.y, albedo.z, 1.0f),
-                                       ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder, ImVec2(16, 16));
-                }
-
-                // Shader picker
-                if (AssetPicker::DrawShader("Shader", voxelRenderer.ShaderUUID))
-                {
-                    if (voxelRenderer.ShaderUUID.IsValid())
-                        voxelRenderer.ShaderAsset = AssetManager::GetAsset<Shader>(voxelRenderer.ShaderUUID);
-                    else
-                        voxelRenderer.ShaderAsset = nullptr;
-                }
-
                 ImGui::Spacing();
                 ImGui::Separator();
                 ImGui::Spacing();
@@ -100,10 +99,18 @@ namespace CB
                 if (AssetPicker::DrawVoxelTexture("Voxel Texture", voxelRenderer.VoxelTextureUUID))
                 {
                     if (voxelRenderer.VoxelTextureUUID.IsValid())
+                    {
                         voxelRenderer.VoxelTexture = AssetManager::GetAsset<VoxelTextureAsset>(
                             voxelRenderer.VoxelTextureUUID);
+                        if (voxelRenderer.VoxelMeshUUID.IsValid())
+                            voxelRenderer.ResolveAssets();
+                    }
                     else
+                    {
                         voxelRenderer.VoxelTexture = nullptr;
+                        if (voxelRenderer.VoxelMeshUUID.IsValid())
+                            voxelRenderer.ResolveAssets();
+                    }
                 }
 
                 // Show material type distribution if vtex is loaded
@@ -135,38 +142,20 @@ namespace CB
                     if (!vtex->VoxelOverrides.empty())
                         ImGui::TextDisabled("(%zu voxel overrides)", vtex->VoxelOverrides.size());
 
-                    // Regenerate button
-                    if (voxelRenderer.VoxelMeshUUID.IsValid())
+                    // PBR override indicators
+                    if (vtex->HasMetallicOverrides || vtex->HasRoughnessOverrides
+                        || vtex->HasEmissionOverrides || vtex->HasAlbedoOverrides)
                     {
-                        if (ImGui::Button("Regenerate from VoxelMesh"))
-                        {
-                            auto vmesh = AssetManager::GetAsset<VoxelMeshAsset>(voxelRenderer.VoxelMeshUUID);
-                            if (vmesh)
-                            {
-                                auto newVtex = VoxelTextureAsset::GenerateFromVmesh(vmesh);
-                                if (newVtex)
-                                {
-                                    voxelRenderer.VoxelTexture->PaletteMapping = newVtex->PaletteMapping;
-                                    voxelRenderer.VoxelTexture->VoxelOverrides.clear();
-                                    voxelRenderer.VoxelTexture->GridSize = newVtex->GridSize;
-                                    voxelRenderer.VoxelTexture->VoxelCount = newVtex->VoxelCount;
-                                }
-                            }
-                        }
+                        ImGui::TextDisabled("PBR overrides:");
+                        if (vtex->HasMetallicOverrides) { ImGui::SameLine(); ImGui::Text("Met"); }
+                        if (vtex->HasRoughnessOverrides) { ImGui::SameLine(); ImGui::Text("Rough"); }
+                        if (vtex->HasEmissionOverrides) { ImGui::SameLine(); ImGui::Text("Emis"); }
+                        if (vtex->HasAlbedoOverrides) { ImGui::SameLine(); ImGui::Text("Albedo"); }
                     }
                 }
-
-                // Show voxel info
-                if (voxelRenderer.VoxelMeshUUID.IsValid())
-                {
-                    ImGui::Spacing();
-                    ImGui::TextDisabled("Grid: %d | %s",
-                                        voxelRenderer.VoxelSettings.GridSize,
-                                        voxelRenderer.VoxelSettings.Solid ? "Solid" : "Surface");
-                }
-
-                ImGui::TreePop();
             }
+
+            ComponentCard::End();
         }
     };
 }

@@ -6,6 +6,7 @@
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "../AssetPicker.h"
+#include "../ComponentCard.h"
 
 namespace CB
 {
@@ -17,18 +18,28 @@ namespace CB
             if (!entity.HasComponent<MeshRendererComponent>())
                 return;
 
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed
-                | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_SpanAvailWidth;
+            bool removed = false;
+            bool reset = false;
 
-            bool opened = ImGui::TreeNodeEx("Mesh Renderer", flags);
+            bool opened = ComponentCard::Begin("Mesh Renderer", true, &removed, &reset);
 
-            // Remove button
-            ImGui::SameLine(ImGui::GetWindowWidth() - 25);
-            if (ImGui::SmallButton("X##RemoveMeshRenderer"))
+            if (removed)
             {
                 entity.RemoveComponent<MeshRendererComponent>();
-                if (opened) ImGui::TreePop();
+                ComponentCard::End();
                 return;
+            }
+
+            if (reset)
+            {
+                auto& mr = entity.GetComponent<MeshRendererComponent>();
+                mr.MeshUUID = UUID();
+                mr.MaterialUUID = UUID();
+                mr.ShaderUUID = UUID();
+                mr.MeshAsset = nullptr;
+                mr.MaterialAsset = nullptr;
+                mr.ShaderAsset = nullptr;
+                mr.Visible = true;
             }
 
             if (opened)
@@ -93,9 +104,9 @@ namespace CB
                     else
                         meshRenderer.ShaderAsset = nullptr;
                 }
-
-                ImGui::TreePop();
             }
+
+            ComponentCard::End();
         }
     };
 }

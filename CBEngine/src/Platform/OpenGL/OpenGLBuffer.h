@@ -7,6 +7,7 @@ namespace CB
     {
     public:
         OpenGLVertexBuffer(float* vertices, uint32_t size);
+        OpenGLVertexBuffer(uint32_t size); // Dynamic buffer (GL_DYNAMIC_DRAW)
         ~OpenGLVertexBuffer() override;
 
         void Bind() const override;
@@ -14,6 +15,7 @@ namespace CB
 
         const BufferLayout& GetLayout() const override { return m_Layout; }
         void SetLayout(const BufferLayout& layout) override { m_Layout = layout; }
+        void SetSubData(const void* data, uint32_t size, uint32_t offset = 0) override;
 
     private:
         uint32_t m_RendererID;

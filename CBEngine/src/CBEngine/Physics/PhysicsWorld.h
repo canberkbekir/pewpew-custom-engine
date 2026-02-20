@@ -22,10 +22,13 @@
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceTable.h>
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
+#include <Jolt/Physics/Body/BodyFilter.h>
 
 #include "CollisionShapeCache.h"
+#include "PhysicsLayers.h"
 
 #include <functional>
+#include <vector>
 
 namespace CB
 {
@@ -37,12 +40,11 @@ namespace CB
 		static constexpr uint32_t NUM_LAYERS = 2;
 	}
 
-	// Object layers
+	// Object layers — 16 user-facing layers mapped to 2 broadphase layers.
+	// Layer indices match PhysicsLayers::GetLayerName().
 	namespace ObjectLayers
 	{
-		static constexpr JPH::ObjectLayer NON_MOVING = 0;
-		static constexpr JPH::ObjectLayer MOVING = 1;
-		static constexpr uint32_t NUM_LAYERS = 2;
+		static constexpr uint32_t NUM_LAYERS = PhysicsLayers::NUM_LAYERS;
 	}
 
 	struct CollisionCallback
@@ -51,6 +53,15 @@ namespace CB
 		UUID EntityB;
 		Vector3 ContactPoint;
 		Vector3 ContactNormal;
+	};
+
+	struct RaycastHit
+	{
+		UUID EntityUUID;
+		Vector3 Point;
+		Vector3 Normal;
+		float Fraction = 0.0f;
+		float Distance = 0.0f;
 	};
 
 	class PhysicsWorld : public JPH::ContactListener
@@ -82,6 +93,16 @@ namespace CB
 		// Map Jolt BodyID -> Entity UUID for collision callback lookup
 		void RegisterBodyEntity(JPH::BodyID bodyID, UUID entityUUID);
 		void UnregisterBody(JPH::BodyID bodyID);
+		UUID GetEntityFromBody(JPH::BodyID bodyID) const;
+		JPH::BodyID GetBodyFromEntity(UUID entityUUID) const;
+
+		// Raycasting
+		bool Raycast(const Vector3& origin, const Vector3& direction, float maxDistance,
+			RaycastHit& outHit, uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> RaycastAll(const Vector3& origin, const Vector3& direction,
+			float maxDistance, uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
 
 		// JPH::ContactListener interface
 		JPH::ValidateResult OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2,

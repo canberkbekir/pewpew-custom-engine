@@ -8,10 +8,22 @@
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Components/CoreComponents.h"
+#include "CBEngine/Components/MeshRendererComponent.h"
+#include "CBEngine/Components/VoxelRendererComponent.h"
+#include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/RigidBodyComponent.h"
+#include "CBEngine/Components/ColliderComponent.h"
+#include "CBEngine/Components/ScriptComponent.h"
+#include "CBEngine/Components/CameraComponent.h"
 #include "CBEngine/Input/Input.h"
 #include "CBEngine/Input/KeyCodes.h"
 #include "CBEngine/Input/MouseButtonCodes.h"
 #include "CBEngine/Math/CoreMath.h"
+#include "CBEngine/Physics/PhysicsWorld.h"
+#include "CBEngine/Physics/PhysicsLayers.h"
+#include "CBEngine/Debug/DebugDraw.h"
+
+#include <Jolt/Physics/Body/BodyInterface.h>
 
 namespace CB
 {
@@ -22,6 +34,10 @@ namespace CB
 		RegisterEntity(lua);
 		RegisterScene(lua);
 		RegisterLog(lua);
+		RegisterComponents(lua);
+		RegisterPhysics(lua);
+		RegisterDebug(lua);
+		RegisterFieldTypes(lua);
 	}
 
 	void LuaBindings::RegisterMath(sol::state& lua)
@@ -29,6 +45,7 @@ namespace CB
 		// Vec3 type
 		lua.new_usertype<Vector3>("Vec3",
 			sol::constructors<Vector3(), Vector3(float), Vector3(float, float, float)>(),
+			sol::call_constructor, sol::constructors<Vector3(), Vector3(float), Vector3(float, float, float)>(),
 			"x", &Vector3::x,
 			"y", &Vector3::y,
 			"z", &Vector3::z,
@@ -47,6 +64,7 @@ namespace CB
 		// Quat type (simplified)
 		lua.new_usertype<glm::quat>("Quat",
 			sol::constructors<glm::quat(), glm::quat(float, float, float, float)>(),
+			sol::call_constructor, sol::constructors<glm::quat(), glm::quat(float, float, float, float)>(),
 			"w", &glm::quat::w,
 			"x", &glm::quat::x,
 			"y", &glm::quat::y,
@@ -168,10 +186,53 @@ namespace CB
 			"GetName", [](Entity& e) -> std::string {
 				return std::string(e.GetName());
 			},
+			"SetName", [](Entity& e, const std::string& name) {
+				if (e.HasComponent<TagComponent>())
+					e.GetComponent<TagComponent>().Tag = name;
+			},
 			"GetUUID", [](Entity& e) -> uint64_t {
 				return static_cast<uint64_t>(e.GetUUID());
 			},
-			"IsValid", [](Entity& e) -> bool { return static_cast<bool>(e); }
+			"IsValid", [](Entity& e) -> bool { return static_cast<bool>(e); },
+
+			// --- Hierarchy ---
+			"SetParent", [](Entity& e, Entity parent, sol::optional<bool> keepWorld) {
+				e.SetParent(parent, keepWorld.value_or(true));
+			},
+			"RemoveParent", [](Entity& e, sol::optional<bool> keepWorld) {
+				e.RemoveParent(keepWorld.value_or(true));
+			},
+			"GetParent", [](Entity& e) -> Entity {
+				return e.GetParent();
+			},
+			"GetChildren", [](Entity& e, sol::this_state L) -> sol::table {
+				sol::state_view lua(L);
+				sol::table result = lua.create_table();
+				auto children = e.GetChildren();
+				for (size_t i = 0; i < children.size(); i++)
+					result[i + 1] = children[i];
+				return result;
+			},
+			"HasParent", [](Entity& e) -> bool { return e.HasParent(); },
+			"HasChildren", [](Entity& e) -> bool { return e.HasChildren(); },
+			"IsDescendantOf", [](Entity& e, Entity ancestor) -> bool {
+				return e.IsDescendantOf(ancestor);
+			},
+
+			// --- Visibility ---
+			"SetVisible", [](Entity& e, bool visible) {
+				if (e.HasComponent<MeshRendererComponent>())
+					e.GetComponent<MeshRendererComponent>().Visible = visible;
+				if (e.HasComponent<VoxelRendererComponent>())
+					e.GetComponent<VoxelRendererComponent>().Visible = visible;
+			},
+			"IsVisible", [](Entity& e) -> bool {
+				if (e.HasComponent<MeshRendererComponent>())
+					return e.GetComponent<MeshRendererComponent>().Visible;
+				if (e.HasComponent<VoxelRendererComponent>())
+					return e.GetComponent<VoxelRendererComponent>().Visible;
+				return true;
+			}
 		);
 	}
 
@@ -189,6 +250,19 @@ namespace CB
 						return Entity{entity, &scene};
 				}
 				return Entity{};
+			},
+			"CreateEntity", [](Scene& scene, const std::string& name) -> Entity {
+				return scene.CreateEntity(name);
+			},
+			"DestroyEntity", [](Scene& scene, Entity entity) {
+				if (entity)
+					scene.DestroyEntity(entity);
+			},
+			"GetEntityByUUID", [](Scene& scene, uint64_t uuid) -> Entity {
+				return scene.GetEntityByUUID(UUID(uuid));
+			},
+			"EntityExists", [](Scene& scene, uint64_t uuid) -> bool {
+				return scene.EntityExists(UUID(uuid));
 			}
 		);
 	}
@@ -211,6 +285,445 @@ namespace CB
 				result += v.as<std::string>();
 			}
 			CB_CORE_INFO("[Lua] {0}", result);
+		};
+	}
+
+	void LuaBindings::RegisterComponents(sol::state& lua)
+	{
+		// Component presence checks (added to Entity usertype via script-side metatable)
+		// These are registered as free functions that take an Entity
+		auto entity_type = lua["Entity"];
+		if (!entity_type.valid())
+			return;
+
+		sol::usertype<Entity> et = entity_type;
+
+		// Has-component checks
+		et["HasRigidBody"] = [](Entity& e) -> bool { return e.HasComponent<RigidBodyComponent>(); };
+		et["HasCollider"] = [](Entity& e) -> bool { return e.HasComponent<ColliderComponent>(); };
+		et["HasMeshRenderer"] = [](Entity& e) -> bool { return e.HasComponent<MeshRendererComponent>(); };
+		et["HasVoxelRenderer"] = [](Entity& e) -> bool { return e.HasComponent<VoxelRendererComponent>(); };
+		et["HasDirectionalLight"] = [](Entity& e) -> bool { return e.HasComponent<DirectionalLightComponent>(); };
+		et["HasScript"] = [](Entity& e) -> bool { return e.HasComponent<ScriptComponent>(); };
+		et["HasCamera"] = [](Entity& e) -> bool { return e.HasComponent<CameraComponent>(); };
+
+		// Camera accessors
+		et["GetFOV"] = [](Entity& e) -> float {
+			if (e.HasComponent<CameraComponent>())
+				return e.GetComponent<CameraComponent>().FOV;
+			return 0.0f;
+		};
+		et["SetFOV"] = [](Entity& e, float fov) {
+			if (e.HasComponent<CameraComponent>())
+				e.GetComponent<CameraComponent>().FOV = fov;
+		};
+		et["GetNearClip"] = [](Entity& e) -> float {
+			if (e.HasComponent<CameraComponent>())
+				return e.GetComponent<CameraComponent>().NearClip;
+			return 0.0f;
+		};
+		et["SetNearClip"] = [](Entity& e, float nearClip) {
+			if (e.HasComponent<CameraComponent>())
+				e.GetComponent<CameraComponent>().NearClip = nearClip;
+		};
+		et["GetFarClip"] = [](Entity& e) -> float {
+			if (e.HasComponent<CameraComponent>())
+				return e.GetComponent<CameraComponent>().FarClip;
+			return 0.0f;
+		};
+		et["SetFarClip"] = [](Entity& e, float farClip) {
+			if (e.HasComponent<CameraComponent>())
+				e.GetComponent<CameraComponent>().FarClip = farClip;
+		};
+		et["IsPrimaryCamera"] = [](Entity& e) -> bool {
+			if (e.HasComponent<CameraComponent>())
+				return e.GetComponent<CameraComponent>().Primary;
+			return false;
+		};
+		et["SetPrimaryCamera"] = [](Entity& e, bool primary) {
+			if (e.HasComponent<CameraComponent>())
+				e.GetComponent<CameraComponent>().Primary = primary;
+		};
+	}
+
+	void LuaBindings::RegisterPhysics(sol::state& lua)
+	{
+		// BodyType constants
+		auto bodyType = lua.create_named_table("BodyType");
+		bodyType["Static"] = "static";
+		bodyType["Dynamic"] = "dynamic";
+		bodyType["Kinematic"] = "kinematic";
+
+		// Physics bindings on Entity
+		auto entity_type = lua["Entity"];
+		if (!entity_type.valid())
+			return;
+
+		sol::usertype<Entity> et = entity_type;
+
+		// --- RigidBody properties ---
+		et["GetMass"] = [](Entity& e) -> float {
+			if (e.HasComponent<RigidBodyComponent>())
+				return e.GetComponent<RigidBodyComponent>().Mass;
+			return 0.0f;
+		};
+		et["SetMass"] = [](Entity& e, float mass) {
+			if (e.HasComponent<RigidBodyComponent>())
+				e.GetComponent<RigidBodyComponent>().Mass = mass;
+		};
+		et["GetFriction"] = [](Entity& e) -> float {
+			if (e.HasComponent<RigidBodyComponent>())
+				return e.GetComponent<RigidBodyComponent>().Friction;
+			return 0.0f;
+		};
+		et["SetFriction"] = [](Entity& e, float friction) {
+			if (e.HasComponent<RigidBodyComponent>())
+				e.GetComponent<RigidBodyComponent>().Friction = friction;
+		};
+		et["GetRestitution"] = [](Entity& e) -> float {
+			if (e.HasComponent<RigidBodyComponent>())
+				return e.GetComponent<RigidBodyComponent>().Restitution;
+			return 0.0f;
+		};
+		et["SetRestitution"] = [](Entity& e, float restitution) {
+			if (e.HasComponent<RigidBodyComponent>())
+				e.GetComponent<RigidBodyComponent>().Restitution = restitution;
+		};
+		et["GetLinearDamping"] = [](Entity& e) -> float {
+			if (e.HasComponent<RigidBodyComponent>())
+				return e.GetComponent<RigidBodyComponent>().LinearDamping;
+			return 0.0f;
+		};
+		et["SetLinearDamping"] = [](Entity& e, float damping) {
+			if (e.HasComponent<RigidBodyComponent>())
+				e.GetComponent<RigidBodyComponent>().LinearDamping = damping;
+		};
+		et["GetAngularDamping"] = [](Entity& e) -> float {
+			if (e.HasComponent<RigidBodyComponent>())
+				return e.GetComponent<RigidBodyComponent>().AngularDamping;
+			return 0.0f;
+		};
+		et["SetAngularDamping"] = [](Entity& e, float damping) {
+			if (e.HasComponent<RigidBodyComponent>())
+				e.GetComponent<RigidBodyComponent>().AngularDamping = damping;
+		};
+		et["IsUsingGravity"] = [](Entity& e) -> bool {
+			if (e.HasComponent<RigidBodyComponent>())
+				return e.GetComponent<RigidBodyComponent>().UseGravity;
+			return false;
+		};
+		et["SetUseGravity"] = [](Entity& e, bool useGravity) {
+			if (e.HasComponent<RigidBodyComponent>())
+				e.GetComponent<RigidBodyComponent>().UseGravity = useGravity;
+		};
+		et["GetBodyType"] = [](Entity& e) -> std::string {
+			if (!e.HasComponent<RigidBodyComponent>())
+				return "none";
+			switch (e.GetComponent<RigidBodyComponent>().Type)
+			{
+			case BodyType::Static:    return "static";
+			case BodyType::Dynamic:   return "dynamic";
+			case BodyType::Kinematic: return "kinematic";
+			}
+			return "unknown";
+		};
+		et["SetBodyType"] = [](Entity& e, const std::string& type) {
+			if (!e.HasComponent<RigidBodyComponent>())
+				return;
+			auto& rb = e.GetComponent<RigidBodyComponent>();
+			if (type == "static") rb.Type = BodyType::Static;
+			else if (type == "dynamic") rb.Type = BodyType::Dynamic;
+			else if (type == "kinematic") rb.Type = BodyType::Kinematic;
+			else CB_CORE_WARN("[Lua] Unknown body type: {0}", type);
+		};
+
+		// --- Forces & velocity (require active physics body) ---
+		// These need to access the PhysicsWorld through the scene stored in self._scene
+		// We use lambdas that take Entity and a scene pointer stored in the Lua self table
+
+		// Physics force/velocity functions on Scene (use: self._scene:AddForce(self._entity, force))
+		auto scene_type = lua["Scene"];
+		if (!scene_type.valid())
+			return;
+
+		sol::usertype<Scene> st = scene_type;
+
+		st["AddForce"] = [](Scene& scene, Entity entity, const Vector3& force) {
+			if (!entity.HasComponent<RigidBodyComponent>()) {
+				CB_CORE_WARN("[Lua] AddForce: entity has no RigidBody");
+				return;
+			}
+			auto& rb = entity.GetComponent<RigidBodyComponent>();
+			if (!rb.BodyCreated) {
+				CB_CORE_WARN("[Lua] AddForce: physics body not yet created");
+				return;
+			}
+			auto* world = scene.GetPhysicsWorld();
+			if (!world) return;
+			world->GetBodyInterface().AddForce(rb.RuntimeBodyID,
+				JPH::Vec3(force.x, force.y, force.z));
+		};
+
+		st["AddTorque"] = [](Scene& scene, Entity entity, const Vector3& torque) {
+			if (!entity.HasComponent<RigidBodyComponent>()) {
+				CB_CORE_WARN("[Lua] AddTorque: entity has no RigidBody");
+				return;
+			}
+			auto& rb = entity.GetComponent<RigidBodyComponent>();
+			if (!rb.BodyCreated) {
+				CB_CORE_WARN("[Lua] AddTorque: physics body not yet created");
+				return;
+			}
+			auto* world = scene.GetPhysicsWorld();
+			if (!world) return;
+			world->GetBodyInterface().AddTorque(rb.RuntimeBodyID,
+				JPH::Vec3(torque.x, torque.y, torque.z));
+		};
+
+		st["AddImpulse"] = [](Scene& scene, Entity entity, const Vector3& impulse) {
+			if (!entity.HasComponent<RigidBodyComponent>()) {
+				CB_CORE_WARN("[Lua] AddImpulse: entity has no RigidBody");
+				return;
+			}
+			auto& rb = entity.GetComponent<RigidBodyComponent>();
+			if (!rb.BodyCreated) {
+				CB_CORE_WARN("[Lua] AddImpulse: physics body not yet created");
+				return;
+			}
+			auto* world = scene.GetPhysicsWorld();
+			if (!world) return;
+			world->GetBodyInterface().AddImpulse(rb.RuntimeBodyID,
+				JPH::Vec3(impulse.x, impulse.y, impulse.z));
+		};
+
+		st["GetLinearVelocity"] = [](Scene& scene, Entity entity) -> Vector3 {
+			if (!entity.HasComponent<RigidBodyComponent>())
+				return Vector3(0.0f);
+			auto& rb = entity.GetComponent<RigidBodyComponent>();
+			if (!rb.BodyCreated)
+				return Vector3(0.0f);
+			auto* world = scene.GetPhysicsWorld();
+			if (!world) return Vector3(0.0f);
+			JPH::Vec3 vel = world->GetBodyInterface().GetLinearVelocity(rb.RuntimeBodyID);
+			return Vector3(vel.GetX(), vel.GetY(), vel.GetZ());
+		};
+
+		st["SetLinearVelocity"] = [](Scene& scene, Entity entity, const Vector3& vel) {
+			if (!entity.HasComponent<RigidBodyComponent>()) return;
+			auto& rb = entity.GetComponent<RigidBodyComponent>();
+			if (!rb.BodyCreated) return;
+			auto* world = scene.GetPhysicsWorld();
+			if (!world) return;
+			world->GetBodyInterface().SetLinearVelocity(rb.RuntimeBodyID,
+				JPH::Vec3(vel.x, vel.y, vel.z));
+		};
+
+		st["GetAngularVelocity"] = [](Scene& scene, Entity entity) -> Vector3 {
+			if (!entity.HasComponent<RigidBodyComponent>())
+				return Vector3(0.0f);
+			auto& rb = entity.GetComponent<RigidBodyComponent>();
+			if (!rb.BodyCreated)
+				return Vector3(0.0f);
+			auto* world = scene.GetPhysicsWorld();
+			if (!world) return Vector3(0.0f);
+			JPH::Vec3 vel = world->GetBodyInterface().GetAngularVelocity(rb.RuntimeBodyID);
+			return Vector3(vel.GetX(), vel.GetY(), vel.GetZ());
+		};
+
+		st["SetAngularVelocity"] = [](Scene& scene, Entity entity, const Vector3& vel) {
+			if (!entity.HasComponent<RigidBodyComponent>()) return;
+			auto& rb = entity.GetComponent<RigidBodyComponent>();
+			if (!rb.BodyCreated) return;
+			auto* world = scene.GetPhysicsWorld();
+			if (!world) return;
+			world->GetBodyInterface().SetAngularVelocity(rb.RuntimeBodyID,
+				JPH::Vec3(vel.x, vel.y, vel.z));
+		};
+
+		// Collider queries on Entity
+		et["GetColliderShape"] = [](Entity& e) -> std::string {
+			if (!e.HasComponent<ColliderComponent>())
+				return "none";
+			switch (e.GetComponent<ColliderComponent>().Shape)
+			{
+			case ColliderShape::Box:           return "box";
+			case ColliderShape::Sphere:        return "sphere";
+			case ColliderShape::Capsule:       return "capsule";
+			case ColliderShape::VoxelCompound: return "voxel_compound";
+			}
+			return "unknown";
+		};
+		et["IsTrigger"] = [](Entity& e) -> bool {
+			if (e.HasComponent<ColliderComponent>())
+				return e.GetComponent<ColliderComponent>().IsTrigger;
+			return false;
+		};
+
+		// --- Layer accessors on Entity ---
+		et["GetLayer"] = [](Entity& e) -> int {
+			if (e.HasComponent<IDComponent>())
+				return static_cast<int>(e.GetComponent<IDComponent>().Layer);
+			return 0;
+		};
+		et["SetLayer"] = [](Entity& e, int layer) {
+			if (e.HasComponent<IDComponent>())
+				e.GetComponent<IDComponent>().Layer = static_cast<uint8_t>(layer);
+		};
+
+		// --- Raycast on Scene ---
+		// scene:Raycast(origin, dir, maxDist?, layerMask?, ignoreEntity?)
+		st["Raycast"] = [](Scene& scene, const Vector3& origin, const Vector3& dir,
+			sol::optional<float> maxDist, sol::optional<int> layerMask,
+			sol::optional<Entity> ignoreEntity,
+			sol::this_state L) -> sol::object {
+			auto* world = scene.GetPhysicsWorld();
+			if (!world) return sol::make_object(L, sol::nil);
+
+			float dist = maxDist.value_or(1000.0f);
+			uint16_t mask = static_cast<uint16_t>(layerMask.value_or(0xFFFF));
+			UUID ignoreUUID = (ignoreEntity.has_value() && ignoreEntity.value())
+				? ignoreEntity.value().GetUUID() : UUID();
+
+			RaycastHit hit;
+			if (world->Raycast(origin, dir, dist, hit, mask, ignoreUUID))
+				return sol::make_object(L, hit);
+			return sol::make_object(L, sol::nil);
+		};
+
+		// scene:RaycastAll(origin, dir, maxDist?, layerMask?, ignoreEntity?)
+		st["RaycastAll"] = [](Scene& scene, const Vector3& origin, const Vector3& dir,
+			sol::optional<float> maxDist, sol::optional<int> layerMask,
+			sol::optional<Entity> ignoreEntity, sol::this_state L) -> sol::table {
+			sol::state_view lua(L);
+			sol::table result = lua.create_table();
+
+			auto* world = scene.GetPhysicsWorld();
+			if (!world) return result;
+
+			float dist = maxDist.value_or(1000.0f);
+			uint16_t mask = static_cast<uint16_t>(layerMask.value_or(0xFFFF));
+			UUID ignoreUUID = (ignoreEntity.has_value() && ignoreEntity.value())
+				? ignoreEntity.value().GetUUID() : UUID();
+
+			auto hits = world->RaycastAll(origin, dir, dist, mask, ignoreUUID);
+			for (size_t i = 0; i < hits.size(); i++)
+				result[i + 1] = hits[i];
+			return result;
+		};
+
+		// --- Layer constants ---
+		auto layerTable = lua.create_named_table("Layer");
+		layerTable["Default"] = 0;
+		layerTable["Player"] = 1;
+		layerTable["Enemy"] = 2;
+		layerTable["Environment"] = 3;
+		layerTable["Projectile"] = 4;
+		layerTable["Trigger"] = 5;
+		layerTable["IgnoreRaycast"] = 6;
+		layerTable["All"] = 0xFFFF;
+
+		layerTable["Mask"] = [](sol::variadic_args va) -> int {
+			uint16_t mask = 0;
+			for (auto v : va)
+				mask |= static_cast<uint16_t>(1 << v.as<int>());
+			return static_cast<int>(mask);
+		};
+	}
+
+	void LuaBindings::RegisterDebug(sol::state& lua)
+	{
+		// RaycastHit usertype
+		lua.new_usertype<RaycastHit>("RaycastHit",
+			"point", &RaycastHit::Point,
+			"normal", &RaycastHit::Normal,
+			"fraction", &RaycastHit::Fraction,
+			"distance", &RaycastHit::Distance,
+			"GetEntity", [](RaycastHit& hit, Scene& scene) -> Entity {
+				return scene.GetEntityByUUID(hit.EntityUUID);
+			}
+		);
+
+		// Debug draw table
+		auto debug = lua.create_named_table("Debug");
+
+		debug["DrawLine"] = [](const Vector3& from, const Vector3& to,
+			sol::optional<Vector3> color, sol::optional<float> duration) {
+			DebugDraw::DrawLine(from, to,
+				color.value_or(Vector3(0.0f, 1.0f, 0.0f)),
+				duration.value_or(0.0f));
+		};
+
+		debug["DrawRay"] = [](const Vector3& origin, const Vector3& direction,
+			sol::optional<float> maxDist, sol::optional<Vector3> color,
+			sol::optional<float> duration) {
+			DebugDraw::DrawRay(origin, direction,
+				maxDist.value_or(100.0f),
+				color.value_or(Vector3(1.0f, 0.0f, 0.0f)),
+				duration.value_or(0.0f));
+		};
+	}
+
+	void LuaBindings::RegisterFieldTypes(sol::state& lua)
+	{
+		lua["Float"] = [](sol::optional<float> def, sol::optional<float> min, sol::optional<float> max, sol::this_state L) -> sol::table {
+			sol::state_view sv(L);
+			sol::table t = sv.create_table();
+			t["type"] = "float";
+			t["default"] = def.value_or(0.0f);
+			if (min) t["min"] = min.value();
+			if (max) t["max"] = max.value();
+			return t;
+		};
+
+		lua["Int"] = [](sol::optional<int> def, sol::optional<int> min, sol::optional<int> max, sol::this_state L) -> sol::table {
+			sol::state_view sv(L);
+			sol::table t = sv.create_table();
+			t["type"] = "int";
+			t["default"] = def.value_or(0);
+			if (min) t["min"] = min.value();
+			if (max) t["max"] = max.value();
+			return t;
+		};
+
+		lua["Bool"] = [](sol::optional<bool> def, sol::this_state L) -> sol::table {
+			sol::state_view sv(L);
+			sol::table t = sv.create_table();
+			t["type"] = "bool";
+			t["default"] = def.value_or(false);
+			return t;
+		};
+
+		lua["String"] = [](sol::optional<std::string> def, sol::this_state L) -> sol::table {
+			sol::state_view sv(L);
+			sol::table t = sv.create_table();
+			t["type"] = "string";
+			t["default"] = def.value_or("");
+			return t;
+		};
+
+		lua["Color"] = [](sol::optional<float> r, sol::optional<float> g, sol::optional<float> b, sol::optional<float> a, sol::this_state L) -> sol::table {
+			sol::state_view sv(L);
+			sol::table t = sv.create_table();
+			t["type"] = "color";
+			sol::table def = sv.create_table();
+			def[1] = r.value_or(1.0f);
+			def[2] = g.value_or(1.0f);
+			def[3] = b.value_or(1.0f);
+			def[4] = a.value_or(1.0f);
+			t["default"] = def;
+			return t;
+		};
+
+		lua["Vector3"] = [](sol::optional<float> x, sol::optional<float> y, sol::optional<float> z, sol::this_state L) -> sol::table {
+			sol::state_view sv(L);
+			sol::table t = sv.create_table();
+			t["type"] = "vector3";
+			sol::table def = sv.create_table();
+			def[1] = x.value_or(0.0f);
+			def[2] = y.value_or(0.0f);
+			def[3] = z.value_or(0.0f);
+			t["default"] = def;
+			return t;
 		};
 	}
 }

@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Components/RigidBodyComponent.h"
+#include "../ComponentCard.h"
 
 namespace CB
 {
@@ -14,25 +15,28 @@ namespace CB
             if (!entity.HasComponent<RigidBodyComponent>())
                 return;
 
-            ImGuiTreeNodeFlags flags =
-                ImGuiTreeNodeFlags_DefaultOpen |
-                ImGuiTreeNodeFlags_Framed |
-                ImGuiTreeNodeFlags_AllowItemOverlap |
-                ImGuiTreeNodeFlags_SpanAvailWidth;
+            bool removed = false;
+            bool reset = false;
 
-            bool opened = ImGui::TreeNodeEx("Rigid Body", flags);
+            bool opened = ComponentCard::Begin("Rigid Body", true, &removed, &reset);
 
-            // Right-aligned remove button
+            if (removed)
             {
-                float lineHeight = ImGui::GetFrameHeight();
-                float rightX = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - lineHeight;
-                ImGui::SameLine(rightX);
-                if (ImGui::Button("X##RigidBody", ImVec2(lineHeight, lineHeight)))
-                {
-                    entity.RemoveComponent<RigidBodyComponent>();
-                    if (opened) ImGui::TreePop();
-                    return;
-                }
+                entity.RemoveComponent<RigidBodyComponent>();
+                ComponentCard::End();
+                return;
+            }
+
+            if (reset)
+            {
+                auto& rb = entity.GetComponent<RigidBodyComponent>();
+                rb.Type = BodyType::Static;
+                rb.Mass = 1.0f;
+                rb.UseGravity = true;
+                rb.LinearDamping = 0.0f;
+                rb.AngularDamping = 0.05f;
+                rb.Friction = 0.2f;
+                rb.Restitution = 0.0f;
             }
 
             if (opened)
@@ -67,9 +71,9 @@ namespace CB
 
                 ImGui::DragFloat("Friction", &rb.Friction, 0.01f, 0.0f, 1.0f, "%.3f");
                 ImGui::DragFloat("Restitution", &rb.Restitution, 0.01f, 0.0f, 1.0f, "%.3f");
-
-                ImGui::TreePop();
             }
+
+            ComponentCard::End();
         }
     };
 }

@@ -37,6 +37,11 @@ namespace CB
             s_RendererAPI->DrawIndexed(vertexArray);
         }
 
+        static void DrawIndexedInstanced(const Ref<VertexArray>& vertexArray, uint32_t instanceCount)
+        {
+            s_RendererAPI->DrawIndexedInstanced(vertexArray, instanceCount);
+        }
+
     private:
         static Scope<RendererAPI> s_RendererAPI;
     };

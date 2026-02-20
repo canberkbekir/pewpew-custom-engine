@@ -1,0 +1,23 @@
+{
+    "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+    "workspace": {
+        "library": [
+            "../../resources/lua-definitions"
+        ]
+    },
+    "diagnostics": {
+        "globals": [
+            "OnCreate",
+            "OnUpdate",
+            "OnDestroy",
+            "OnCollisionBegin",
+            "OnCollisionEnd"
+        ],
+        "disable": [
+            "lowercase-global"
+        ]
+    },
+    "runtime": {
+        "version": "Lua 5.4"
+    }
+}

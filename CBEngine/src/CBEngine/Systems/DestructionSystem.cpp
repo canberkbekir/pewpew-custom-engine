@@ -150,11 +150,7 @@ namespace CB
 			// This is simplified - in practice you'd read from Jolt
 		}
 
-		// Copy material/shader references
-		Ref<Material> material = voxelRenderer.MaterialAsset;
-		Ref<Shader> shader = voxelRenderer.ShaderAsset;
-		UUID materialUUID = voxelRenderer.MaterialUUID;
-		UUID shaderUUID = voxelRenderer.ShaderUUID;
+		// Copy rendering state for fragments
 		auto palette = vmeshAsset->Palette;
 		auto paletteColorTex = voxelRenderer.PaletteColorTexture;
 		auto paletteMaterialTex = voxelRenderer.PaletteMaterialTexture;
@@ -181,10 +177,6 @@ namespace CB
 
 			// Create VoxelRendererComponent with regenerated mesh
 			auto& fragVoxel = fragEntity.AddComponent<VoxelRendererComponent>();
-			fragVoxel.MaterialAsset = material;
-			fragVoxel.ShaderAsset = shader;
-			fragVoxel.MaterialUUID = materialUUID;
-			fragVoxel.ShaderUUID = shaderUUID;
 			fragVoxel.PaletteColorTexture = paletteColorTex;
 			fragVoxel.PaletteMaterialTexture = paletteMaterialTex;
 			fragVoxel.HasPalette = hasPalette;

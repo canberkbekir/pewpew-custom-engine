@@ -41,4 +41,7 @@ namespace CB::ShaderUniforms
     inline constexpr auto Metallic = "u_Metallic";
     inline constexpr auto Roughness = "u_Roughness";
     inline constexpr auto SmoothAmount = "u_SmoothAmount";
+
+    // Instancing
+    inline constexpr auto UseInstancing = "u_UseInstancing";
 }

@@ -22,6 +22,14 @@ namespace CB
                            const Ref<Texture2D>& paletteColorTex = nullptr,
                            const Ref<Texture2D>& paletteMaterialTex = nullptr);
 
+        // Instanced submit for batched voxel entities sharing the same mesh+palette
+        static void SubmitVoxelBatch(const Ref<Shader>& shader, const Ref<Material>& material,
+                                     const Ref<Mesh>& mesh,
+                                     const Ref<Texture2D>& paletteColorTex,
+                                     const Ref<Texture2D>& paletteMaterialTex,
+                                     const std::vector<Mat4>& transforms,
+                                     const std::vector<int>& entityIDs);
+
         // Light configuration
         static void SetDirectionalLight(const Vector3& direction, const Vector3& color, float intensity);
         static void SetAmbientLight(const Vector3& color);

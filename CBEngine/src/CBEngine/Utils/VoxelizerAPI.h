@@ -227,10 +227,16 @@ namespace CB
 
         // ============ PALETTE METHODS ============
 
-        /// @brief Quantize per-voxel colors into a 256-entry palette
+        /// @brief Quantize per-voxel colors into a 256-entry palette using median-cut
         /// @param voxelColors One RGB color per filled voxel
         /// @return Palette and per-voxel palette indices
         static VoxelPaletteData BuildPaletteFromColors(const std::vector<Vector3>& voxelColors);
+
+        /// @brief Median-cut quantization into up to maxColors palette entries
+        /// @param colors Input colors to quantize
+        /// @param maxColors Maximum palette size (default 256)
+        /// @return Palette entries (average color per bucket)
+        static std::vector<Vector3> BuildPaletteMedianCut(const std::vector<Vector3>& colors, int maxColors = 256);
 
         /// @brief Create renderable mesh from voxel grid with palette indices
         /// @param grid Voxel grid data

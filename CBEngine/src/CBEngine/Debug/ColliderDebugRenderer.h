@@ -25,6 +25,22 @@ namespace CB
 			const Camera& camera, const Vector3& colliderOffset = Vector3(0.0f),
 			const Vector3& color = Vector3(0.0f, 1.0f, 0.0f));
 
+		/// Draw camera frustum wireframe (near plane, far plane, connecting edges).
+		static void DrawCameraFrustum(float fovDegrees, float aspectRatio, float nearClip, float farClip,
+			const Mat4& worldTransform, const Camera& camera,
+			const Vector3& color = Vector3(1.0f, 1.0f, 1.0f));
+
+		/// Draw an XZ ground grid centered at the origin.
+		static void DrawGrid(const Camera& camera, float gridSize = 50.0f, float cellSize = 1.0f,
+			const Vector3& color = Vector3(0.35f, 0.35f, 0.35f),
+			const Vector3& axisColorX = Vector3(0.8f, 0.2f, 0.2f),
+			const Vector3& axisColorZ = Vector3(0.2f, 0.2f, 0.8f));
+
+		/// Upload line vertices and draw them
+		static void DrawLines(const std::vector<Vector3>& vertices,
+			const Mat4& transform, const Camera& camera, const Vector3& color,
+			bool disableDepthTest = true);
+
 	private:
 		static void DrawWireBox(const Vector3& halfExtents, const Vector3& offset,
 			const Mat4& worldTransform, const Camera& camera, const Vector3& color);
@@ -32,10 +48,6 @@ namespace CB
 			const Mat4& worldTransform, const Camera& camera, const Vector3& color);
 		static void DrawWireCapsule(float radius, float halfHeight, const Vector3& offset,
 			const Mat4& worldTransform, const Camera& camera, const Vector3& color);
-
-		/// Upload line vertices and draw them
-		static void DrawLines(const std::vector<Vector3>& vertices,
-			const Mat4& transform, const Camera& camera, const Vector3& color);
 
 		static void GenerateCircleVertices(std::vector<Vector3>& out, const Vector3& center,
 			const Vector3& axis1, const Vector3& axis2, float radius, int segments = 32);

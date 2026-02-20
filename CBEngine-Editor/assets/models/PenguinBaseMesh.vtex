@@ -1,0 +1,7 @@
+# CBEngine Voxel Texture
+version: 3
+sourceVmesh: 3085478738573894273
+gridSize: [111, 128, 114]
+voxelCount: 13500
+paletteMapping:
+  0: Stone

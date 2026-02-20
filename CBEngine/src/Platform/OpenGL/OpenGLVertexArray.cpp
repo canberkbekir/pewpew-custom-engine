@@ -71,6 +71,58 @@ namespace CB
         m_VertexBuffers.push_back(vertexBuffer);
     }
 
+    void OpenGLVertexArray::AddInstancedVertexBuffer(const Ref<VertexBuffer>& vertexBuffer, uint32_t divisor)
+    {
+        CB_CORE_ASSERT(vertexBuffer->GetLayout().GetElements().size(), "Vertex Buffer has no layout!");
+
+        glBindVertexArray(m_RendererID);
+        vertexBuffer->Bind();
+
+        const auto& layout = vertexBuffer->GetLayout();
+        for (const auto& element : layout)
+        {
+            if (element.Type == ShaderDataType::Mat4)
+            {
+                // Mat4 occupies 4 consecutive attribute slots (vec4 each)
+                for (int i = 0; i < 4; i++)
+                {
+                    glEnableVertexAttribArray(m_VertexBufferIndex);
+                    glVertexAttribPointer(m_VertexBufferIndex,
+                                          4, GL_FLOAT, GL_FALSE,
+                                          layout.GetStride(),
+                                          (const void*)(element.Offset + sizeof(float) * 4 * i));
+                    glVertexAttribDivisor(m_VertexBufferIndex, divisor);
+                    m_VertexBufferIndex++;
+                }
+            }
+            else if (element.Type == ShaderDataType::Int)
+            {
+                glEnableVertexAttribArray(m_VertexBufferIndex);
+                glVertexAttribIPointer(m_VertexBufferIndex,
+                                       element.GetComponentCount(),
+                                       ShaderDataTypeToOpenGLBaseType(element.Type),
+                                       layout.GetStride(),
+                                       (const void*)element.Offset);
+                glVertexAttribDivisor(m_VertexBufferIndex, divisor);
+                m_VertexBufferIndex++;
+            }
+            else
+            {
+                glEnableVertexAttribArray(m_VertexBufferIndex);
+                glVertexAttribPointer(m_VertexBufferIndex,
+                                      element.GetComponentCount(),
+                                      ShaderDataTypeToOpenGLBaseType(element.Type),
+                                      element.Normalized ? GL_TRUE : GL_FALSE,
+                                      layout.GetStride(),
+                                      (const void*)element.Offset);
+                glVertexAttribDivisor(m_VertexBufferIndex, divisor);
+                m_VertexBufferIndex++;
+            }
+        }
+
+        m_VertexBuffers.push_back(vertexBuffer);
+    }
+
     void OpenGLVertexArray::SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer)
     {
         glBindVertexArray(m_RendererID);

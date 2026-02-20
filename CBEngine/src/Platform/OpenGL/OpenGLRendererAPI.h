@@ -15,5 +15,6 @@ namespace CB
         void Clear() override;
 
         void DrawIndexed(const Ref<VertexArray>& vertexArray) override;
+        void DrawIndexedInstanced(const Ref<VertexArray>& vertexArray, uint32_t instanceCount) override;
     };
 }

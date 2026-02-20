@@ -7,6 +7,9 @@
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Debug/Instrumentor.h"
 #include "CBEngine/Renderer/Core/Renderer3D.h"
+#include "CBEngine/Utils/VoxelizerAPI.h"
+
+#include <unordered_map>
 
 namespace CB
 {
@@ -86,6 +89,34 @@ namespace CB
 
         auto& registry = scene->GetRegistry();
 
+        Ref<Shader> voxelShader = VoxelizerAPI::GetVoxelShader();
+        if (!voxelShader)
+            voxelShader = defaultShader;
+
+        // Batch key: entities sharing the same vmesh UUID + palette textures
+        struct BatchKey
+        {
+            uint64_t VoxelMeshUUID;
+            bool operator==(const BatchKey& other) const { return VoxelMeshUUID == other.VoxelMeshUUID; }
+        };
+
+        struct BatchKeyHash
+        {
+            size_t operator()(const BatchKey& key) const { return std::hash<uint64_t>()(key.VoxelMeshUUID); }
+        };
+
+        struct BatchEntry
+        {
+            Ref<Mesh> MeshAsset;
+            Ref<Texture2D> PaletteColorTexture;
+            Ref<Texture2D> PaletteMaterialTexture;
+            std::vector<Mat4> Transforms;
+            std::vector<int> EntityIDs;
+        };
+
+        std::unordered_map<BatchKey, BatchEntry, BatchKeyHash> batches;
+        std::vector<entt::entity> nonBatchable; // Non-palette voxels
+
         auto view = registry.view<TransformComponent, VoxelRendererComponent>();
         for (auto e : view)
         {
@@ -95,13 +126,55 @@ namespace CB
             if (!vr.Visible || !vr.MeshAsset)
                 continue;
 
-            Ref<Shader> shader = vr.ShaderAsset ? vr.ShaderAsset : defaultShader;
-            Ref<Material> material = vr.MaterialAsset ? vr.MaterialAsset : defaultMaterial;
+            // Only batch palette-based voxel entities
+            if (vr.HasPalette && vr.PaletteColorTexture && vr.PaletteMaterialTexture && vr.VoxelMeshUUID.IsValid())
+            {
+                BatchKey key{static_cast<uint64_t>(vr.VoxelMeshUUID)};
+                auto& batch = batches[key];
+                if (!batch.MeshAsset)
+                {
+                    batch.MeshAsset = vr.MeshAsset;
+                    batch.PaletteColorTexture = vr.PaletteColorTexture;
+                    batch.PaletteMaterialTexture = vr.PaletteMaterialTexture;
+                }
+                batch.Transforms.push_back(tc.GetTransform());
+                batch.EntityIDs.push_back(static_cast<int>(static_cast<uint32_t>(e)));
+            }
+            else
+            {
+                nonBatchable.push_back(e);
+            }
+        }
 
-            if (!shader || !material)
-                continue;
+        // Submit batched groups
+        for (auto& [key, batch] : batches)
+        {
+            if (batch.Transforms.size() > 1)
+            {
+                // Instanced draw for groups with multiple entities
+                Renderer3D::SubmitVoxelBatch(voxelShader, defaultMaterial,
+                                             batch.MeshAsset,
+                                             batch.PaletteColorTexture,
+                                             batch.PaletteMaterialTexture,
+                                             batch.Transforms,
+                                             batch.EntityIDs);
+            }
+            else
+            {
+                // Single entity — regular submit (avoid instancing overhead)
+                Renderer3D::Submit(voxelShader, defaultMaterial, batch.MeshAsset,
+                                   batch.Transforms[0], batch.EntityIDs[0], false,
+                                   batch.PaletteColorTexture, batch.PaletteMaterialTexture);
+            }
+        }
 
-            Renderer3D::Submit(shader, material, vr.MeshAsset, tc.GetTransform(), static_cast<int>((uint32_t)e),
+        // Submit non-batchable entities individually
+        for (auto e : nonBatchable)
+        {
+            auto& tc = view.get<TransformComponent>(e);
+            auto& vr = view.get<VoxelRendererComponent>(e);
+            Renderer3D::Submit(voxelShader, defaultMaterial, vr.MeshAsset, tc.GetTransform(),
+                               static_cast<int>(static_cast<uint32_t>(e)),
                                !vr.HasPalette, vr.PaletteColorTexture, vr.PaletteMaterialTexture);
         }
     }

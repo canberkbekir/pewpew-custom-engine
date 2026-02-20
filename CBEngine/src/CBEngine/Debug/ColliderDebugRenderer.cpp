@@ -196,6 +196,113 @@ namespace CB
 		}
 	}
 
+	void ColliderDebugRenderer::DrawCameraFrustum(float fovDegrees, float aspectRatio,
+		float nearClip, float farClip, const Mat4& worldTransform, const Camera& camera,
+		const Vector3& color)
+	{
+		if (!s_Initialized)
+			Init();
+
+		// Compute half-sizes of near and far planes
+		float fovRad = glm::radians(fovDegrees);
+		float nearH = std::tan(fovRad * 0.5f) * nearClip;
+		float nearW = nearH * aspectRatio;
+		float farH = std::tan(fovRad * 0.5f) * farClip;
+		float farW = farH * aspectRatio;
+
+		// Frustum corners in local space (camera looks down +Z)
+		Vector3 nearCorners[4] = {
+			{-nearW,  nearH,  nearClip},  // top-left
+			{ nearW,  nearH,  nearClip},  // top-right
+			{ nearW, -nearH,  nearClip},  // bottom-right
+			{-nearW, -nearH,  nearClip},  // bottom-left
+		};
+
+		Vector3 farCorners[4] = {
+			{-farW,  farH,  farClip},
+			{ farW,  farH,  farClip},
+			{ farW, -farH,  farClip},
+			{-farW, -farH,  farClip},
+		};
+
+		std::vector<Vector3> lines;
+		lines.reserve(24 + 4); // 12 edges + 2 direction lines = 28 vertices
+
+		// Near plane rectangle
+		for (int i = 0; i < 4; i++)
+		{
+			lines.push_back(nearCorners[i]);
+			lines.push_back(nearCorners[(i + 1) % 4]);
+		}
+
+		// Far plane rectangle
+		for (int i = 0; i < 4; i++)
+		{
+			lines.push_back(farCorners[i]);
+			lines.push_back(farCorners[(i + 1) % 4]);
+		}
+
+		// Connecting edges (near to far)
+		for (int i = 0; i < 4; i++)
+		{
+			lines.push_back(nearCorners[i]);
+			lines.push_back(farCorners[i]);
+		}
+
+		// Direction line from origin to center of near plane
+		lines.push_back(Vector3(0.0f));
+		lines.push_back(Vector3(0.0f, 0.0f, nearClip));
+
+		DrawLines(lines, worldTransform, camera, color);
+	}
+
+	void ColliderDebugRenderer::DrawGrid(const Camera& camera, float gridSize, float cellSize,
+		const Vector3& color, const Vector3& axisColorX, const Vector3& axisColorZ)
+	{
+		if (!s_Initialized)
+			Init();
+
+		int halfCount = static_cast<int>(gridSize / cellSize);
+
+		// Regular grid lines
+		std::vector<Vector3> gridLines;
+		gridLines.reserve((halfCount * 2 + 1) * 2 * 2); // X lines + Z lines
+
+		for (int i = -halfCount; i <= halfCount; i++)
+		{
+			float pos = static_cast<float>(i) * cellSize;
+
+			// Skip axis lines (drawn separately with different color)
+			if (i == 0)
+				continue;
+
+			// Lines parallel to Z axis
+			gridLines.push_back(Vector3(pos, 0.0f, -gridSize));
+			gridLines.push_back(Vector3(pos, 0.0f, gridSize));
+
+			// Lines parallel to X axis
+			gridLines.push_back(Vector3(-gridSize, 0.0f, pos));
+			gridLines.push_back(Vector3(gridSize, 0.0f, pos));
+		}
+
+		Mat4 identity(1.0f);
+		DrawLines(gridLines, identity, camera, color, false);
+
+		// X axis line (red)
+		std::vector<Vector3> xAxis = {
+			Vector3(-gridSize, 0.0f, 0.0f),
+			Vector3(gridSize, 0.0f, 0.0f)
+		};
+		DrawLines(xAxis, identity, camera, axisColorX, false);
+
+		// Z axis line (blue)
+		std::vector<Vector3> zAxis = {
+			Vector3(0.0f, 0.0f, -gridSize),
+			Vector3(0.0f, 0.0f, gridSize)
+		};
+		DrawLines(zAxis, identity, camera, axisColorZ, false);
+	}
+
 	void ColliderDebugRenderer::GenerateCircleVertices(std::vector<Vector3>& out,
 		const Vector3& center, const Vector3& axis1, const Vector3& axis2, float radius, int segments)
 	{
@@ -210,7 +317,8 @@ namespace CB
 	}
 
 	void ColliderDebugRenderer::DrawLines(const std::vector<Vector3>& vertices,
-		const Mat4& transform, const Camera& camera, const Vector3& color)
+		const Mat4& transform, const Camera& camera, const Vector3& color,
+		bool disableDepthTest)
 	{
 		if (vertices.empty() || !s_Initialized)
 			return;
@@ -232,9 +340,11 @@ namespace CB
 		// Draw
 		glBindVertexArray(s_VAO);
 		glLineWidth(2.0f);
-		glDisable(GL_DEPTH_TEST);
+		if (disableDepthTest)
+			glDisable(GL_DEPTH_TEST);
 		glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(vertexCount));
-		glEnable(GL_DEPTH_TEST);
+		if (disableDepthTest)
+			glEnable(GL_DEPTH_TEST);
 		glBindVertexArray(0);
 
 		s_LineShader->Unbind();

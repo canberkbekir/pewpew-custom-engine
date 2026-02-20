@@ -135,17 +135,13 @@ namespace CB
                 }
             }
 
-            // Reparent children to root
-            for (UUID childUUID : transform.Children)
+            // Recursively destroy all children
+            auto children = transform.Children; // copy, since DestroyEntity modifies the list
+            for (UUID childUUID : children)
             {
                 Entity child = GetEntityByUUID(childUUID);
                 if (child)
-                {
-                    auto& childTransform = child.GetComponent<TransformComponent>();
-                    childTransform.Position = childTransform.GetWorldPosition();
-                    childTransform.Parent = UUID(0);
-                    childTransform.Dirty = true;
-                }
+                    DestroyEntity(child);
             }
         }
 

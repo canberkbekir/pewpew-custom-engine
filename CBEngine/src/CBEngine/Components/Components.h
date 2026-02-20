@@ -8,4 +8,5 @@
 #include "RigidBodyComponent.h"
 #include "ColliderComponent.h"
 #include "ScriptComponent.h"
+#include "CameraComponent.h"
 #include "BlueprintInstanceComponent.h"

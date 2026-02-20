@@ -1,6 +1,7 @@
 #pragma once
 #include "CBEngine/Core/Layer.h"
 #include "CBEngine/FileWatcher/FileWatcher.h"
+#include "CBEngine/Renderer/Resources/Texture.h"
 
 using ImGuiID = unsigned int;
 
@@ -12,6 +13,7 @@ using ImGuiID = unsigned int;
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/MeshImportPanel.h"
 #include "Panels/VoxelTextureEditorPanel.h"
+#include "Panels/GameViewportPanel.h"
 
 #include <queue>
 #include <mutex>
@@ -42,6 +44,7 @@ namespace CB
         void BeginDockspace();
         void EndDockspace();
         void DrawMenuBar();
+        void DrawToolbar();
         void SetupDefaultLayout(ImGuiID dockspace_id);
 
         // Scene file operations
@@ -66,6 +69,15 @@ namespace CB
         ContentBrowserPanel m_ContentBrowserPanel;
         MeshImportPanel m_MeshImportPanel;
         VoxelTextureEditorPanel m_VoxelTextureEditorPanel;
+        GameViewportPanel m_GameViewportPanel;
+
+        // Toolbar icons
+        ImVec2 m_IconSize = {20.f, 20.f};
+        Ref<Texture2D> m_PlayButtonIcon;
+        Ref<Texture2D> m_ResumeButtonIcon;
+        Ref<Texture2D> m_PauseButtonIcon;
+        Ref<Texture2D> m_StopButtonIcon;
+        Ref<Texture2D> m_NextFrameButtonIcon;
 
         // Pending import queue (thread-safe, for FileWatcher callback)
         struct ImportRequest

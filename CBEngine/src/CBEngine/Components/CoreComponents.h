@@ -9,6 +9,7 @@ namespace CB
     struct IDComponent
     {
         UUID ID;
+        uint8_t Layer = 0;
 
         IDComponent() = default;
         IDComponent(const IDComponent&) = default;

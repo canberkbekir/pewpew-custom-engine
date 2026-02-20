@@ -21,11 +21,16 @@ namespace CB
         MeshRendererComponent,
         VoxelRendererComponent,
         DirectionalLightComponent,
+        CameraComponent,
         RigidBodyComponent,
         ColliderComponent,
-        ScriptComponent,
-        BlueprintInstanceComponent
+        ScriptComponent
     >;
+
+    // NOTE: BlueprintInstanceComponent is NOT in SerializableComponents.
+    // It is handled manually in SceneSerializer to avoid it leaking into
+    // .blueprint files (which would cause YAML-in-YAML bloat and
+    // duplicate-component crashes on re-instantiation).
 
     // SFINAE trait: does T have a ResolveAssets() member?
     template <typename T, typename = void>

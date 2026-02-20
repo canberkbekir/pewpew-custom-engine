@@ -15,5 +15,9 @@ namespace CB
 		static void RegisterEntity(sol::state& lua);
 		static void RegisterScene(sol::state& lua);
 		static void RegisterLog(sol::state& lua);
+		static void RegisterComponents(sol::state& lua);
+		static void RegisterPhysics(sol::state& lua);
+		static void RegisterDebug(sol::state& lua);
+		static void RegisterFieldTypes(sol::state& lua);
 	};
 }

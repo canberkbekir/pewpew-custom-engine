@@ -13,6 +13,7 @@ namespace CB
         void Unbind() const override;
 
         void AddVertexBuffer(const Ref<VertexBuffer>& vertexBuffer) override;
+        void AddInstancedVertexBuffer(const Ref<VertexBuffer>& vertexBuffer, uint32_t divisor = 1) override;
         void SetIndexBuffer(const Ref<IndexBuffer>& indexBuffer) override;
 
         const std::vector<Ref<VertexBuffer>>& GetVertexBuffers() const override { return m_VertexBuffers; }

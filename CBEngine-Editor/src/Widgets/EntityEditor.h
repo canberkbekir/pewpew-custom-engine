@@ -9,7 +9,9 @@
 #include "CBEngine/Asset/BlueprintAsset.h"
 #include "CBEngine/Selection/Selection.h"
 
-// Component views
+// Component card and views
+#include "CBEngine/Physics/PhysicsLayers.h"
+#include "ComponentCard.h"
 #include "ComponentViews/TagComponentView.h"
 #include "ComponentViews/TransformComponentView.h"
 #include "ComponentViews/DirectionalLightComponentView.h"
@@ -18,6 +20,7 @@
 #include "ComponentViews/RigidBodyComponentView.h"
 #include "ComponentViews/ColliderComponentView.h"
 #include "ComponentViews/ScriptComponentView.h"
+#include "ComponentViews/CameraComponentView.h"
 #include "ComponentViews/BlueprintInstanceComponentView.h"
 #include "ComponentViews/AddComponentMenu.h"
 
@@ -60,12 +63,65 @@ namespace CB
 
             TagComponentView::Draw(entity);
 
+            // Layer dropdown
+            if (entity.HasComponent<IDComponent>())
+            {
+                auto& id = entity.GetComponent<IDComponent>();
+                int currentLayer = static_cast<int>(id.Layer);
+
+                ImGui::Text("Layer");
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+                if (ImGui::BeginCombo("##Layer", PhysicsLayers::GetLayerName(id.Layer)))
+                {
+                    for (int i = 0; i < PhysicsLayers::NUM_LAYERS; i++)
+                    {
+                        bool isSelected = (currentLayer == i);
+                        if (ImGui::Selectable(PhysicsLayers::GetLayerName(static_cast<uint8_t>(i)), isSelected))
+                        {
+                            uint8_t newLayer = static_cast<uint8_t>(i);
+                            if (newLayer != id.Layer)
+                            {
+                                id.Layer = newLayer;
+
+                                // If entity has children, offer to change their layers too
+                                if (entity.HasChildren())
+                                    ImGui::OpenPopup("ChangeChildLayers");
+                            }
+                        }
+                        if (isSelected)
+                            ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+
+                // Popup for changing children layers
+                if (ImGui::BeginPopupModal("ChangeChildLayers", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+                {
+                    ImGui::Text("Change layer for children too?");
+                    ImGui::Separator();
+
+                    if (ImGui::Button("Yes", ImVec2(120, 0)))
+                    {
+                        SetLayerRecursive(entity, id.Layer);
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("No", ImVec2(120, 0)))
+                    {
+                        ImGui::CloseCurrentPopup();
+                    }
+                    ImGui::EndPopup();
+                }
+            }
+
             ImGui::Separator();
 
             TransformComponentView::Draw(entity);
             DirectionalLightComponentView::Draw(entity);
             MeshRendererComponentView::Draw(entity);
             VoxelRendererComponentView::Draw(entity);
+            CameraComponentView::Draw(entity);
             RigidBodyComponentView::Draw(entity);
             ColliderComponentView::Draw(entity);
             ScriptComponentView::Draw(entity);
@@ -77,6 +133,17 @@ namespace CB
         }
 
     private:
+        static void SetLayerRecursive(Entity entity, uint8_t layer)
+        {
+            for (Entity child : entity.GetChildren())
+            {
+                if (child.HasComponent<IDComponent>())
+                    child.GetComponent<IDComponent>().Layer = layer;
+                if (child.HasChildren())
+                    SetLayerRecursive(child, layer);
+            }
+        }
+
         static void DrawBlueprintInstanceSection(Entity entity)
         {
             if (!entity.HasComponent<BlueprintInstanceComponent>())

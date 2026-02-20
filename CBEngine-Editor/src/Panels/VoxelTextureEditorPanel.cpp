@@ -6,6 +6,7 @@
 #include "CBEngine/Renderer/Core/RenderCommand.h"
 #include "CBEngine/Renderer/Core/Renderer3D.h"
 #include "CBEngine/Asset/AssetManager.h"
+#include "CBEngine/Renderer/Resources/Material.h"
 #include "CBEngine/Utils/VoxelizerAPI.h"
 #include "../Widgets/AssetPicker.h"
 
@@ -124,6 +125,7 @@ namespace CB
         // Reset custom brush tracking
         m_CustomBrushPaletteIndices.clear();
         m_RemovedPaletteIndices.clear();
+        m_SourceMaterialUUID = UUID(0);
 
         // Reset 2D grid / brush state
         m_SelectedBrushIndex = -1;
@@ -449,6 +451,7 @@ namespace CB
 
         if (wasClicked && m_HoveredCell.x >= 0 && m_HoveredCell.y >= 0)
         {
+            m_PaintingActive = true;
             int32_t filledIdx = m_SliceLookup[m_HoveredCell.x * sizeZ + m_HoveredCell.y];
             if (filledIdx >= 0 && filledIdx < static_cast<int32_t>(m_Vmesh->PaletteIndices.size()))
             {
@@ -461,6 +464,11 @@ namespace CB
                     m_MaterialMapDirty = true;
                 }
             }
+        }
+        else if (m_PaintingActive && !mouseDown)
+        {
+            // Mouse released — end painting, allow deferred rebuild
+            m_PaintingActive = false;
         }
     }
 
@@ -633,7 +641,7 @@ namespace CB
         if (!m_Visible)
             return;
 
-        if (m_MaterialMapDirty)
+        if (m_MaterialMapDirty && !m_PaintingActive)
         {
             RebuildMaterialMapMesh();
 
@@ -642,6 +650,23 @@ namespace CB
                 m_ModelMesh = VoxelizerAPI::CreatePaletteMeshFromGrid(m_Vmesh->GridData, m_Vmesh->PaletteIndices);
 
             m_SliceLookupDirty = true;
+        }
+
+        // Palette-only texture re-upload (no geometry rebuild needed)
+        if (m_PaletteTextureDirty)
+        {
+            if (m_Vmesh && m_Vmesh->HasPalette)
+            {
+                VoxelPalette palette = m_Vtex->ApplyOverrides(m_Vmesh->Palette);
+
+                std::vector<uint8_t> colorData, materialData;
+                palette.GenerateColorTextureData(colorData);
+                palette.GenerateMaterialTextureData(materialData);
+
+                m_PaletteColorTexture = Texture2D::CreateFromData(256, 1, colorData.data(), true);
+                m_PaletteMaterialTexture = Texture2D::CreateFromData(256, 1, materialData.data(), true);
+            }
+            m_PaletteTextureDirty = false;
         }
 
         // Rebuild sliced mesh if layer changed (only needed for 3D sliced view)
@@ -866,12 +891,17 @@ namespace CB
 
                 ImGui::SameLine();
 
-                // Right column: Palette Editor
+                // Right column: Palette Editor + PBR Overrides
                 ImGui::BeginChild("##PaletteEditor", ImVec2(columnWidth, viewportHeight), true);
                 {
                     ImGui::Text("Palette Editor");
                     ImGui::Separator();
                     RenderPaletteEditor();
+
+                    ImGui::Spacing();
+                    ImGui::Separator();
+                    ImGui::Spacing();
+                    RenderPBROverrides();
                 }
                 ImGui::EndChild();
             }
@@ -998,6 +1028,45 @@ namespace CB
                     m_ColorGroupsDirty = true;
                 }
             }
+        }
+
+        // Generate from Material
+        ImGui::Spacing();
+        ImGui::Text("Generate from Material:");
+
+        // Auto-populate from vmesh's first material slot
+        if (m_SourceMaterialUUID == UUID(0) && !m_Vmesh->MaterialSlots.empty()
+            && m_Vmesh->MaterialSlots[0].MaterialUUID.IsValid())
+        {
+            m_SourceMaterialUUID = m_Vmesh->MaterialSlots[0].MaterialUUID;
+        }
+
+        AssetPicker::DrawMaterial("Source Material", m_SourceMaterialUUID);
+        if (m_SourceMaterialUUID.IsValid())
+        {
+            if (ImGui::Button("Apply Material PBR"))
+            {
+                auto mat = AssetManager::GetAsset<Material>(m_SourceMaterialUUID);
+                if (mat)
+                {
+                    m_Vtex->GenerateFromMaterial(mat, m_Vmesh);
+                    m_MaterialMapDirty = true;
+                    m_ColorGroupsDirty = true;
+
+                    // Rebuild preview with overrides
+                    if (m_Vmesh->HasPalette)
+                    {
+                        VoxelPalette palette = m_Vtex->ApplyOverrides(m_Vmesh->Palette);
+                        std::vector<uint8_t> colorData, materialData;
+                        palette.GenerateColorTextureData(colorData);
+                        palette.GenerateMaterialTextureData(materialData);
+                        m_PaletteColorTexture = Texture2D::CreateFromData(256, 1, colorData.data(), true);
+                        m_PaletteMaterialTexture = Texture2D::CreateFromData(256, 1, materialData.data(), true);
+                    }
+                }
+            }
+            ImGui::SameLine();
+            ImGui::TextDisabled("(sets metallic/roughness/albedo)");
         }
 
         ImGui::Separator();
@@ -1289,6 +1358,212 @@ namespace CB
             }
         }
         ImGui::NewLine();
+    }
+
+    void VoxelTextureEditorPanel::RenderPBROverrides()
+    {
+        if (!m_Vtex || !m_Vmesh || !m_Vmesh->HasPalette)
+            return;
+
+        if (!ImGui::CollapsingHeader("PBR Overrides"))
+            return;
+
+        uint32_t usedCount = m_Vmesh->Palette.GetUsedCount();
+        bool changed = false;
+
+        // Override Metallic
+        {
+            bool prev = m_Vtex->HasMetallicOverrides;
+            ImGui::Checkbox("Override Metallic", &m_Vtex->HasMetallicOverrides);
+            if (m_Vtex->HasMetallicOverrides && !prev)
+            {
+                // Populate defaults from material type
+                for (uint8_t i = 0; i < usedCount; i++)
+                {
+                    VoxelMaterialType type = m_Vtex->GetMaterialType(0, i);
+                    auto props = GetDefaultPBRProperties(type);
+                    m_Vtex->MetallicOverrides[i] = props.Metallic;
+                }
+                changed = true;
+            }
+            else if (!m_Vtex->HasMetallicOverrides && prev)
+            {
+                m_Vtex->MetallicOverrides.clear();
+                changed = true;
+            }
+
+            if (m_Vtex->HasMetallicOverrides)
+            {
+                ImGui::Indent(10.0f);
+                for (uint8_t i = 0; i < usedCount; i++)
+                {
+                    if (m_RemovedPaletteIndices.count(i))
+                        continue;
+
+                    ImGui::PushID(2000 + i);
+                    const auto& entry = m_Vmesh->Palette.GetEntry(i);
+                    ImGui::ColorButton("##col", ImVec4(entry.Color.r, entry.Color.g, entry.Color.b, 1.0f),
+                                       ImGuiColorEditFlags_NoTooltip, ImVec2(14, 14));
+                    ImGui::SameLine();
+
+                    float val = m_Vtex->MetallicOverrides.count(i) ? m_Vtex->MetallicOverrides[i] : 0.0f;
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 30.0f);
+                    if (ImGui::SliderFloat("##met", &val, 0.0f, 1.0f, "%.2f"))
+                    {
+                        m_Vtex->MetallicOverrides[i] = val;
+                        changed = true;
+                    }
+                    ImGui::PopID();
+                }
+                ImGui::Unindent(10.0f);
+            }
+        }
+
+        // Override Roughness
+        {
+            bool prev = m_Vtex->HasRoughnessOverrides;
+            ImGui::Checkbox("Override Roughness", &m_Vtex->HasRoughnessOverrides);
+            if (m_Vtex->HasRoughnessOverrides && !prev)
+            {
+                for (uint8_t i = 0; i < usedCount; i++)
+                {
+                    VoxelMaterialType type = m_Vtex->GetMaterialType(0, i);
+                    auto props = GetDefaultPBRProperties(type);
+                    m_Vtex->RoughnessOverrides[i] = props.Roughness;
+                }
+                changed = true;
+            }
+            else if (!m_Vtex->HasRoughnessOverrides && prev)
+            {
+                m_Vtex->RoughnessOverrides.clear();
+                changed = true;
+            }
+
+            if (m_Vtex->HasRoughnessOverrides)
+            {
+                ImGui::Indent(10.0f);
+                for (uint8_t i = 0; i < usedCount; i++)
+                {
+                    if (m_RemovedPaletteIndices.count(i))
+                        continue;
+
+                    ImGui::PushID(3000 + i);
+                    const auto& entry = m_Vmesh->Palette.GetEntry(i);
+                    ImGui::ColorButton("##col", ImVec4(entry.Color.r, entry.Color.g, entry.Color.b, 1.0f),
+                                       ImGuiColorEditFlags_NoTooltip, ImVec2(14, 14));
+                    ImGui::SameLine();
+
+                    float val = m_Vtex->RoughnessOverrides.count(i) ? m_Vtex->RoughnessOverrides[i] : 0.5f;
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 30.0f);
+                    if (ImGui::SliderFloat("##rough", &val, 0.0f, 1.0f, "%.2f"))
+                    {
+                        m_Vtex->RoughnessOverrides[i] = val;
+                        changed = true;
+                    }
+                    ImGui::PopID();
+                }
+                ImGui::Unindent(10.0f);
+            }
+        }
+
+        // Override Emission
+        {
+            bool prev = m_Vtex->HasEmissionOverrides;
+            ImGui::Checkbox("Override Emission", &m_Vtex->HasEmissionOverrides);
+            if (m_Vtex->HasEmissionOverrides && !prev)
+            {
+                for (uint8_t i = 0; i < usedCount; i++)
+                {
+                    VoxelMaterialType type = m_Vtex->GetMaterialType(0, i);
+                    auto props = GetDefaultPBRProperties(type);
+                    m_Vtex->EmissionOverrides[i] = props.Emission;
+                }
+                changed = true;
+            }
+            else if (!m_Vtex->HasEmissionOverrides && prev)
+            {
+                m_Vtex->EmissionOverrides.clear();
+                changed = true;
+            }
+
+            if (m_Vtex->HasEmissionOverrides)
+            {
+                ImGui::Indent(10.0f);
+                for (uint8_t i = 0; i < usedCount; i++)
+                {
+                    if (m_RemovedPaletteIndices.count(i))
+                        continue;
+
+                    ImGui::PushID(4000 + i);
+                    const auto& entry = m_Vmesh->Palette.GetEntry(i);
+                    ImGui::ColorButton("##col", ImVec4(entry.Color.r, entry.Color.g, entry.Color.b, 1.0f),
+                                       ImGuiColorEditFlags_NoTooltip, ImVec2(14, 14));
+                    ImGui::SameLine();
+
+                    float val = m_Vtex->EmissionOverrides.count(i) ? m_Vtex->EmissionOverrides[i] : 0.0f;
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 30.0f);
+                    if (ImGui::SliderFloat("##emis", &val, 0.0f, 10.0f, "%.2f"))
+                    {
+                        m_Vtex->EmissionOverrides[i] = val;
+                        changed = true;
+                    }
+                    ImGui::PopID();
+                }
+                ImGui::Unindent(10.0f);
+            }
+        }
+
+        // Override Albedo
+        {
+            bool prev = m_Vtex->HasAlbedoOverrides;
+            ImGui::Checkbox("Override Albedo", &m_Vtex->HasAlbedoOverrides);
+            if (m_Vtex->HasAlbedoOverrides && !prev)
+            {
+                for (uint8_t i = 0; i < usedCount; i++)
+                {
+                    const auto& entry = m_Vmesh->Palette.GetEntry(i);
+                    m_Vtex->AlbedoOverrides[i] = entry.Color;
+                }
+                changed = true;
+            }
+            else if (!m_Vtex->HasAlbedoOverrides && prev)
+            {
+                m_Vtex->AlbedoOverrides.clear();
+                changed = true;
+            }
+
+            if (m_Vtex->HasAlbedoOverrides)
+            {
+                ImGui::Indent(10.0f);
+                for (uint8_t i = 0; i < usedCount; i++)
+                {
+                    if (m_RemovedPaletteIndices.count(i))
+                        continue;
+
+                    ImGui::PushID(5000 + i);
+
+                    Vector3 col = m_Vtex->AlbedoOverrides.count(i)
+                        ? m_Vtex->AlbedoOverrides[i]
+                        : m_Vmesh->Palette.GetEntry(i).Color;
+                    float c[3] = {col.r, col.g, col.b};
+
+                    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 10.0f);
+                    if (ImGui::ColorEdit3("##alb", c, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+                    {
+                        m_Vtex->AlbedoOverrides[i] = Vector3(c[0], c[1], c[2]);
+                        changed = true;
+                    }
+                    ImGui::PopID();
+                }
+                ImGui::Unindent(10.0f);
+            }
+        }
+
+        if (changed)
+        {
+            // Defer palette texture re-upload to OnUpdate (no geometry rebuild needed)
+            m_PaletteTextureDirty = true;
+        }
     }
 
     bool VoxelTextureEditorPanel::IsCustomBrush(uint8_t paletteIndex) const

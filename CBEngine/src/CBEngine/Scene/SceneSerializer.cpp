@@ -21,8 +21,24 @@ namespace CB
         // Entity UUID (special case — not a component block)
         out << YAML::Key << "Entity" << YAML::Value << entity.GetUUID();
 
+        // Physics layer (only serialize if non-default)
+        uint8_t layer = entity.GetComponent<IDComponent>().Layer;
+        if (layer != 0)
+            out << YAML::Key << "Layer" << YAML::Value << static_cast<int>(layer);
+
         // Serialize all built-in components via fold expression
         SerializeAll(out, entity);
+
+        // BlueprintInstanceComponent is handled manually (not in SerializableComponents)
+        // to prevent it from leaking into .blueprint files
+        if (entity.HasComponent<BlueprintInstanceComponent>())
+        {
+            auto& bic = entity.GetComponent<BlueprintInstanceComponent>();
+            out << YAML::Key << BlueprintInstanceComponent::YAMLKey;
+            out << YAML::BeginMap;
+            bic.Serialize(out);
+            out << YAML::EndMap;
+        }
 
         // Serialize runtime-registered components
         RuntimeComponentRegistry::SerializeAll(out, registry, entity);
@@ -122,8 +138,20 @@ namespace CB
 
             Entity entity = m_Scene->CreateEntityWithUUID(UUID(uuid), name);
 
+            // Physics layer
+            if (entityNode["Layer"])
+                entity.GetComponent<IDComponent>().Layer = static_cast<uint8_t>(entityNode["Layer"].as<int>());
+
             // Deserialize all registered components via fold expression
             DeserializeAll(entityNode, entity);
+
+            // BlueprintInstanceComponent is handled manually (not in SerializableComponents)
+            auto bicNode = entityNode[BlueprintInstanceComponent::YAMLKey];
+            if (bicNode)
+            {
+                auto& bic = entity.AddComponent<BlueprintInstanceComponent>();
+                bic.Deserialize(bicNode);
+            }
 
             // Deserialize runtime-registered components
             RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
@@ -212,7 +240,20 @@ namespace CB
 
             Entity entity = m_Scene->CreateEntityWithUUID(UUID(uuid), name);
 
+            // Physics layer
+            if (entityNode["Layer"])
+                entity.GetComponent<IDComponent>().Layer = static_cast<uint8_t>(entityNode["Layer"].as<int>());
+
             DeserializeAll(entityNode, entity);
+
+            // BlueprintInstanceComponent handled manually
+            auto bicNode = entityNode[BlueprintInstanceComponent::YAMLKey];
+            if (bicNode)
+            {
+                auto& bic = entity.AddComponent<BlueprintInstanceComponent>();
+                bic.Deserialize(bicNode);
+            }
+
             RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
             ResolveAssetsAll(entity);
         }
@@ -269,6 +310,9 @@ namespace CB
         {
             out << YAML::BeginMap;
             out << YAML::Key << "Entity" << YAML::Value << entity.GetUUID();
+            uint8_t layer = entity.GetComponent<IDComponent>().Layer;
+            if (layer != 0)
+                out << YAML::Key << "Layer" << YAML::Value << static_cast<int>(layer);
             SerializeAll(out, entity);
             out << YAML::EndMap;
         }
@@ -323,6 +367,10 @@ namespace CB
         for (auto entityNode : entities)
         {
             Entity entity = createdEntities[idx++];
+
+            // Physics layer
+            if (entityNode["Layer"])
+                entity.GetComponent<IDComponent>().Layer = static_cast<uint8_t>(entityNode["Layer"].as<int>());
 
             DeserializeAll(entityNode, entity);
             RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);

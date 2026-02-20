@@ -8,9 +8,11 @@
 #include "CBEngine/Components/CoreComponents.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
+#include "CBEngine/Physics/PhysicsLayers.h"
 #include "CBEngine/Physics/VoxelCollisionShapeGenerator.h"
 #include "CBEngine/Physics/CollisionShapeCache.h"
 #include "CBEngine/Systems/DestructionSystem.h"
+#include "CBEngine/Scripting/ScriptEngine.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 
@@ -44,9 +46,9 @@ namespace CB
 		return JPH::EMotionType::Dynamic;
 	}
 
-	static JPH::ObjectLayer ToJoltObjectLayer(BodyType type)
+	static JPH::ObjectLayer ToJoltObjectLayer(uint8_t entityLayer)
 	{
-		return type == BodyType::Static ? ObjectLayers::NON_MOVING : ObjectLayers::MOVING;
+		return static_cast<JPH::ObjectLayer>(entityLayer);
 	}
 
 	static JPH::RefConst<JPH::Shape> CreateJoltShape(ColliderComponent& collider,
@@ -240,11 +242,29 @@ namespace CB
 
 			checkDestructible(cb.EntityA, cb.EntityB);
 			checkDestructible(cb.EntityB, cb.EntityA);
+
+			// Script collision callbacks for both entities
+			Entity entityA = scene->GetEntityByUUID(cb.EntityA);
+			Entity entityB = scene->GetEntityByUUID(cb.EntityB);
+			if (entityA && entityB)
+			{
+				ScriptEngine::OnCollision(scene, entityA, entityB, cb.ContactPoint, cb.ContactNormal);
+				ScriptEngine::OnCollision(scene, entityB, entityA, cb.ContactPoint, -cb.ContactNormal);
+			}
 		}
 
 		for (const auto& cb : endEvents)
 		{
 			CB_CORE_TRACE("Collision end: Entity {0} <-> Entity {1}", (uint64_t)cb.EntityA, (uint64_t)cb.EntityB);
+
+			// Script collision end callbacks for both entities
+			Entity entityA = scene->GetEntityByUUID(cb.EntityA);
+			Entity entityB = scene->GetEntityByUUID(cb.EntityB);
+			if (entityA && entityB)
+			{
+				ScriptEngine::OnCollisionEnd(scene, entityA, entityB);
+				ScriptEngine::OnCollisionEnd(scene, entityB, entityA);
+			}
 		}
 	}
 
@@ -400,7 +420,7 @@ namespace CB
 			JPH::RVec3(worldPos.x, worldPos.y, worldPos.z),
 			JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w),
 			ToJoltMotionType(rb.Type),
-			ToJoltObjectLayer(rb.Type));
+			ToJoltObjectLayer(id.Layer));
 
 		// Apply physics properties
 		if (rb.Type == BodyType::Dynamic)
@@ -522,7 +542,7 @@ namespace CB
 			JPH::RVec3(worldPos.x, worldPos.y, worldPos.z),
 			JPH::Quat(rotation.x, rotation.y, rotation.z, rotation.w),
 			JPH::EMotionType::Static,
-			ObjectLayers::NON_MOVING);
+			ToJoltObjectLayer(id.Layer));
 
 		bodySettings.mFriction = 0.5f;
 		bodySettings.mRestitution = 0.3f;

@@ -24,7 +24,7 @@ namespace CB
     class VoxelTextureAsset : public Asset
     {
     public:
-        static constexpr uint32_t s_VtexVersion = 2;
+        static constexpr uint32_t s_VtexVersion = 3;
 
         VoxelTextureAsset() = default;
         ~VoxelTextureAsset() override = default;
@@ -49,6 +49,21 @@ namespace CB
         // filledVoxelIndex -> new paletteIndex
         std::unordered_map<uint32_t, uint8_t> PaletteIndexOverrides;
 
+        // PBR override flags (checkboxes in editor)
+        bool HasMetallicOverrides = false;
+        bool HasRoughnessOverrides = false;
+        bool HasEmissionOverrides = false;
+        bool HasAlbedoOverrides = false;
+
+        // Per-palette PBR overrides (palette index -> value)
+        std::unordered_map<uint8_t, float> MetallicOverrides;    // 0.0-1.0
+        std::unordered_map<uint8_t, float> RoughnessOverrides;   // 0.0-1.0
+        std::unordered_map<uint8_t, float> EmissionOverrides;    // 0.0-1.0
+        std::unordered_map<uint8_t, Vector3> AlbedoOverrides;    // RGB
+
+        // Apply PBR overrides to a palette, returns modified copy
+        VoxelPalette ApplyOverrides(const VoxelPalette& basePalette) const;
+
         // Query: checks overrides first, then palette mapping
         VoxelMaterialType GetMaterialType(uint32_t filledVoxelIndex, uint8_t paletteIndex) const;
 
@@ -65,6 +80,11 @@ namespace CB
         // Each palette entry's color is replaced by the average sampled color from the texture
         void GenerateMappingFromTexture(const Ref<VoxelMeshAsset>& vmesh,
                                         const std::filesystem::path& texturePath);
+
+        // Apply PBR properties from a material to all palette entries as overrides
+        // If the material has an albedo map, also resamples palette colors via vmesh UVs
+        void GenerateFromMaterial(const Ref<class Material>& material,
+                                  const Ref<class VoxelMeshAsset>& vmesh);
 
         // YAML Serialization (.vtex files)
         bool Save(const std::filesystem::path& filePath);

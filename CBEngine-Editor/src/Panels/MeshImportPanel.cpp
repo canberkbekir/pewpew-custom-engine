@@ -7,7 +7,6 @@
 #include "CBEngine/Renderer/Core/RenderCommand.h"
 #include "CBEngine/Renderer/Core/Renderer3D.h"
 #include "CBEngine/Asset/AssetManager.h"
-#include "CBEngine/Asset/VoxelTextureAsset.h"
 #include "CBEngine/Renderer/Resources/Texture.h"
 
 #include "../Widgets/AssetPicker.h"
@@ -689,26 +688,6 @@ namespace CB
                 AssetManager::GetRegistry().UpdateDependencies(importedUUID, deps);
 
             CB_CORE_INFO("MeshImportPanel: Exported .vmesh to {0}", outputPath.string());
-
-            // Auto-generate .vtex alongside .vmesh
-            auto vtex = VoxelTextureAsset::GenerateFromVmesh(asset);
-            if (vtex)
-            {
-                // Use the actual AssetManager UUID, not the in-memory object's UUID
-                vtex->SourceVmeshUUID = importedUUID;
-                std::filesystem::path vtexPath = sourceDir / (outputName + ".vtex");
-                if (vtex->Save(vtexPath))
-                {
-                    std::filesystem::path relVtex = relative(
-                        vtexPath, AssetManager::GetAssetDirectory());
-                    UUID vtexUUID = AssetManager::ImportAsset(relVtex);
-
-                    if (vtexUUID.IsValid() && importedUUID.IsValid())
-                        AssetManager::GetRegistry().UpdateDependencies(vtexUUID, {importedUUID});
-
-                    CB_CORE_INFO("MeshImportPanel: Auto-generated .vtex to {0}", vtexPath.string());
-                }
-            }
         }
     }
 

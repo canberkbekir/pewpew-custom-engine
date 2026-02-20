@@ -3,6 +3,7 @@
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "CBEngine/Asset/VoxelTextureAsset.h"
+#include "CBEngine/Utils/VoxelizerAPI.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -11,91 +12,65 @@ namespace CB
     void VoxelRendererComponent::Serialize(YAML::Emitter& out) const
     {
         out << YAML::Key << "VoxelMeshUUID" << YAML::Value << VoxelMeshUUID;
-        out << YAML::Key << "ColorTextureUUID" << YAML::Value << ColorTextureUUID;
-        out << YAML::Key << "MaterialUUID" << YAML::Value << MaterialUUID;
-        out << YAML::Key << "ShaderUUID" << YAML::Value << ShaderUUID;
         out << YAML::Key << "VoxelTextureUUID" << YAML::Value << VoxelTextureUUID;
         out << YAML::Key << "Visible" << YAML::Value << Visible;
     }
 
     void VoxelRendererComponent::Deserialize(const YAML::Node& node)
     {
-        VoxelMeshUUID = UUID(node["VoxelMeshUUID"].as<uint64_t>());
-        if (node["ColorTextureUUID"])
-            ColorTextureUUID = UUID(node["ColorTextureUUID"].as<uint64_t>());
-        MaterialUUID = UUID(node["MaterialUUID"].as<uint64_t>());
-        ShaderUUID = UUID(node["ShaderUUID"].as<uint64_t>());
+        if (node["VoxelMeshUUID"])
+            VoxelMeshUUID = UUID(node["VoxelMeshUUID"].as<uint64_t>());
         if (node["VoxelTextureUUID"])
             VoxelTextureUUID = UUID(node["VoxelTextureUUID"].as<uint64_t>());
-        Visible = node["Visible"].as<bool>();
+        if (node["Visible"])
+            Visible = node["Visible"].as<bool>();
     }
 
     void VoxelRendererComponent::ResolveAssets()
     {
+        // Load vtex first (needed for PBR overrides)
+        if (VoxelTextureUUID.IsValid())
+            VoxelTexture = AssetManager::GetAsset<VoxelTextureAsset>(VoxelTextureUUID);
+
         if (VoxelMeshUUID.IsValid())
         {
             auto vmAsset = AssetManager::GetAsset<VoxelMeshAsset>(VoxelMeshUUID);
             if (vmAsset && vmAsset->VoxelCount > 0)
             {
-                VoxelSettings = vmAsset->VoxelSettings;
-
-                bool paletteBuilt = false;
-
-                // Try to build palette from UVs + assigned color texture
-                if (vmAsset->HasUVs && !vmAsset->VoxelUVs.empty() && ColorTextureUUID.IsValid())
+                if (vmAsset->HasPalette && !vmAsset->PaletteIndices.empty())
                 {
-                    // Get texture file path from asset registry
-                    const AssetMetadata* texMeta = AssetManager::GetRegistry().GetMetadata(ColorTextureUUID);
-                    if (texMeta)
+                    // Start with vmesh palette as base
+                    VoxelPalette palette = vmAsset->Palette;
+
+                    // Apply VTex PBR overrides if available
+                    if (VoxelTexture)
                     {
-                        std::filesystem::path texPath = AssetManager::GetAssetDirectory() / texMeta->FilePath;
-                        auto paletteData = VoxelizerAPI::BuildPaletteFromUVs(vmAsset->VoxelUVs, texPath.string());
+                        bool hasAnyOverride = VoxelTexture->HasMetallicOverrides
+                            || VoxelTexture->HasRoughnessOverrides
+                            || VoxelTexture->HasEmissionOverrides
+                            || VoxelTexture->HasAlbedoOverrides;
 
-                        if (!paletteData.PaletteIndices.empty())
-                        {
-                            MeshAsset = VoxelizerAPI::CreatePaletteMeshFromGrid(
-                                vmAsset->GridData, paletteData.PaletteIndices);
-
-                            std::vector<uint8_t> colorData, materialData;
-                            paletteData.Palette.GenerateColorTextureData(colorData);
-                            paletteData.Palette.GenerateMaterialTextureData(materialData);
-
-                            PaletteColorTexture = Texture2D::CreateFromData(256, 1, colorData.data(), true);
-                            PaletteMaterialTexture = Texture2D::CreateFromData(256, 1, materialData.data(), true);
-                            HasPalette = true;
-                            paletteBuilt = true;
-                        }
+                        if (hasAnyOverride)
+                            palette = VoxelTexture->ApplyOverrides(palette);
                     }
-                }
 
-                // Fallback: use embedded palette from vmesh (if baked during import)
-                if (!paletteBuilt && vmAsset->HasPalette && !vmAsset->PaletteIndices.empty())
-                {
                     MeshAsset = VoxelizerAPI::CreatePaletteMeshFromGrid(vmAsset->GridData, vmAsset->PaletteIndices);
 
                     std::vector<uint8_t> colorData, materialData;
-                    vmAsset->Palette.GenerateColorTextureData(colorData);
-                    vmAsset->Palette.GenerateMaterialTextureData(materialData);
+                    palette.GenerateColorTextureData(colorData);
+                    palette.GenerateMaterialTextureData(materialData);
 
                     PaletteColorTexture = Texture2D::CreateFromData(256, 1, colorData.data(), true);
                     PaletteMaterialTexture = Texture2D::CreateFromData(256, 1, materialData.data(), true);
                     HasPalette = true;
-                    paletteBuilt = true;
                 }
-
-                // Final fallback: create white mesh (old vmesh with no palette/UVs)
-                if (!paletteBuilt)
+                else
                 {
+                    // No palette data - create white mesh
                     MeshAsset = VoxelizerAPI::CreateMeshFromGrid(vmAsset->GridData);
                     HasPalette = false;
                 }
             }
         }
-        if (MaterialUUID.IsValid())
-            MaterialAsset = AssetManager::GetAsset<Material>(MaterialUUID);
-        if (ShaderUUID.IsValid())
-            ShaderAsset = AssetManager::GetAsset<Shader>(ShaderUUID);
-        if (VoxelTextureUUID.IsValid())
-            VoxelTexture = AssetManager::GetAsset<VoxelTextureAsset>(VoxelTextureUUID);
     }
 }

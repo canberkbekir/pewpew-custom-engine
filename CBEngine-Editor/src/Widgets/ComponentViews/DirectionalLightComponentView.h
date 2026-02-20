@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "../ComponentCard.h"
 
 namespace CB
 {
@@ -14,25 +15,26 @@ namespace CB
             if (!entity.HasComponent<DirectionalLightComponent>())
                 return;
 
-            ImGuiTreeNodeFlags flags =
-                ImGuiTreeNodeFlags_DefaultOpen |
-                ImGuiTreeNodeFlags_Framed |
-                ImGuiTreeNodeFlags_AllowItemOverlap |
-                ImGuiTreeNodeFlags_SpanAvailWidth;
+            bool removed = false;
+            bool reset = false;
 
-            bool opened = ImGui::TreeNodeEx("Directional Light", flags);
+            bool opened = ComponentCard::Begin("Directional Light", true, &removed, &reset);
 
-            // Right-aligned remove button
+            if (removed)
             {
-                float lineHeight = ImGui::GetFrameHeight();
-                float rightX = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - lineHeight;
-                ImGui::SameLine(rightX);
-                if (ImGui::Button("X##DirectionalLight", ImVec2(lineHeight, lineHeight)))
-                {
-                    entity.RemoveComponent<DirectionalLightComponent>();
-                    if (opened) ImGui::TreePop();
-                    return;
-                }
+                entity.RemoveComponent<DirectionalLightComponent>();
+                ComponentCard::End();
+                return;
+            }
+
+            if (reset)
+            {
+                auto& light = entity.GetComponent<DirectionalLightComponent>();
+                light.Color = Vector3(1.0f);
+                light.Intensity = 1.0f;
+                light.Visible = true;
+                light.CastShadows = true;
+                light.SourceAngleDegrees = 0.53f;
             }
 
             if (opened)
@@ -67,9 +69,9 @@ namespace CB
                 ImGui::EndDisabled();
 
                 ImGui::TextDisabled("Tip: Sun is ~0.53 deg");
-
-                ImGui::TreePop();
             }
+
+            ComponentCard::End();
         }
     };
 }

@@ -9,25 +9,47 @@ layout(location = 4) in vec3 a_Bitangent;
 layout(location = 5) in vec3 a_Color;
 layout(location = 6) in float a_PaletteIndex;
 
+// Instanced attributes (only active when u_UseInstancing == 1)
+layout(location = 7)  in vec4 a_InstanceTransform0;
+layout(location = 8)  in vec4 a_InstanceTransform1;
+layout(location = 9)  in vec4 a_InstanceTransform2;
+layout(location = 10) in vec4 a_InstanceTransform3;
+layout(location = 11) in int  a_InstanceEntityID;
+
 uniform mat4 u_ViewProjection;
 uniform mat4 u_Transform;
+uniform int u_UseInstancing;
 
 out vec3 v_WorldPos;
 out vec2 v_TexCoord;
 out vec3 v_Color;
-out float v_PaletteIndex;
+flat out float v_PaletteIndex;
 out mat3 v_TBN;
+flat out int v_EntityID;
 
 void main()
 {
-    vec4 worldPos = u_Transform * vec4(a_Position, 1.0);
+    mat4 transform;
+    if (u_UseInstancing == 1)
+    {
+        transform = mat4(a_InstanceTransform0, a_InstanceTransform1,
+                         a_InstanceTransform2, a_InstanceTransform3);
+        v_EntityID = a_InstanceEntityID;
+    }
+    else
+    {
+        transform = u_Transform;
+        v_EntityID = -1; // Will use u_EntityID in fragment shader
+    }
+
+    vec4 worldPos = transform * vec4(a_Position, 1.0);
     v_WorldPos = worldPos.xyz;
     v_TexCoord = a_TexCoord;
     v_Color = a_Color;
     v_PaletteIndex = a_PaletteIndex;
 
     // TBN matrix for normal mapping
-    mat3 normalMatrix = transpose(inverse(mat3(u_Transform)));
+    mat3 normalMatrix = transpose(inverse(mat3(transform)));
     vec3 N = normalize(normalMatrix * a_Normal);
     vec3 T = normalize(normalMatrix * a_Tangent);
     T = normalize(T - N * dot(N, T));
@@ -45,8 +67,9 @@ const float PI = 3.14159265359;
 in vec3 v_WorldPos;
 in vec2 v_TexCoord;
 in vec3 v_Color;
-in float v_PaletteIndex;
+flat in float v_PaletteIndex;
 in mat3 v_TBN;
+flat in int v_EntityID;
 
 // Textures
 uniform sampler2D u_AlbedoMap;
@@ -87,6 +110,7 @@ layout(location = 1) out int o_EntityID;
 
 // Entity picking
 uniform int u_EntityID;
+uniform int u_UseInstancing;
 
 // ---------- Color helpers ----------
 vec3 LinearToSRGB(vec3 c)
@@ -239,5 +263,5 @@ void main()
     color = LinearToSRGB(color);
 
     FragColor = vec4(color, 1.0);
-    o_EntityID = u_EntityID;
+    o_EntityID = (u_UseInstancing == 1) ? v_EntityID : u_EntityID;
 }

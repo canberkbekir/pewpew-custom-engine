@@ -3,6 +3,7 @@
 #include "ProcessedMeshAsset.h"
 #include "AssetManager.h"
 #include "CBEngine/Core/Log.h"
+#include "CBEngine/Renderer/Resources/Material.h"
 
 #include <yaml-cpp/yaml.h>
 #include <fstream>
@@ -62,6 +63,14 @@ namespace CB
         {
             // No palette data - default everything to Stone
             vtex->PaletteMapping[0] = VoxelMaterialType::Stone;
+        }
+
+        // Auto-apply PBR from vmesh's first material slot if available
+        if (!vmesh->MaterialSlots.empty() && vmesh->MaterialSlots[0].MaterialUUID.IsValid())
+        {
+            auto mat = AssetManager::GetAsset<Material>(vmesh->MaterialSlots[0].MaterialUUID);
+            if (mat)
+                vtex->GenerateFromMaterial(mat, vmesh);
         }
 
         return vtex;
@@ -129,6 +138,104 @@ namespace CB
         CB_CORE_INFO("VoxelTextureAsset: Generated mapping from texture ({0} palette entries)", PaletteMapping.size());
     }
 
+    void VoxelTextureAsset::GenerateFromMaterial(const Ref<Material>& material,
+                                                const Ref<VoxelMeshAsset>& vmesh)
+    {
+        if (!material || !vmesh)
+            return;
+
+        uint32_t usedCount = vmesh->HasPalette ? vmesh->Palette.GetUsedCount() : 0;
+        if (usedCount == 0)
+            return;
+
+        // Apply material's albedo map to resample palette colors via UVs
+        if (material->HasAlbedoMap() && !material->GetPath().empty())
+        {
+            // Resolve albedo map path relative to material file
+            std::filesystem::path matDir = std::filesystem::path(material->GetPath()).parent_path();
+
+            // The albedo map is already loaded on the GPU but we need the file path
+            // for CPU-side texture sampling. Try the asset registry approach.
+            // The material's albedo map is a Texture2D — we can try to get its source path.
+            // For now, use GenerateMappingFromTexture if we can find the texture path.
+            // We'll look at the vmesh's texture slots or the material file directory.
+        }
+
+        // Set metallic override from material scalar
+        HasMetallicOverrides = true;
+        MetallicOverrides.clear();
+        float matMetallic = material->GetMetallic();
+        for (uint8_t i = 0; i < usedCount; i++)
+            MetallicOverrides[i] = matMetallic;
+
+        // Set roughness override from material scalar
+        HasRoughnessOverrides = true;
+        RoughnessOverrides.clear();
+        float matRoughness = material->GetRoughness();
+        for (uint8_t i = 0; i < usedCount; i++)
+            RoughnessOverrides[i] = matRoughness;
+
+        // Set albedo override from material color (uniform tint)
+        const Vector3& matAlbedo = material->GetAlbedo();
+        if (matAlbedo != Vector3(1.0f, 1.0f, 1.0f))
+        {
+            HasAlbedoOverrides = true;
+            AlbedoOverrides.clear();
+            for (uint8_t i = 0; i < usedCount; i++)
+            {
+                // Modulate existing palette color with material albedo
+                const auto& entry = vmesh->Palette.GetEntry(i);
+                AlbedoOverrides[i] = entry.Color * matAlbedo;
+            }
+        }
+
+        CB_CORE_INFO("VoxelTextureAsset: Generated PBR overrides from material (metallic={0}, roughness={1})",
+                      matMetallic, matRoughness);
+    }
+
+    VoxelPalette VoxelTextureAsset::ApplyOverrides(const VoxelPalette& basePalette) const
+    {
+        VoxelPalette result;
+        uint32_t usedCount = basePalette.GetUsedCount();
+
+        for (uint8_t i = 0; i < usedCount; i++)
+        {
+            VoxelPaletteEntry entry = basePalette.GetEntry(i);
+
+            if (HasMetallicOverrides)
+            {
+                auto it = MetallicOverrides.find(i);
+                if (it != MetallicOverrides.end())
+                    entry.Metallic = it->second;
+            }
+            if (HasRoughnessOverrides)
+            {
+                auto it = RoughnessOverrides.find(i);
+                if (it != RoughnessOverrides.end())
+                    entry.Roughness = it->second;
+            }
+            if (HasEmissionOverrides)
+            {
+                auto it = EmissionOverrides.find(i);
+                if (it != EmissionOverrides.end())
+                    entry.Emission = it->second;
+            }
+            if (HasAlbedoOverrides)
+            {
+                auto it = AlbedoOverrides.find(i);
+                if (it != AlbedoOverrides.end())
+                    entry.Color = it->second;
+            }
+
+            if (i == 0)
+                result.SetEntry(0, entry);
+            else
+                result.AddEntry(entry);
+        }
+
+        return result;
+    }
+
     bool VoxelTextureAsset::Save(const std::filesystem::path& filePath)
     {
         YAML::Emitter out;
@@ -186,6 +293,46 @@ namespace CB
             for (const auto& [index, palIdx] : PaletteIndexOverrides)
             {
                 out << YAML::Key << index << YAML::Value << static_cast<int>(palIdx);
+            }
+            out << YAML::EndMap;
+        }
+
+        // PBR overrides (v3+)
+        if (HasMetallicOverrides && !MetallicOverrides.empty())
+        {
+            out << YAML::Key << "hasMetallicOverrides" << YAML::Value << true;
+            out << YAML::Key << "metallicOverrides" << YAML::Value << YAML::BeginMap;
+            for (const auto& [index, value] : MetallicOverrides)
+                out << YAML::Key << static_cast<int>(index) << YAML::Value << value;
+            out << YAML::EndMap;
+        }
+
+        if (HasRoughnessOverrides && !RoughnessOverrides.empty())
+        {
+            out << YAML::Key << "hasRoughnessOverrides" << YAML::Value << true;
+            out << YAML::Key << "roughnessOverrides" << YAML::Value << YAML::BeginMap;
+            for (const auto& [index, value] : RoughnessOverrides)
+                out << YAML::Key << static_cast<int>(index) << YAML::Value << value;
+            out << YAML::EndMap;
+        }
+
+        if (HasEmissionOverrides && !EmissionOverrides.empty())
+        {
+            out << YAML::Key << "hasEmissionOverrides" << YAML::Value << true;
+            out << YAML::Key << "emissionOverrides" << YAML::Value << YAML::BeginMap;
+            for (const auto& [index, value] : EmissionOverrides)
+                out << YAML::Key << static_cast<int>(index) << YAML::Value << value;
+            out << YAML::EndMap;
+        }
+
+        if (HasAlbedoOverrides && !AlbedoOverrides.empty())
+        {
+            out << YAML::Key << "hasAlbedoOverrides" << YAML::Value << true;
+            out << YAML::Key << "albedoOverrides" << YAML::Value << YAML::BeginMap;
+            for (const auto& [index, color] : AlbedoOverrides)
+            {
+                out << YAML::Key << static_cast<int>(index) << YAML::Value << YAML::Flow
+                    << YAML::BeginSeq << color.r << color.g << color.b << YAML::EndSeq;
             }
             out << YAML::EndMap;
         }
@@ -300,6 +447,61 @@ namespace CB
             }
         }
 
+        // PBR overrides (v3+)
+        if (root["hasMetallicOverrides"])
+        {
+            vtex->HasMetallicOverrides = root["hasMetallicOverrides"].as<bool>();
+            if (root["metallicOverrides"] && root["metallicOverrides"].IsMap())
+            {
+                for (auto it = root["metallicOverrides"].begin(); it != root["metallicOverrides"].end(); ++it)
+                {
+                    uint8_t index = static_cast<uint8_t>(it->first.as<int>());
+                    vtex->MetallicOverrides[index] = it->second.as<float>();
+                }
+            }
+        }
+
+        if (root["hasRoughnessOverrides"])
+        {
+            vtex->HasRoughnessOverrides = root["hasRoughnessOverrides"].as<bool>();
+            if (root["roughnessOverrides"] && root["roughnessOverrides"].IsMap())
+            {
+                for (auto it = root["roughnessOverrides"].begin(); it != root["roughnessOverrides"].end(); ++it)
+                {
+                    uint8_t index = static_cast<uint8_t>(it->first.as<int>());
+                    vtex->RoughnessOverrides[index] = it->second.as<float>();
+                }
+            }
+        }
+
+        if (root["hasEmissionOverrides"])
+        {
+            vtex->HasEmissionOverrides = root["hasEmissionOverrides"].as<bool>();
+            if (root["emissionOverrides"] && root["emissionOverrides"].IsMap())
+            {
+                for (auto it = root["emissionOverrides"].begin(); it != root["emissionOverrides"].end(); ++it)
+                {
+                    uint8_t index = static_cast<uint8_t>(it->first.as<int>());
+                    vtex->EmissionOverrides[index] = it->second.as<float>();
+                }
+            }
+        }
+
+        if (root["hasAlbedoOverrides"])
+        {
+            vtex->HasAlbedoOverrides = root["hasAlbedoOverrides"].as<bool>();
+            if (root["albedoOverrides"] && root["albedoOverrides"].IsMap())
+            {
+                for (auto it = root["albedoOverrides"].begin(); it != root["albedoOverrides"].end(); ++it)
+                {
+                    uint8_t index = static_cast<uint8_t>(it->first.as<int>());
+                    auto seq = it->second;
+                    if (seq.IsSequence() && seq.size() == 3)
+                        vtex->AlbedoOverrides[index] = Vector3(seq[0].as<float>(), seq[1].as<float>(), seq[2].as<float>());
+                }
+            }
+        }
+
         vtex->m_Path = filePath;
         CB_CORE_INFO("VoxelTextureAsset: Loaded from {0}", filePath.string());
         return vtex;
@@ -321,6 +523,15 @@ namespace CB
         VoxelOverrides = std::move(reloaded->VoxelOverrides);
         CustomBrushes = std::move(reloaded->CustomBrushes);
         PaletteIndexOverrides = std::move(reloaded->PaletteIndexOverrides);
+
+        HasMetallicOverrides = reloaded->HasMetallicOverrides;
+        HasRoughnessOverrides = reloaded->HasRoughnessOverrides;
+        HasEmissionOverrides = reloaded->HasEmissionOverrides;
+        HasAlbedoOverrides = reloaded->HasAlbedoOverrides;
+        MetallicOverrides = std::move(reloaded->MetallicOverrides);
+        RoughnessOverrides = std::move(reloaded->RoughnessOverrides);
+        EmissionOverrides = std::move(reloaded->EmissionOverrides);
+        AlbedoOverrides = std::move(reloaded->AlbedoOverrides);
 
         return true;
     }

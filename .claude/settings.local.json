@@ -24,7 +24,10 @@
       "Bash(cmd.exe /c \"BuildProject.bat debug && echo DONE\")",
       "Bash(cmd.exe:*)",
       "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" /c/Codes/GitKraken/pewpew-custom-engine/CBEngine.sln /p:Configuration=Debug /p:Platform=x64 /verbosity:minimal /m)",
-      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" CBEngine.sln //p:Configuration=Debug //p:Platform=x64 //verbosity:minimal //m)"
+      "Bash(\"/c/Program Files/Microsoft Visual Studio/2022/Community/MSBuild/Current/Bin/MSBuild.exe\" CBEngine.sln //p:Configuration=Debug //p:Platform=x64 //verbosity:minimal //m)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(python scripts/generate_lua_defs.py:*)"
     ]
   }
 }

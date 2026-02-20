@@ -4,6 +4,11 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/RegisterTypes.h>
 #include <Jolt/Core/Factory.h>
+#include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/CastResult.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Body/BodyLock.h>
 
 namespace CB
 {
@@ -78,16 +83,24 @@ namespace CB
 			JPH::cMaxPhysicsJobs, JPH::cMaxPhysicsBarriers,
 			std::max(1u, std::thread::hardware_concurrency() - 1));
 
-		// Broad-phase layer mapping
+		// Broad-phase layer mapping: 16 object layers -> 2 broadphase layers
+		// Layers 0 (Default) and 3 (Environment) map to NON_MOVING broadphase;
+		// all other layers map to MOVING broadphase.
 		m_BroadPhaseLayerInterface = CreateScope<JPH::BroadPhaseLayerInterfaceTable>(
 			ObjectLayers::NUM_LAYERS, BroadPhaseLayers::NUM_LAYERS);
-		m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(ObjectLayers::NON_MOVING, BroadPhaseLayers::NON_MOVING);
-		m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(ObjectLayers::MOVING, BroadPhaseLayers::MOVING);
+		for (uint32_t i = 0; i < ObjectLayers::NUM_LAYERS; i++)
+		{
+			if (i == 0 || i == 3) // Default, Environment
+				m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(static_cast<JPH::ObjectLayer>(i), BroadPhaseLayers::NON_MOVING);
+			else
+				m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(static_cast<JPH::ObjectLayer>(i), BroadPhaseLayers::MOVING);
+		}
 
-		// Object layer pair filter (must be created before ObjectVsBroadPhaseLayerFilter)
+		// Object layer pair filter — enable all-vs-all collisions by default
 		m_ObjectLayerPairFilter = CreateScope<JPH::ObjectLayerPairFilterTable>(ObjectLayers::NUM_LAYERS);
-		m_ObjectLayerPairFilter->EnableCollision(ObjectLayers::NON_MOVING, ObjectLayers::MOVING);
-		m_ObjectLayerPairFilter->EnableCollision(ObjectLayers::MOVING, ObjectLayers::MOVING);
+		for (uint32_t i = 0; i < ObjectLayers::NUM_LAYERS; i++)
+			for (uint32_t j = i; j < ObjectLayers::NUM_LAYERS; j++)
+				m_ObjectLayerPairFilter->EnableCollision(static_cast<JPH::ObjectLayer>(i), static_cast<JPH::ObjectLayer>(j));
 
 		// Broad-phase vs object layer filter
 		m_ObjectVsBroadPhaseLayerFilter = CreateScope<JPH::ObjectVsBroadPhaseLayerFilterTable>(
@@ -176,6 +189,165 @@ namespace CB
 	void PhysicsWorld::UnregisterBody(JPH::BodyID bodyID)
 	{
 		m_BodyToEntityMap.erase(bodyID.GetIndexAndSequenceNumber());
+	}
+
+	UUID PhysicsWorld::GetEntityFromBody(JPH::BodyID bodyID) const
+	{
+		auto it = m_BodyToEntityMap.find(bodyID.GetIndexAndSequenceNumber());
+		if (it != m_BodyToEntityMap.end())
+			return it->second;
+		return UUID(0);
+	}
+
+	JPH::BodyID PhysicsWorld::GetBodyFromEntity(UUID entityUUID) const
+	{
+		for (auto& [key, uuid] : m_BodyToEntityMap)
+		{
+			if (uuid == entityUUID)
+				return JPH::BodyID(key);
+		}
+		return JPH::BodyID();
+	}
+
+	// Custom ObjectLayerFilter for raycast layer masking
+	class LayerMaskObjectLayerFilter : public JPH::ObjectLayerFilter
+	{
+	public:
+		LayerMaskObjectLayerFilter(uint16_t mask) : m_Mask(mask) {}
+
+		bool ShouldCollide(JPH::ObjectLayer inLayer) const override
+		{
+			return (m_Mask & (1 << inLayer)) != 0;
+		}
+
+	private:
+		uint16_t m_Mask;
+	};
+
+	bool PhysicsWorld::Raycast(const Vector3& origin, const Vector3& direction, float maxDistance,
+		RaycastHit& outHit, uint16_t layerMask, UUID ignoreEntity) const
+	{
+		if (!m_Initialized)
+			return false;
+
+		JPH::Vec3 dir(direction.x, direction.y, direction.z);
+		float dirLen = dir.Length();
+		if (dirLen < 0.0001f)
+			return false;
+
+		JPH::Vec3 normDir = dir / dirLen;
+
+		JPH::RRayCast ray(
+			JPH::RVec3(origin.x, origin.y, origin.z),
+			normDir * maxDistance);
+
+		JPH::RayCastResult result;
+		LayerMaskObjectLayerFilter layerFilter(layerMask);
+
+		const auto& narrowPhase = m_PhysicsSystem.GetNarrowPhaseQuery();
+
+		bool hit;
+		if (ignoreEntity.IsValid())
+		{
+			JPH::BodyID ignoreBody = GetBodyFromEntity(ignoreEntity);
+			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
+			hit = narrowPhase.CastRay(ray, result, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+		}
+		else
+		{
+			hit = narrowPhase.CastRay(ray, result, JPH::BroadPhaseLayerFilter{}, layerFilter);
+		}
+
+		if (!hit)
+			return false;
+
+		outHit.Fraction = result.mFraction;
+		outHit.Distance = result.mFraction * maxDistance;
+
+		JPH::RVec3 hitPoint = ray.GetPointOnRay(result.mFraction);
+		outHit.Point = Vector3(
+			static_cast<float>(hitPoint.GetX()),
+			static_cast<float>(hitPoint.GetY()),
+			static_cast<float>(hitPoint.GetZ()));
+
+		outHit.EntityUUID = GetEntityFromBody(result.mBodyID);
+
+		// Get surface normal
+		JPH::BodyLockRead bodyLock(m_PhysicsSystem.GetBodyLockInterface(), result.mBodyID);
+		if (bodyLock.Succeeded())
+		{
+			const JPH::Body& body = bodyLock.GetBody();
+			JPH::Vec3 normal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
+			outHit.Normal = Vector3(normal.GetX(), normal.GetY(), normal.GetZ());
+		}
+
+		return true;
+	}
+
+	std::vector<RaycastHit> PhysicsWorld::RaycastAll(const Vector3& origin, const Vector3& direction,
+		float maxDistance, uint16_t layerMask, UUID ignoreEntity) const
+	{
+		std::vector<RaycastHit> hits;
+
+		if (!m_Initialized)
+			return hits;
+
+		JPH::Vec3 dir(direction.x, direction.y, direction.z);
+		float dirLen = dir.Length();
+		if (dirLen < 0.0001f)
+			return hits;
+
+		JPH::Vec3 normDir = dir / dirLen;
+
+		JPH::RRayCast ray(
+			JPH::RVec3(origin.x, origin.y, origin.z),
+			normDir * maxDistance);
+
+		JPH::AllHitCollisionCollector<JPH::CastRayCollector> collector;
+		LayerMaskObjectLayerFilter layerFilter(layerMask);
+
+		const auto& narrowPhase = m_PhysicsSystem.GetNarrowPhaseQuery();
+		JPH::RayCastSettings settings;
+		if (ignoreEntity.IsValid())
+		{
+			JPH::BodyID ignoreBody = GetBodyFromEntity(ignoreEntity);
+			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
+			narrowPhase.CastRay(ray, settings, collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+		}
+		else
+		{
+			narrowPhase.CastRay(ray, settings, collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
+		}
+
+		collector.Sort();
+
+		hits.reserve(collector.mHits.size());
+		for (const auto& result : collector.mHits)
+		{
+			RaycastHit hit;
+			hit.Fraction = result.mFraction;
+			hit.Distance = result.mFraction * maxDistance;
+
+			JPH::RVec3 hitPoint = ray.GetPointOnRay(result.mFraction);
+			hit.Point = Vector3(
+				static_cast<float>(hitPoint.GetX()),
+				static_cast<float>(hitPoint.GetY()),
+				static_cast<float>(hitPoint.GetZ()));
+
+			hit.EntityUUID = GetEntityFromBody(result.mBodyID);
+
+			JPH::BodyLockRead bodyLock(m_PhysicsSystem.GetBodyLockInterface(), result.mBodyID);
+			if (bodyLock.Succeeded())
+			{
+				const JPH::Body& body = bodyLock.GetBody();
+				JPH::Vec3 normal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
+				hit.Normal = Vector3(normal.GetX(), normal.GetY(), normal.GetZ());
+			}
+
+			hits.push_back(hit);
+		}
+
+		return hits;
 	}
 
 	// Contact listener implementation

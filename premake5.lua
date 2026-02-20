@@ -193,7 +193,7 @@ project "CBEngine"
 
     filter "system:windows"
 	    systemversion "latest"
-        buildoptions { "/utf-8" }
+        buildoptions { "/utf-8", "/bigobj" }
 
 		-- GLFW Windows-specific files
 		files

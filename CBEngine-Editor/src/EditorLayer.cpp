@@ -28,6 +28,13 @@ namespace CB
         // Initialize SceneManager with default empty scene
         SceneManager::Init();
 
+        // Load toolbar icons
+        m_PlayButtonIcon = Texture2D::Create("resources/icons/play_btn.png");
+        m_PauseButtonIcon = Texture2D::Create("resources/icons/pause_btn.png");
+        m_StopButtonIcon = Texture2D::Create("resources/icons/stop_btn.png");
+        m_NextFrameButtonIcon = Texture2D::Create("resources/icons/next_frame_btn.png");
+        m_ResumeButtonIcon = Texture2D::Create("resources/icons/resume_btn.png");
+
         // Start file watcher for hot reload
         m_FileWatcher = CreateScope<FileWatcher>("assets", [](const FileWatcherEvent& event)
         {
@@ -109,6 +116,9 @@ namespace CB
         // Update viewport (handles rendering)
         m_ViewportPanel.OnUpdate(ts);
 
+        // Update game viewport
+        m_GameViewportPanel.OnUpdate(ts);
+
         // Update import preview panel
         m_MeshImportPanel.OnUpdate(ts);
 
@@ -123,6 +133,30 @@ namespace CB
         BeginDockspace();
 
         DrawMenuBar();
+        DrawToolbar();
+
+        // Create DockSpace after toolbar so it takes remaining space below
+        {
+            ImGuiIO& io = ImGui::GetIO();
+            ImGuiStyle& style = ImGui::GetStyle();
+            float minWinSizeX = style.WindowMinSize.x;
+            style.WindowMinSize.x = 370.0f;
+
+            if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+            {
+                ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+                ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+                if (m_FirstFrame || m_ResetLayout)
+                {
+                    m_FirstFrame = false;
+                    m_ResetLayout = false;
+                    SetupDefaultLayout(dockspace_id);
+                }
+            }
+
+            style.WindowMinSize.x = minWinSizeX;
+        }
 
         // Global keyboard shortcuts
         {
@@ -160,6 +194,7 @@ namespace CB
         m_ContentBrowserPanel.OnImGuiRender();
         m_MeshImportPanel.OnImGuiRender();
         m_VoxelTextureEditorPanel.OnImGuiRender();
+        m_GameViewportPanel.OnImGuiRender();
 
         EndDockspace();
     }
@@ -247,6 +282,7 @@ namespace CB
                 ImGui::MenuItem("Scene Hierarchy", nullptr, m_SceneHierarchyPanel.GetVisiblePtr());
                 ImGui::MenuItem("Properties", nullptr, m_PropertiesPanel.GetVisiblePtr());
                 ImGui::MenuItem("Viewport", nullptr, m_ViewportPanel.GetVisiblePtr());
+                ImGui::MenuItem("Game", nullptr, m_GameViewportPanel.GetVisiblePtr());
                 ImGui::MenuItem("Console", nullptr, m_ConsolePanel.GetVisiblePtr());
                 ImGui::MenuItem("Content Browser", nullptr, m_ContentBrowserPanel.GetVisiblePtr());
                 ImGui::Separator();
@@ -288,6 +324,125 @@ namespace CB
         }
     }
 
+    void EditorLayer::DrawToolbar()
+    {
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 2));
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, ImVec2(0, 0));
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
+
+        float toolbarHeight = 32.0f;
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.14f, 1.0f));
+
+        ImGui::BeginChild("##EditorToolbar", ImVec2(0, toolbarHeight), false,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        Ref<Scene> scene = SceneManager::GetActiveScene();
+        bool simulating = scene && scene->IsPhysicsInitialized();
+        bool paused = scene && scene->IsPhysicsPaused();
+
+        // Calculate total width of buttons to center them
+        float buttonSize = 24.0f;
+        float spacing = 4.0f;
+        float totalWidth = buttonSize; // Play or Stop
+        if (simulating)
+            totalWidth += spacing + buttonSize + spacing + buttonSize; // + Pause/Resume + Step
+
+        float availWidth = ImGui::GetContentRegionAvail().x;
+        float startX = (availWidth - totalWidth) * 0.5f;
+        if (startX < 0) startX = 0;
+
+        ImGui::SetCursorPosX(startX);
+        ImGui::SetCursorPosY((toolbarHeight - buttonSize) * 0.5f);
+
+        if (!simulating)
+        {
+            if (ImGui::ImageButton(
+                "##play",
+                (ImTextureID)(uintptr_t)m_PlayButtonIcon->GetRendererID(),
+                ImVec2(buttonSize, buttonSize),
+                ImVec2(0, 1), ImVec2(1, 0)))
+            {
+                if (scene)
+                    scene->InitPhysics();
+            }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Play (F5)");
+        }
+        else
+        {
+            // Stop button
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.15f, 0.15f, 0.3f));
+            if (ImGui::ImageButton(
+                "##stop",
+                (ImTextureID)(uintptr_t)m_StopButtonIcon->GetRendererID(),
+                ImVec2(buttonSize, buttonSize),
+                ImVec2(0, 1), ImVec2(1, 0)))
+            {
+                scene->ShutdownPhysics();
+            }
+            ImGui::PopStyleColor();
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Stop (F5)");
+
+            ImGui::SameLine(0.0f, spacing);
+
+            // Pause / Resume
+            if (paused)
+            {
+                if (ImGui::ImageButton(
+                    "##resume",
+                    (ImTextureID)(uintptr_t)m_ResumeButtonIcon->GetRendererID(),
+                    ImVec2(buttonSize, buttonSize),
+                    ImVec2(0, 1), ImVec2(1, 0)))
+                {
+                    scene->ResumePhysics();
+                }
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Resume");
+            }
+            else
+            {
+                if (ImGui::ImageButton(
+                    "##pause",
+                    (ImTextureID)(uintptr_t)m_PauseButtonIcon->GetRendererID(),
+                    ImVec2(buttonSize, buttonSize),
+                    ImVec2(0, 1), ImVec2(1, 0)))
+                {
+                    scene->PausePhysics();
+                }
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pause");
+            }
+
+            ImGui::SameLine(0.0f, spacing);
+
+            // Step one frame
+            bool canStep = paused;
+            if (!canStep)
+                ImGui::BeginDisabled();
+
+            if (ImGui::ImageButton(
+                "##step",
+                (ImTextureID)(uintptr_t)m_NextFrameButtonIcon->GetRendererID(),
+                ImVec2(buttonSize, buttonSize),
+                ImVec2(0, 1), ImVec2(1, 0)))
+            {
+                if (canStep)
+                    scene->StepOneFrame();
+            }
+
+            if (!canStep)
+                ImGui::EndDisabled();
+
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+                ImGui::SetTooltip("Step One Frame (only when paused)");
+        }
+
+        ImGui::EndChild();
+        ImGui::Separator();
+
+        ImGui::PopStyleColor(4); // ChildBg, Button, ButtonHovered, ButtonActive
+        ImGui::PopStyleVar(2);
+    }
+
     void EditorLayer::BeginDockspace()
     {
         static bool dockspaceOpen = true;
@@ -319,26 +474,6 @@ namespace CB
         if (opt_fullscreen)
             ImGui::PopStyleVar(2);
 
-        ImGuiIO& io = ImGui::GetIO();
-        ImGuiStyle& style = ImGui::GetStyle();
-        float minWinSizeX = style.WindowMinSize.x;
-        style.WindowMinSize.x = 370.0f;
-
-        if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
-        {
-            ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
-            ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
-
-            // Setup default layout on first frame or when reset is requested
-            if (m_FirstFrame || m_ResetLayout)
-            {
-                m_FirstFrame = false;
-                m_ResetLayout = false;
-                SetupDefaultLayout(dockspace_id);
-            }
-        }
-
-        style.WindowMinSize.x = minWinSizeX;
     }
 
     void EditorLayer::EndDockspace()
@@ -406,6 +541,7 @@ namespace CB
         // Dock windows to their designated areas
         ImGui::DockBuilderDockWindow("Scene Hierarchy", dock_left_id);
         ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
+        ImGui::DockBuilderDockWindow("Game", dock_main_id);
         ImGui::DockBuilderDockWindow("Properties", dock_right_id);
 
         // Dock Content Browser and Console to the bottom (they will be tabbed)

@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Components/BlueprintInstanceComponent.h"
+#include "../ComponentCard.h"
 
 namespace CB
 {
@@ -14,10 +15,12 @@ namespace CB
 			if (!entity.HasComponent<BlueprintInstanceComponent>())
 				return;
 
-			auto& bic = entity.GetComponent<BlueprintInstanceComponent>();
+			bool opened = ComponentCard::Begin("Blueprint Instance (Internal)", false);
 
-			if (ImGui::CollapsingHeader("Blueprint Instance (Internal)"))
+			if (opened)
 			{
+				auto& bic = entity.GetComponent<BlueprintInstanceComponent>();
+
 				ImGui::TextDisabled("Source Path:");
 				ImGui::SameLine();
 				ImGui::Text("%s", bic.BlueprintPath.c_str());
@@ -30,6 +33,8 @@ namespace CB
 				ImGui::SameLine();
 				ImGui::Text("%d bytes", static_cast<int>(bic.OriginalYAML.size()));
 			}
+
+			ComponentCard::End();
 		}
 	};
 }

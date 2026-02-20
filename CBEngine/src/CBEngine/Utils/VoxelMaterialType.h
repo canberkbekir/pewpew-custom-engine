@@ -53,6 +53,26 @@ namespace CB
         }
     }
 
+    struct VMatMaterialProperties
+    {
+        float Metallic = 0.0f;
+        float Roughness = 0.5f;
+        float Emission = 0.0f;
+    };
+
+    inline VMatMaterialProperties GetDefaultPBRProperties(VoxelMaterialType type)
+    {
+        switch (type)
+        {
+        case VoxelMaterialType::Stone:  return {0.0f, 0.8f, 0.0f};
+        case VoxelMaterialType::Wood:   return {0.0f, 0.7f, 0.0f};
+        case VoxelMaterialType::Metal:  return {1.0f, 0.3f, 0.0f};
+        case VoxelMaterialType::Glass:  return {0.1f, 0.1f, 0.0f};
+        case VoxelMaterialType::Marble: return {0.0f, 0.4f, 0.0f};
+        default:                        return {0.0f, 0.5f, 0.0f};
+        }
+    }
+
     // Auto-detect material type from voxel visual properties
     inline VoxelMaterialType AutoDetectMaterialType(const Vector3& color)
     {

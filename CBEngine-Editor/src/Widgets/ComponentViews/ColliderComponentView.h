@@ -6,6 +6,7 @@
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Asset/AssetManager.h"
+#include "../ComponentCard.h"
 
 namespace CB
 {
@@ -17,25 +18,39 @@ namespace CB
             if (!entity.HasComponent<ColliderComponent>())
                 return;
 
-            ImGuiTreeNodeFlags flags =
-                ImGuiTreeNodeFlags_DefaultOpen |
-                ImGuiTreeNodeFlags_Framed |
-                ImGuiTreeNodeFlags_AllowItemOverlap |
-                ImGuiTreeNodeFlags_SpanAvailWidth;
+            bool removed = false;
+            bool reset = false;
+            bool autoFit = false;
 
-            bool opened = ImGui::TreeNodeEx("Collider", flags);
+            std::vector<ComponentCard::MenuAction> extraActions;
+            extraActions.push_back({"Auto Fit", &autoFit});
 
-            // Right-aligned remove button
+            bool opened = ComponentCard::Begin("Collider", true, &removed, &reset, extraActions);
+
+            if (removed)
             {
-                float lineHeight = ImGui::GetFrameHeight();
-                float rightX = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - lineHeight;
-                ImGui::SameLine(rightX);
-                if (ImGui::Button("X##Collider", ImVec2(lineHeight, lineHeight)))
-                {
-                    entity.RemoveComponent<ColliderComponent>();
-                    if (opened) ImGui::TreePop();
-                    return;
-                }
+                entity.RemoveComponent<ColliderComponent>();
+                ComponentCard::End();
+                return;
+            }
+
+            if (reset)
+            {
+                auto& col = entity.GetComponent<ColliderComponent>();
+                col.Shape = ColliderShape::Box;
+                col.HalfExtents = Vector3(0.5f);
+                col.Radius = 0.5f;
+                col.CapsuleRadius = 0.5f;
+                col.CapsuleHalfHeight = 0.5f;
+                col.Offset = Vector3(0.0f);
+                col.IsTrigger = false;
+                col.ShapeDirty = true;
+            }
+
+            if (autoFit)
+            {
+                auto& collider = entity.GetComponent<ColliderComponent>();
+                AutoFitCollider(entity, collider);
             }
 
             if (opened)
@@ -99,9 +114,9 @@ namespace CB
                     collider.ShapeDirty = true;
 
                 ImGui::Checkbox("Is Trigger", &collider.IsTrigger);
-
-                ImGui::TreePop();
             }
+
+            ComponentCard::End();
         }
 
         static bool GetMeshBounds(Entity entity, Vector3& outMin, Vector3& outMax)

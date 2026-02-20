@@ -1,0 +1,30 @@
+Blueprint: Empty Entity
+Entities:
+  - Entity: 1075940986449725326
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [-5.9604645e-08, 3.7066455, -2.3841858e-07]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 2879451016976322528
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [0.5, 0.5, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false

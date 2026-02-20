@@ -3,10 +3,7 @@
 #include "CBEngine/Core/Core.h"
 #include "CBEngine/Core/UUID.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
-#include "CBEngine/Renderer/Resources/Material.h"
-#include "CBEngine/Renderer/Resources/Shader.h"
 #include "CBEngine/Renderer/Resources/Texture.h"
-#include "CBEngine/Utils/VoxelizerAPI.h"
 
 namespace YAML
 {
@@ -20,28 +17,19 @@ namespace CB
 
     struct VoxelRendererComponent
     {
-        // Cached asset references (loaded from UUIDs)
+        // Cached runtime GPU mesh (generated from vmesh grid)
         Ref<Mesh> MeshAsset;
-        Ref<Material> MaterialAsset;
-        Ref<Shader> ShaderAsset;
 
-        // Asset UUIDs for serialization and picker
-        UUID MeshUUID = UUID(0); // Not used directly; mesh is generated from voxel grid
-        UUID MaterialUUID = UUID(0);
-        UUID ShaderUUID = UUID(0);
-
-        // Voxel-specific
+        // Voxel-specific asset UUIDs
         UUID VoxelMeshUUID = UUID(0); // .vmesh asset UUID
-        UUID ColorTextureUUID = UUID(0); // Texture to sample for voxel colors
-        VoxelizeSettings VoxelSettings;
+        UUID VoxelTextureUUID = UUID(0); // .vtex asset UUID
 
         // Palette textures (for GPU rendering)
         Ref<Texture2D> PaletteColorTexture;
         Ref<Texture2D> PaletteMaterialTexture;
         bool HasPalette = false;
 
-        // Voxel Texture (.vtex) - per-voxel material type data
-        UUID VoxelTextureUUID = UUID(0);
+        // Voxel Texture (.vtex) - per-voxel material type data + PBR overrides
         Ref<VoxelTextureAsset> VoxelTexture;
 
         bool Visible = true;

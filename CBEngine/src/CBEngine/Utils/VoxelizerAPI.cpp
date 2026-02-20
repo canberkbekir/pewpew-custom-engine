@@ -18,6 +18,26 @@ namespace CB
     std::vector<Vertex> VoxelizerAPI::s_UnitCubeVertices;
     std::vector<uint32_t> VoxelizerAPI::s_UnitCubeIndices;
 
+    // Face directions for neighbor-based culling (matches CreateUnitCube face order)
+    // Face 0: Z+ front, Face 1: Z- back, Face 2: Y+ top, Face 3: Y- bottom, Face 4: X+ right, Face 5: X- left
+    static const glm::ivec3 s_FaceDirections[6] = {
+        { 0,  0,  1}, // Face 0: Z+ front
+        { 0,  0, -1}, // Face 1: Z- back
+        { 0,  1,  0}, // Face 2: Y+ top
+        { 0, -1,  0}, // Face 3: Y- bottom
+        { 1,  0,  0}, // Face 4: X+ right
+        {-1,  0,  0}, // Face 5: X- left
+    };
+
+    // Check if a face should be emitted (neighbor is empty or out of bounds)
+    static bool ShouldEmitFace(const voxelizer::VoxelGrid& grid, const glm::ivec3& coord, int faceIdx)
+    {
+        glm::ivec3 neighbor = coord + s_FaceDirections[faceIdx];
+        if (!grid.IsValidCoord(neighbor))
+            return true; // Boundary voxel — always emit outward-facing face
+        return !grid.IsFilled(neighbor);
+    }
+
     // ============================================================================
     // TextureSampler Implementation
     // ============================================================================
@@ -634,21 +654,30 @@ namespace CB
             const Vector3& color = voxelColors[i];
 
             glm::vec3 center = grid.VoxelCenterToWorld(coord);
-            uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
 
-            // Add transformed unit cube vertices with color
-            for (const auto& cubeVertex : s_UnitCubeVertices)
+            // Emit only visible faces (neighbor culling)
+            for (int face = 0; face < 6; ++face)
             {
-                Vertex v = cubeVertex;
-                v.Position = center + Vector3(cubeVertex.Position) * voxelSize;
-                v.Color = color;
-                vertices.push_back(v);
-            }
+                if (!ShouldEmitFace(grid, coord, face))
+                    continue;
 
-            // Add indices with offset
-            for (uint32_t idx : s_UnitCubeIndices)
-            {
-                indices.push_back(baseVertex + idx);
+                uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
+                uint32_t faceVertStart = face * 4;
+
+                for (int fv = 0; fv < 4; ++fv)
+                {
+                    Vertex v = s_UnitCubeVertices[faceVertStart + fv];
+                    v.Position = center + Vector3(v.Position) * voxelSize;
+                    v.Color = color;
+                    vertices.push_back(v);
+                }
+
+                indices.push_back(baseVertex + 0);
+                indices.push_back(baseVertex + 1);
+                indices.push_back(baseVertex + 2);
+                indices.push_back(baseVertex + 2);
+                indices.push_back(baseVertex + 3);
+                indices.push_back(baseVertex + 0);
             }
         }
 
@@ -876,6 +905,109 @@ namespace CB
     // Palette Methods
     // ============================================================================
 
+    std::vector<Vector3> VoxelizerAPI::BuildPaletteMedianCut(const std::vector<Vector3>& colors, int maxColors)
+    {
+        CB_PROFILE_FUNCTION();
+
+        if (colors.empty())
+            return {};
+
+        // Collect unique colors (or all if reasonable count)
+        std::vector<Vector3> samples = colors;
+
+        // A "box" in RGB space
+        struct ColorBox
+        {
+            std::vector<Vector3> Colors;
+
+            int LongestAxis() const
+            {
+                Vector3 minC(std::numeric_limits<float>::max());
+                Vector3 maxC(std::numeric_limits<float>::lowest());
+                for (const auto& c : Colors)
+                {
+                    minC = glm::min(minC, c);
+                    maxC = glm::max(maxC, c);
+                }
+                Vector3 range = maxC - minC;
+                if (range.r >= range.g && range.r >= range.b) return 0;
+                if (range.g >= range.r && range.g >= range.b) return 1;
+                return 2;
+            }
+
+            float AxisRange(int axis) const
+            {
+                float lo = std::numeric_limits<float>::max();
+                float hi = std::numeric_limits<float>::lowest();
+                for (const auto& c : Colors)
+                {
+                    float v = c[axis];
+                    if (v < lo) lo = v;
+                    if (v > hi) hi = v;
+                }
+                return hi - lo;
+            }
+
+            Vector3 Average() const
+            {
+                Vector3 sum(0.0f);
+                for (const auto& c : Colors)
+                    sum += c;
+                return sum / static_cast<float>(Colors.size());
+            }
+        };
+
+        // Start with one box containing all colors
+        std::vector<ColorBox> boxes;
+        boxes.push_back({std::move(samples)});
+
+        // Split until we have enough boxes or can't split more
+        while (static_cast<int>(boxes.size()) < maxColors)
+        {
+            // Find the box with the largest range on its longest axis
+            int bestBox = -1;
+            float bestRange = 0.0f;
+            for (int i = 0; i < static_cast<int>(boxes.size()); i++)
+            {
+                if (boxes[i].Colors.size() < 2)
+                    continue;
+                int axis = boxes[i].LongestAxis();
+                float range = boxes[i].AxisRange(axis);
+                if (range > bestRange)
+                {
+                    bestRange = range;
+                    bestBox = i;
+                }
+            }
+
+            if (bestBox < 0 || bestRange < 1e-6f)
+                break; // Can't split further
+
+            // Split the best box at the median of its longest axis
+            int axis = boxes[bestBox].LongestAxis();
+            auto& colors = boxes[bestBox].Colors;
+            std::sort(colors.begin(), colors.end(), [axis](const Vector3& a, const Vector3& b)
+            {
+                return a[axis] < b[axis];
+            });
+
+            size_t mid = colors.size() / 2;
+            ColorBox boxB;
+            boxB.Colors.assign(colors.begin() + mid, colors.end());
+            colors.resize(mid);
+
+            boxes.push_back(std::move(boxB));
+        }
+
+        // Each box's average becomes a palette entry
+        std::vector<Vector3> palette;
+        palette.reserve(boxes.size());
+        for (const auto& box : boxes)
+            palette.push_back(box.Average());
+
+        return palette;
+    }
+
     VoxelPaletteData VoxelizerAPI::BuildPaletteFromColors(const std::vector<Vector3>& voxelColors)
     {
         CB_PROFILE_FUNCTION();
@@ -883,26 +1015,29 @@ namespace CB
         VoxelPaletteData data;
         data.PaletteIndices.reserve(voxelColors.size());
 
-        static constexpr float MatchThreshold = 0.02f * 0.02f; // squared RGB distance
+        if (voxelColors.empty())
+            return data;
 
+        // Use median-cut to build a globally optimal palette
+        std::vector<Vector3> paletteColors = BuildPaletteMedianCut(voxelColors,
+            static_cast<int>(VoxelPalette::MaxEntries));
+
+        // Add palette entries
+        for (size_t i = 0; i < paletteColors.size(); i++)
+        {
+            VoxelPaletteEntry entry;
+            entry.Color = paletteColors[i];
+            if (i == 0)
+                data.Palette.SetEntry(0, entry);
+            else
+                data.Palette.AddEntry(entry);
+        }
+
+        // Map each voxel to its closest palette entry
         for (const auto& color : voxelColors)
         {
-            // Try to find existing close entry
             uint8_t bestIdx = data.Palette.FindClosestEntry(color);
-            Vector3 diff = data.Palette.GetEntry(bestIdx).Color - color;
-            float dist = dot(diff, diff);
-
-            if (dist <= MatchThreshold || data.Palette.GetUsedCount() >= VoxelPalette::MaxEntries)
-            {
-                data.PaletteIndices.push_back(bestIdx);
-            }
-            else
-            {
-                VoxelPaletteEntry entry;
-                entry.Color = color;
-                uint8_t newIdx = data.Palette.AddEntry(entry);
-                data.PaletteIndices.push_back(newIdx);
-            }
+            data.PaletteIndices.push_back(bestIdx);
         }
 
         return data;
@@ -938,19 +1073,32 @@ namespace CB
             float palIdx = paletteIndices[i];
 
             glm::vec3 center = grid.VoxelCenterToWorld(coord);
-            uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
 
-            for (const auto& cubeVertex : s_UnitCubeVertices)
+            // Emit only visible faces (neighbor culling)
+            for (int face = 0; face < 6; ++face)
             {
-                Vertex v = cubeVertex;
-                v.Position = center + Vector3(cubeVertex.Position) * voxelSize;
-                v.Color = Vector3(1.0f);
-                v.PaletteIndex = palIdx;
-                vertices.push_back(v);
-            }
+                if (!ShouldEmitFace(grid, coord, face))
+                    continue;
 
-            for (uint32_t idx : s_UnitCubeIndices)
-                indices.push_back(baseVertex + idx);
+                uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
+                uint32_t faceVertStart = face * 4;
+
+                for (int fv = 0; fv < 4; ++fv)
+                {
+                    Vertex v = s_UnitCubeVertices[faceVertStart + fv];
+                    v.Position = center + Vector3(v.Position) * voxelSize;
+                    v.Color = Vector3(1.0f);
+                    v.PaletteIndex = palIdx;
+                    vertices.push_back(v);
+                }
+
+                indices.push_back(baseVertex + 0);
+                indices.push_back(baseVertex + 1);
+                indices.push_back(baseVertex + 2);
+                indices.push_back(baseVertex + 2);
+                indices.push_back(baseVertex + 3);
+                indices.push_back(baseVertex + 0);
+            }
         }
 
         if (vertices.empty())
@@ -995,18 +1143,31 @@ namespace CB
         for (const auto& coord : filledCoords)
         {
             glm::vec3 center = grid.VoxelCenterToWorld(coord);
-            uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
 
-            for (const auto& cubeVertex : s_UnitCubeVertices)
+            // Emit only visible faces (neighbor culling)
+            for (int face = 0; face < 6; ++face)
             {
-                Vertex v = cubeVertex;
-                v.Position = center + Vector3(cubeVertex.Position) * voxelSize;
-                v.Color = color;
-                vertices.push_back(v);
-            }
+                if (!ShouldEmitFace(grid, coord, face))
+                    continue;
 
-            for (uint32_t idx : s_UnitCubeIndices)
-                indices.push_back(baseVertex + idx);
+                uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
+                uint32_t faceVertStart = face * 4;
+
+                for (int fv = 0; fv < 4; ++fv)
+                {
+                    Vertex v = s_UnitCubeVertices[faceVertStart + fv];
+                    v.Position = center + Vector3(v.Position) * voxelSize;
+                    v.Color = color;
+                    vertices.push_back(v);
+                }
+
+                indices.push_back(baseVertex + 0);
+                indices.push_back(baseVertex + 1);
+                indices.push_back(baseVertex + 2);
+                indices.push_back(baseVertex + 2);
+                indices.push_back(baseVertex + 3);
+                indices.push_back(baseVertex + 0);
+            }
         }
 
         return CreateRef<Mesh>(vertices, indices);

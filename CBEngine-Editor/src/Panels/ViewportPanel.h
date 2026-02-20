@@ -49,9 +49,16 @@ namespace CB
         bool m_Wireframe = false;
         bool m_ShowColliders = false;
         bool m_ShowStats = true;
+        bool m_ShowGrid = true;
+        bool m_ShowCameras = true;
 
         // Gizmo state
         ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::TRANSLATE;
         ImGuizmo::MODE m_GizmoMode = ImGuizmo::LOCAL;
+
+        //Icons
+        ImVec2 m_IconSize = {20.f,20.f};
+        Ref<Texture2D> m_WireframeButtonIcon;
+        
     };
 }

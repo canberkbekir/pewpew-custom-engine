@@ -36,6 +36,7 @@ namespace CB
         void RenderModelPreview();
         void RenderMaterialMapView();
         void RenderPaletteEditor();
+        void RenderPBROverrides();
 
         void RebuildMaterialMapMesh();
         void FitCameraToMesh();
@@ -123,8 +124,17 @@ namespace CB
         // Dirty flag for material map rebuild
         bool m_MaterialMapDirty = false;
 
+        // Deferred rebuild: true while user is actively painting (mouse held down)
+        bool m_PaintingActive = false;
+
+        // When only palette PBR properties change, re-upload textures without rebuilding geometry
+        bool m_PaletteTextureDirty = false;
+
         // Texture picker for "Generate from Texture"
         UUID m_SourceTextureUUID = UUID(0);
+
+        // Material picker for "Generate from Material"
+        UUID m_SourceMaterialUUID = UUID(0);
 
         // Add palette entry state
         float m_NewPaletteColor[3] = {0.5f, 0.5f, 0.5f};

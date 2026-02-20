@@ -12,12 +12,14 @@
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "CBEngine/Asset/BlueprintAsset.h"
 #include "CBEngine/Components/CoreComponents.h"
+#include "CBEngine/Components/CameraComponent.h"
 #include "CBEngine/Components/ColliderComponent.h"
 #include "CBEngine/Components/Components.h"
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Debug/ColliderDebugRenderer.h"
+#include "CBEngine/Debug/DebugDraw.h"
 #include "CBEngine/Debug/Instrumentor.h"
 #include "CBEngine/Renderer/Core/RenderCommand.h"
 #include "CBEngine/Scene/SceneManager.h"
@@ -55,6 +57,9 @@ namespace CB
         m_DefaultMaterial->SetAlbedo({0.8f, 0.8f, 0.8f});
         m_DefaultMaterial->SetRoughness(0.5f);
         m_DefaultMaterial->SetMetallic(0.0f);
+
+        m_WireframeButtonIcon = Texture2D::Create("resources/icons/wireframe_btn.png");
+        
     }
 
     //--------------------------------------------------------------------------
@@ -84,10 +89,13 @@ namespace CB
         if (m_Focused && !ImGuizmo::IsUsing())
             m_CameraController.OnUpdate(ts);
 
-        // Render to framebuffer
+        // Render to framebuffer (flush debug lines before expiring them)
         m_Framebuffer->Bind();
         RenderScene();
         m_Framebuffer->Unbind();
+
+        // Tick debug lines AFTER rendering so duration-0 lines are visible for one frame
+        DebugDraw::Tick(ts.GetSeconds());
     }
 
     void ViewportPanel::RenderScene()
@@ -115,6 +123,12 @@ namespace CB
         // Restore fill mode
         RenderCommand::SetWireframeMode(false);
 
+        // Draw grid
+        if (m_ShowGrid && scene)
+        {
+            ColliderDebugRenderer::DrawGrid(m_CameraController.GetCamera());
+        }
+
         // Draw collider wireframes
         if (scene)
         {
@@ -136,7 +150,32 @@ namespace CB
                 if (entity)
                     DrawEntityColliders(entity);
             }
+
+            // Draw camera frustum wireframes
+            if (m_ShowCameras)
+            {
+                float aspect = m_ViewportSize.x / m_ViewportSize.y;
+                auto camView = scene->GetRegistry().view<CameraComponent, TransformComponent>();
+                for (auto entityHandle : camView)
+                {
+                    auto& camComp = scene->GetRegistry().get<CameraComponent>(entityHandle);
+                    auto& tc = scene->GetRegistry().get<TransformComponent>(entityHandle);
+                    Mat4 worldTransform = tc.HasParent() ? tc.WorldMatrix : tc.GetLocalTransform();
+
+                    Vector3 frustumColor = camComp.Primary
+                        ? Vector3(1.0f, 1.0f, 1.0f)
+                        : Vector3(0.5f, 0.5f, 0.5f);
+
+                    ColliderDebugRenderer::DrawCameraFrustum(
+                        camComp.FOV, aspect, camComp.NearClip,
+                        std::min(camComp.FarClip, 20.0f), // Clamp far plane for visualization
+                        worldTransform, m_CameraController.GetCamera(), frustumColor);
+                }
+            }
         }
+
+        // Flush debug draw lines (from Lua Debug.DrawLine/DrawRay)
+        DebugDraw::Flush(m_CameraController.GetCamera());
     }
 
     //--------------------------------------------------------------------------
@@ -402,8 +441,32 @@ namespace CB
         ImGui::SameLine();
 
         // Toggles
-        if (ImGui::Selectable("Wireframe", m_Wireframe, 0, ImVec2(70, 0)))
+        ImGui::PushStyleColor(ImGuiCol_Button, m_Wireframe ? ImVec4(1,1,1,0.05f) : ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1,1,1,0.15f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1,1,1,0.25f));
+
+        if (ImGui::ImageButton(
+        "##wireframe",
+        (ImTextureID)(uintptr_t)m_WireframeButtonIcon->GetRendererID(),
+        m_IconSize,
+        ImVec2(0,1),
+        ImVec2(1,0),
+        ImVec4(0,0,0,0),
+        ImVec4(0.9f,0.9f,0.9f,1.0f)))
+        {
             m_Wireframe = !m_Wireframe;
+        }
+
+
+        ImGui::PopStyleColor(3);
+
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Wireframe");
+
+        ImGui::SameLine();
+        if (ImGui::Selectable("Grid", m_ShowGrid, 0, ImVec2(30, 0)))
+            m_ShowGrid = !m_ShowGrid;
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show ground grid");
 
         ImGui::SameLine();
         if (ImGui::Selectable("Colliders", m_ShowColliders, 0, ImVec2(60, 0)))
@@ -411,78 +474,14 @@ namespace CB
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show all colliders in scene (off = selected entity only)");
 
         ImGui::SameLine();
+        if (ImGui::Selectable("Cameras", m_ShowCameras, 0, ImVec2(55, 0)))
+            m_ShowCameras = !m_ShowCameras;
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Show camera frustum wireframes");
+
+        ImGui::SameLine();
         if (ImGui::Selectable("Stats", m_ShowStats, 0, ImVec2(40, 0)))
             m_ShowStats = !m_ShowStats;
 
-        // --- Simulation Controls (centered-ish, right side) ---
-        ImGui::SameLine();
-        ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
-        ImGui::SameLine();
-
-        {
-            Ref<Scene> scene = SceneManager::GetActiveScene();
-            bool simulating = scene && scene->IsPhysicsInitialized();
-            bool paused = scene && scene->IsPhysicsPaused();
-
-            if (!simulating)
-            {
-                // Play button
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
-                if (ImGui::Selectable("|>", false, 0, ImVec2(20, 0)))
-                {
-                    if (scene)
-                        scene->InitPhysics();
-                }
-                ImGui::PopStyleColor();
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Play (F5)");
-            }
-            else
-            {
-                // Stop button
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.9f, 0.2f, 0.2f, 1.0f));
-                if (ImGui::Selectable("[]", false, 0, ImVec2(20, 0)))
-                {
-                    scene->ShutdownPhysics();
-                }
-                ImGui::PopStyleColor();
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Stop (F5)");
-
-                ImGui::SameLine();
-
-                // Pause / Resume button
-                if (paused)
-                {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
-                    if (ImGui::Selectable("|>##resume", false, 0, ImVec2(20, 0)))
-                        scene->ResumePhysics();
-                    ImGui::PopStyleColor();
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Resume");
-                }
-                else
-                {
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.0f, 1.0f));
-                    if (ImGui::Selectable("||", false, 0, ImVec2(20, 0)))
-                        scene->PausePhysics();
-                    ImGui::PopStyleColor();
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pause");
-                }
-
-                ImGui::SameLine();
-
-                // Step one frame button
-                bool canStep = paused;
-                if (!canStep)
-                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
-                if (ImGui::Selectable("|>|", canStep ? false : false, canStep ? 0 : ImGuiSelectableFlags_Disabled, ImVec2(24, 0)))
-                {
-                    if (canStep)
-                        scene->StepOneFrame();
-                }
-                if (!canStep)
-                    ImGui::PopStyleColor();
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Step One Frame (only when paused)");
-            }
-        }
 
         ImGui::EndChild();
         ImGui::Separator();
