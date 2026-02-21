@@ -36,6 +36,7 @@ project "Lua"
 	language "C"
 	staticruntime "on"
 	warnings "off"
+	flags { "MultiProcessorCompile" }
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -74,6 +75,7 @@ project "CBEngine"
 	language "C++"
 	cppdialect "C++17"
 	staticruntime "on"
+	flags { "MultiProcessorCompile" }
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -119,7 +121,7 @@ project "CBEngine"
 		"%{prj.name}/vendor/imgui/imstb_rectpack.h",
 		"%{prj.name}/vendor/imgui/imstb_textedit.h",
 		"%{prj.name}/vendor/imgui/imstb_truetype.h",
-		"%{prj.name}/vendor/imgui/imgui_demo.cpp",
+		-- imgui_demo added per-config below (Debug only)
 
 		-- yaml-cpp
 		"%{prj.name}/vendor/yaml-cpp/src/**.cpp",
@@ -142,6 +144,11 @@ project "CBEngine"
 		"%{prj.name}/vendor/GLFW/src/vulkan.c",
 		"%{prj.name}/vendor/GLFW/src/window.c",
 	}
+
+	-- imgui_demo only compiled in Debug (large file, no production value)
+	filter "configurations:Debug"
+		files { "%{prj.name}/vendor/imgui/imgui_demo.cpp" }
+	filter {}
 
 	-- Exclude vendor files from precompiled header
 	filter "files:CBEngine/vendor/**"
@@ -219,7 +226,7 @@ project "CBEngine"
 	filter "configurations:Debug"
 		defines { "CB_DEBUG", "CB_ENABLE_IMGUI" }
 		runtime "Debug"
-		symbols "on"
+		symbols "FastLink"
 
 	filter "configurations:Release"
 		defines { "CB_RELEASE", "CB_ENABLE_IMGUI" }
@@ -237,6 +244,7 @@ project "Sandbox"
 	language "C++"
 	cppdialect "C++17"
 	staticruntime "on"
+	flags { "MultiProcessorCompile" }
 
     targetdir ("bin/"..outputdir.."/%{prj.name}")
     objdir ("bin-int/"..outputdir.."/%{prj.name}")
@@ -305,7 +313,7 @@ project "Sandbox"
 	filter "configurations:Debug"
 		defines { "CB_DEBUG", "CB_ENABLE_IMGUI" }
 		runtime "Debug"
-		symbols "on"
+		symbols "FastLink"
 
 	filter "configurations:Release"
 		defines { "CB_RELEASE", "CB_ENABLE_IMGUI" }
@@ -323,6 +331,7 @@ project "CBEngine-Editor"
 	language "C++"
 	cppdialect "C++17"
 	staticruntime "on"
+	flags { "MultiProcessorCompile" }
 
     targetdir ("bin/"..outputdir.."/%{prj.name}")
     objdir ("bin-int/"..outputdir.."/%{prj.name}")
@@ -392,7 +401,7 @@ project "CBEngine-Editor"
 	filter "configurations:Debug"
 		defines { "CB_DEBUG", "CB_ENABLE_IMGUI" }
 		runtime "Debug"
-		symbols "on"
+		symbols "FastLink"
 
 	filter "configurations:Release"
 		defines { "CB_RELEASE", "CB_ENABLE_IMGUI" }
