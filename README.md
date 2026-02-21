@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="CBEngine-Editor/resources/icon.ico" alt="CBEngine Logo" width="120"/>
+  <img src="CBEngine-Editor/resources/icon.png" alt="CBEngine Logo" width="120"/>
 </p>
 
 <h1 align="center">CBEngine</h1>
