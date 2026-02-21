@@ -19,8 +19,9 @@
 
 ---
 
-<!-- TODO: Add a hero screenshot or GIF of the editor here -->
-<!-- ![CBEngine Editor](screenshots/editor-overview.png) -->
+<p align="center">
+  <img src="screenshots/editor-overview.gif" alt="CBEngine Editor Overview"/>
+</p>
 
 ## About
 
@@ -33,9 +34,6 @@ CBEngine is a **custom-built 3D game engine** developed entirely from scratch in
 ### PBR Rendering
 
 Physically-Based Rendering using Cook-Torrance BRDF with support for albedo, normal, metallic, and roughness texture maps. Includes ACES tonemapping, directional lighting, and smooth/flat shading control.
-
-<!-- TODO: Add screenshot or video of PBR rendering -->
-<!-- ![PBR Rendering](screenshots/pbr-rendering.png) -->
 
 ---
 
@@ -80,7 +78,14 @@ end
 return MyGame
 ```
 
-<!-- TODO: Add screenshot of script component editor -->
+<p align="center">
+  <img src="screenshots/lua-scripting.gif" alt="Lua Scripting"/>
+</p>
+
+<p align="center">
+  <img src="screenshots/lua-editor-fields.png" alt="Script fields in the editor" width="49%"/>
+  <img src="screenshots/lua-script-code.png" alt="Lua script code" width="49%"/>
+</p>
 
 ---
 
@@ -95,7 +100,9 @@ Full **Jolt Physics** integration with a fixed-timestep simulation at 60 FPS.
 - **16 user physics layers** — selectively filter which objects collide with each other
 - **VoxelCompound shapes** — voxel meshes are automatically converted to optimized Jolt compound shapes
 
-<!-- TODO: Add screenshot of physics debug view -->
+<p align="center">
+  <img src="screenshots/physics.gif" alt="Jolt Physics"/>
+</p>
 
 ---
 
@@ -108,14 +115,19 @@ A prefab system for creating reusable entity hierarchies.
 - **Instance change detection** — overrides per-instance are tracked and preserved on re-import
 - **Full hierarchy support** — blueprints can contain parent/child entity trees with all components
 
+<p align="center">
+  <img src="screenshots/blueprints.gif" alt="Blueprint Prefab System"/>
+</p>
+
 ---
 
 ### Mesh-to-Voxel Conversion
 
 Automatically convert any 3D model (FBX, OBJ, GLTF) into a voxel representation. Supports solid and surface voxelization modes, with texture color sampling that maps the original model's textures onto each voxel.
 
-<!-- TODO: Add video showing mesh-to-voxel conversion -->
-<!-- ![Mesh to Voxel](screenshots/mesh-to-voxel.gif) -->
+<p align="center">
+  <img src="screenshots/mesh-to-voxel.gif" alt="Mesh to Voxel Conversion"/>
+</p>
 
 ---
 
@@ -123,17 +135,15 @@ Automatically convert any 3D model (FBX, OBJ, GLTF) into a voxel representation.
 
 A dedicated editor for painting per-voxel materials. Features a **2D slice view** for layer-by-layer editing (Dwarf Fortress style), custom brush creation, a color palette system with 256 entries, and real-time mesh rebuilding as you paint.
 
-<!-- TODO: Add video of voxel texture editor in action -->
-<!-- ![Voxel Texture Editor](screenshots/voxel-texture-editor.gif) -->
+<p align="center">
+  <img src="screenshots/voxel-palette.gif" alt="Voxel Texture Editor and Palette"/>
+</p>
 
 ---
 
 ### Mesh Import Pipeline
 
 A full import wizard for 3D models with live preview, voxelization settings, material slot editing, and async voxelization preview. Outputs to processed `.mesh` or voxelized `.vmesh` formats.
-
-<!-- TODO: Add screenshot of mesh import panel -->
-<!-- ![Mesh Import](screenshots/mesh-import.png) -->
 
 ---
 
@@ -149,8 +159,9 @@ A full-featured ImGui-based editor with docking layout, including:
 - **Console** — Log output with level filtering
 - **Profiler** — Real-time FPS graph and per-scope profiling
 
-<!-- TODO: Add screenshot of the full editor layout -->
-<!-- ![Editor](screenshots/editor-layout.png) -->
+<p align="center">
+  <img src="screenshots/editor-overview.gif" alt="Custom Editor"/>
+</p>
 
 ---
 
@@ -177,8 +188,9 @@ Built on **EnTT** with a full entity hierarchy system including parent/child tra
 
 A 256-entry color palette system where each entry stores color, metallic, roughness, and emission values. Includes automatic color quantization, palette texture generation, and material type classification (Stone, Wood, Metal, Glass, Marble).
 
-<!-- TODO: Add screenshot of palette system -->
-<!-- ![Palette System](screenshots/palette-system.png) -->
+<p align="center">
+  <img src="screenshots/voxel-palette.gif" alt="Palette-Based Voxel Materials"/>
+</p>
 
 ---
 
@@ -198,8 +210,6 @@ A complete asset management system with:
 ### Scene Serialization
 
 Full scene save/load with YAML-based `.scene` files. All entities, components, hierarchies, asset references, and script field values are serialized and restored.
-
-<!-- TODO: Add video of saving and loading a scene -->
 
 ---
 
@@ -221,9 +231,6 @@ Single-file GLSL shader format using `#type` directives to define vertex and fra
 
 PBR material files (`.mat`) with albedo, metallic, roughness, smooth shading, and texture map slots. Materials can be created programmatically or loaded from files, and support hot-reloading.
 
-<!-- TODO: Add screenshot of material editing -->
-<!-- ![Material Editor](screenshots/material-editor.png) -->
-
 ---
 
 ### Debug Drawing
@@ -239,9 +246,6 @@ Runtime debug visualization system accessible from C++ and Lua scripts:
 ### Profiling & Debugging
 
 Chrome DevTools compatible profiling with per-function and per-scope macros. Includes a real-time ImGui profiler panel with FPS history graph (120 frames), toggled with **F3**.
-
-<!-- TODO: Add screenshot of profiler panel -->
-<!-- ![Profiler](screenshots/profiler.png) -->
 
 ---
 

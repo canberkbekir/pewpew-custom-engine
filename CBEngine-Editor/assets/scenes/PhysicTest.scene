@@ -1,0 +1,166 @@
+Scene: SampleScene_1
+Entities:
+  - Entity: 17016713901880650925
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [-0.9474396, 6.322811, 0.78555]
+      Rotation: [-2.5381799, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 5428517137321186404
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [0.5, 0.5, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    BlueprintInstanceComponent:
+      BlueprintAssetUUID: 15884251345058734463
+      BlueprintPath: assets\blueprints\test.blueprint
+      OriginalYAML: "Blueprint: Empty Entity\nEntities:\n  - Entity: 17195169648695367070\n    TagComponent:\n      Tag: Empty Entity\n    TransformComponent:\n      Position: [-1.576838, 3.8395615, 0.29932725]\n      Rotation: [-3.1415925, 1.0975952, -3.1415925]\n      Scale: [0.01, 0.01, 0.01]\n      Parent: 829200245983299509\n    VoxelRendererComponent:\n      VoxelMeshUUID: 16725038486124727391\n      VoxelTextureUUID: 5428517137321186404\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n    ColliderComponent:\n      Shape: 3\n      HalfExtents: [0.5, 0.5, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
+  - Entity: 4288399533179096203
+    TagComponent:
+      Tag: Camera Point
+    TransformComponent:
+      Position: [-0.39228687, 7.4676003, 9.909622]
+      Rotation: [-2.7123587, 5.968559e-13, 3.141591]
+      Scale: [1, 1, 1]
+      Parent: 0
+    CameraComponent:
+      Primary: true
+      FOV: 45
+      NearClip: 0.1
+      FarClip: 100
+  - Entity: 17195169648695367070
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [-1.576838, 3.8395615, 0.29932725]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 5428517137321186404
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [0.5, 0.5, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    BlueprintInstanceComponent:
+      BlueprintAssetUUID: 15884251345058734463
+      BlueprintPath: assets\blueprints\test.blueprint
+      OriginalYAML: "Blueprint: Empty Entity\nEntities:\n  - Entity: 17195169648695367070\n    TagComponent:\n      Tag: Empty Entity\n    TransformComponent:\n      Position: [-1.576838, 3.8395615, 0.29932725]\n      Rotation: [-3.1415925, 1.0975952, -3.1415925]\n      Scale: [0.01, 0.01, 0.01]\n      Parent: 829200245983299509\n    VoxelRendererComponent:\n      VoxelMeshUUID: 16725038486124727391\n      VoxelTextureUUID: 5428517137321186404\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n    ColliderComponent:\n      Shape: 3\n      HalfExtents: [0.5, 0.5, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
+  - Entity: 893629092502978029
+    Layer: 1
+    TagComponent:
+      Tag: CashierMesh
+    TransformComponent:
+      Position: [-2.165548, 0.15323758, -0.2635104]
+      Rotation: [6.6069945e-09, 1.1077523, 7.4001836e-09]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 14354534839807604147
+      MaterialUUID: 10679708688162182362
+      ShaderUUID: 0
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [107.93994, 100.58357, 101.87407]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [6.2387085, 100.58354, 1.8740311]
+      IsTrigger: false
+  - Entity: 829200245983299509
+    TagComponent:
+      Tag: Level
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+  - Entity: 1812297280797331399
+    TagComponent:
+      Tag: Directional Light
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    DirectionalLightComponent:
+      Visible: true
+      Color: [1, 1, 1]
+      Intensity: 1
+      CastShadows: false
+      SourceAngleDegrees: 0.53
+  - Entity: 6705410063973906264
+    TagComponent:
+      Tag: Floor
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [10, 0.1, 10]
+      Parent: 829200245983299509
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 0
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 10370022810352722993
+    TagComponent:
+      Tag: GameManager
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: C:\Codes\GitKraken\pewpew-custom-engine\CBEngine-Editor\assets\scripts\CustomGameManager.lua
+          ClassName: Collectible
+    GameManagerComponent:
+      {}

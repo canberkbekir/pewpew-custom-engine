@@ -1,16 +1,16 @@
 Blueprint: Empty Entity
 Entities:
-  - Entity: 1075940986449725326
+  - Entity: 17195169648695367070
     TagComponent:
       Tag: Empty Entity
     TransformComponent:
-      Position: [-5.9604645e-08, 3.7066455, -2.3841858e-07]
+      Position: [-1.576838, 3.8395615, 0.29932725]
       Rotation: [-3.1415925, 1.0975952, -3.1415925]
       Scale: [0.01, 0.01, 0.01]
       Parent: 829200245983299509
     VoxelRendererComponent:
       VoxelMeshUUID: 16725038486124727391
-      VoxelTextureUUID: 2879451016976322528
+      VoxelTextureUUID: 5428517137321186404
       Visible: true
     RigidBodyComponent:
       Type: 1
