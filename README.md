@@ -13,6 +13,8 @@
   <img src="https://img.shields.io/badge/OpenGL-4.5-green?style=for-the-badge&logo=opengl&logoColor=white" alt="OpenGL"/>
   <img src="https://img.shields.io/badge/Platform-Windows-lightgrey?style=for-the-badge&logo=windows&logoColor=white" alt="Windows"/>
   <img src="https://img.shields.io/badge/Build-Premake5-orange?style=for-the-badge" alt="Premake5"/>
+  <img src="https://img.shields.io/badge/Lua-5.4-purple?style=for-the-badge&logo=lua&logoColor=white" alt="Lua 5.4"/>
+  <img src="https://img.shields.io/badge/Physics-Jolt-red?style=for-the-badge" alt="Jolt Physics"/>
 </p>
 
 ---
@@ -22,7 +24,7 @@
 
 ## About
 
-CBEngine is a **custom-built 3D game engine** developed entirely from scratch in **C++17** using **OpenGL**. It features a full editor with docking UI, PBR rendering, an entity-component system, and a unique **mesh-to-voxel pipeline** with per-voxel material painting. The engine is designed for creating voxel-style games with destructible environments.
+CBEngine is a **custom-built 3D game engine** developed entirely from scratch in **C++17** using **OpenGL**. It features a full editor with docking UI, PBR rendering, an entity-component system, a unique **mesh-to-voxel pipeline** with per-voxel material painting, a **Jolt Physics** integration, and a **Lua scripting system** for game logic. The engine is designed for creating voxel-style games with destructible environments.
 
 ---
 
@@ -34,6 +36,77 @@ Physically-Based Rendering using Cook-Torrance BRDF with support for albedo, nor
 
 <!-- TODO: Add screenshot or video of PBR rendering -->
 <!-- ![PBR Rendering](screenshots/pbr-rendering.png) -->
+
+---
+
+### Lua Scripting
+
+Full **Lua 5.4** scripting integration via **sol2** with hot-reload support. Scripts are attached to entities and executed each frame.
+
+- **Multi-script per entity** — attach as many scripts as you need
+- **Hot-reload** — scripts automatically reload when the file changes on disk
+- **Field reflection** — expose typed fields (number, string, bool, Vec3, Entity) that appear in the editor and serialize to the scene file
+- **GameManager singleton** — a special entity/component for global game state, accessible from any script via `scene:GetGameManager()`
+- **Full Lua API** — access to input, transform, physics, raycasting, logging, debug drawing, and all components
+
+```lua
+-- Example: simple script
+function OnStart(entity)
+    self.speed = 5.0
+end
+
+function OnUpdate(entity, dt)
+    local pos = entity:GetTransform().position
+    if Input.IsKeyPressed(Key.W) then
+        pos = pos + Vec3(0, 0, -self.speed * dt)
+        entity:GetTransform().position = pos
+    end
+end
+```
+
+```lua
+-- GameManager example (inherits base GameManager class)
+local MyGame = GameManager:Extend("MyGame")
+
+function MyGame:OnStart()
+    self.score = 0
+end
+
+function MyGame:AddScore(points)
+    self.score = self.score + points
+    Log.Info("Score: " .. self.score)
+end
+
+return MyGame
+```
+
+<!-- TODO: Add screenshot of script component editor -->
+
+---
+
+### Physics System (Jolt Physics)
+
+Full **Jolt Physics** integration with a fixed-timestep simulation at 60 FPS.
+
+- **Body types** — Static, Dynamic, Kinematic
+- **Collider shapes** — Box, Sphere, Capsule, VoxelCompound (auto-generated from voxel meshes)
+- **Collision callbacks** — `OnCollisionEnter`, `OnCollisionStay`, `OnCollisionExit` exposed to Lua scripts
+- **Raycasting** — scene raycasts with physics layer masks, callable from Lua or C++
+- **16 user physics layers** — selectively filter which objects collide with each other
+- **VoxelCompound shapes** — voxel meshes are automatically converted to optimized Jolt compound shapes
+
+<!-- TODO: Add screenshot of physics debug view -->
+
+---
+
+### Blueprint / Prefab System
+
+A prefab system for creating reusable entity hierarchies.
+
+- **YAML serialization** — blueprints stored as `.blueprint` files
+- **Instancing** — drag blueprints from the Content Browser into the scene
+- **Instance change detection** — overrides per-instance are tracked and preserved on re-import
+- **Full hierarchy support** — blueprints can contain parent/child entity trees with all components
 
 ---
 
@@ -68,12 +141,13 @@ A full import wizard for 3D models with live preview, voxelization settings, mat
 
 A full-featured ImGui-based editor with docking layout, including:
 
-- **Scene Hierarchy** - Entity tree with parent/child relationships and drag-and-drop reparenting
-- **Properties Panel** - Component editing with custom widgets per component type
-- **Content Browser** - File browser with thumbnails, search, filters, sorting, and drag-and-drop import
-- **Viewport** - 3D scene view with entity picking (click to select) and transform gizmos
-- **Console** - Log output with level filtering
-- **Profiler** - Real-time FPS graph and per-scope profiling
+- **Scene Hierarchy** — Entity tree with parent/child relationships and drag-and-drop reparenting
+- **Properties Panel** — Component editing with custom widgets per component type
+- **Content Browser** — File browser with thumbnails, search, filters, sorting, and drag-and-drop import
+- **Viewport** — 3D scene view with entity picking (click to select) and transform gizmos
+- **Game Viewport** — Dedicated play-mode view showing the scene through the game camera
+- **Console** — Log output with level filtering
+- **Profiler** — Real-time FPS graph and per-scope profiling
 
 <!-- TODO: Add screenshot of the full editor layout -->
 <!-- ![Editor](screenshots/editor-layout.png) -->
@@ -90,6 +164,12 @@ Built on **EnTT** with a full entity hierarchy system including parent/child tra
 | **MeshRendererComponent** | Mesh + material + shader rendering |
 | **VoxelRendererComponent** | Voxel mesh rendering with palette support |
 | **DirectionalLightComponent** | Directional lighting with intensity control |
+| **CameraComponent** | Perspective camera with FOV and clip plane settings |
+| **RigidBodyComponent** | Physics body (Static / Dynamic / Kinematic) with mass, damping, restitution |
+| **ColliderComponent** | Physics collider shape (Box, Sphere, Capsule, VoxelCompound) |
+| **ScriptComponent** | One or more Lua scripts attached to an entity |
+| **GameManagerComponent** | Marks an entity as the scene-wide game manager singleton |
+| **BlueprintInstanceComponent** | Prefab instance with per-instance override tracking |
 
 ---
 
@@ -107,16 +187,17 @@ A 256-entry color palette system where each entry stores color, metallic, roughn
 A complete asset management system with:
 
 - **UUID-based tracking** with `.meta` files for every asset
-- **Hot-reloading** - Shaders, materials, textures, and meshes auto-reload on file changes
-- **File watcher** - Automatic change detection using native Windows APIs
-- **Custom binary formats** - `.mesh` (processed meshes), `.vmesh` (voxel meshes), `.vtex` (voxel textures)
-- **YAML scene serialization** - Human-readable `.scene` files
+- **Hot-reloading** — Shaders, materials, textures, meshes, and scripts auto-reload on file changes
+- **File watcher** — Automatic change detection using native Windows APIs
+- **Custom binary formats** — `.mesh` (processed meshes), `.vmesh` (voxel meshes), `.vtex` (voxel textures)
+- **YAML scene serialization** — Human-readable `.scene` files
+- **Blueprint assets** — `.blueprint` prefab files with full hierarchy serialization
 
 ---
 
 ### Scene Serialization
 
-Full scene save/load with YAML-based `.scene` files. All entities, components, hierarchies, and asset references are serialized and restored.
+Full scene save/load with YAML-based `.scene` files. All entities, components, hierarchies, asset references, and script field values are serialized and restored.
 
 <!-- TODO: Add video of saving and loading a scene -->
 
@@ -145,6 +226,16 @@ PBR material files (`.mat`) with albedo, metallic, roughness, smooth shading, an
 
 ---
 
+### Debug Drawing
+
+Runtime debug visualization system accessible from C++ and Lua scripts:
+
+- Draw lines, boxes, and spheres in world space
+- Automatic collider visualization overlay (toggle in editor)
+- All debug shapes are drawn as overlays and cleared each frame
+
+---
+
 ### Profiling & Debugging
 
 Chrome DevTools compatible profiling with per-function and per-scope macros. Includes a real-time ImGui profiler panel with FPS history graph (120 frames), toggled with **F3**.
@@ -163,22 +254,24 @@ Chrome DevTools compatible profiling with per-function and per-scope macros. Inc
 | **Windowing** | GLFW |
 | **GL Loader** | Glad |
 | **UI** | Dear ImGui (Docking) |
+| **Gizmos** | ImGuizmo |
 | **Math** | GLM |
 | **Logging** | spdlog |
 | **3D Loading** | Assimp (FBX, OBJ, GLTF, GLB) |
 | **Image Loading** | stb_image (PNG, JPG, TGA, BMP) |
 | **ECS** | EnTT |
+| **Physics** | Jolt Physics |
+| **Scripting** | Lua 5.4 + sol2 |
+| **Serialization** | yaml-cpp |
 | **Build System** | Premake5 / Visual Studio 2022 |
 
 ---
 
 ## Roadmap
 
-- [ ] Voxel physics with custom collision system
 - [ ] Destructible voxel environments
 - [ ] Fragment spawning on impact
 - [ ] Point & spot lights
-- [ ] Camera component for game view
 - [ ] Shadow mapping
 
 ---
@@ -192,10 +285,10 @@ Chrome DevTools compatible profiling with per-function and per-scope macros. Inc
 ./GenerateProject.bat
 
 # Build via MSBuild
-msbuild PewPew.sln /p:Configuration=Debug /p:Platform=x64
+msbuild CBEngine.sln /p:Configuration=Debug /p:Platform=x64
 ```
 
-Or open `PewPew.sln` in Visual Studio and build from there.
+Or open `CBEngine.sln` in Visual Studio and build from there.
 
 ---
 
