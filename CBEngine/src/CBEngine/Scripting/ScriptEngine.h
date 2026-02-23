@@ -57,6 +57,13 @@ namespace CB
 		static void ReloadScript(const String& path);
 		static void ReloadAllScripts();
 
+		// Deferred scene management (safe to call from Lua scripts mid-frame)
+		static void RequestSceneLoad(const std::string& path);
+		static void RequestSceneReload();
+		static bool HasPendingSceneChange();
+		static std::string GetPendingScenePath();
+		static void ClearPendingSceneChange();
+
 		// GameManager discovery
 		static void PreloadBaseScripts();
 		static bool IsGameManagerScript(const std::string& scriptPath);

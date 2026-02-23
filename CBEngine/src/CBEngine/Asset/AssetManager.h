@@ -60,6 +60,10 @@ namespace CB
         // Get loaded asset (nullptr if not loaded)
         static Ref<Asset> GetLoadedAsset(UUID uuid);
 
+        // Register a procedurally-created asset (no file on disk) so it can be
+        // resolved by UUID. The asset's internal UUID and type fields are set here.
+        static void RegisterBuiltinAsset(UUID uuid, Ref<Asset> asset, AssetType type = AssetType::Mesh);
+
     private:
         static void ScanDirectory(const std::filesystem::path& directory);
         static void LoadMetaFile(const std::filesystem::path& metaPath);

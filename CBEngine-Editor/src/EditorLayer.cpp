@@ -6,10 +6,12 @@
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
 #include "CBEngine/Scene/SceneManager.h"
-#include "CBEngine/Scene/Scene.h" 
+#include "CBEngine/Scene/Scene.h"
 #include "CBEngine/Core/Application.h"
 #include "CBEngine/Debug/ColliderDebugRenderer.h"
 #include "CBEngine/Utils/FileDialogs.h"
+#include "CBEngine/Audio/AudioEngine.h"
+#include "CBEngine/Renderer/Resources/PrimitiveMesh.h"
 
 namespace CB
 {
@@ -60,6 +62,13 @@ namespace CB
 
         // Scan for GameManager-derived scripts
         ScriptEngine::ScanForGameManagerScripts();
+
+        // Initialize audio engine
+        AudioEngine::Init();
+
+        // Pre-generate built-in primitive meshes and register them in the AssetManager.
+        // Must be done here (on the GL thread, after AssetManager is ready).
+        PrimitiveMesh::InitAll();
     }
 
     void EditorLayer::OnDetach()
@@ -72,6 +81,7 @@ namespace CB
         }
 
         ColliderDebugRenderer::Shutdown();
+        AudioEngine::Shutdown();
         SceneManager::Shutdown();
     }
 
@@ -105,10 +115,31 @@ namespace CB
         // Process hot reload queue
         AssetManager::ProcessReloadQueue();
 
-        // Update scene (transform hierarchy, physics, etc.)
+        // Update scene (transform hierarchy, physics, scripts, etc.)
         Ref<Scene> scene = SceneManager::GetActiveScene();
         if (scene)
             scene->OnUpdate(ts);
+
+        // Consume any deferred scene change requested by scripts
+        if (ScriptEngine::HasPendingSceneChange())
+        {
+            String pendingPath = ScriptEngine::GetPendingScenePath();
+            ScriptEngine::ClearPendingSceneChange();
+            if (pendingPath.empty())
+            {
+                // Reload current scene
+                String currentPath = SceneManager::GetActiveScenePath();
+                if (!currentPath.empty())
+                    SceneManager::LoadScene(currentPath);
+            }
+            else
+            {
+                SceneManager::LoadScene(pendingPath);
+            }
+        }
+
+        // Update audio engine listener using active scene camera (if any)
+        AudioEngine::Update(Vector3(0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f));
 
         // Update viewport (handles rendering)
         m_ViewportPanel.OnUpdate(ts);

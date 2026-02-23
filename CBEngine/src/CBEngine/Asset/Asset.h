@@ -20,6 +20,7 @@ namespace CB
         VoxelTexture,
         Blueprint,
         Script,
+        AudioClip,
 
         // Starting point for runtime-registered custom types
         Custom = 1000
@@ -40,6 +41,7 @@ namespace CB
         case AssetType::VoxelTexture: return "VoxelTexture";
         case AssetType::Blueprint: return "Blueprint";
         case AssetType::Script: return "Script";
+        case AssetType::AudioClip: return "AudioClip";
         }
         return "Unknown";
     }
@@ -56,6 +58,7 @@ namespace CB
         if (str == "VoxelTexture") return AssetType::VoxelTexture;
         if (str == "Blueprint") return AssetType::Blueprint;
         if (str == "Script") return AssetType::Script;
+        if (str == "AudioClip") return AssetType::AudioClip;
         return AssetType::None;
     }
 
@@ -81,6 +84,8 @@ namespace CB
             return AssetType::Blueprint;
         if (ext == ".lua")
             return AssetType::Script;
+        if (ext == ".sfx")
+            return AssetType::AudioClip;
         return AssetType::None;
     }
 

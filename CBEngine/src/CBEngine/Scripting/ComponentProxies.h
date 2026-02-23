@@ -9,6 +9,7 @@
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/AudioSourceComponent.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 
 #include <Jolt/Physics/Body/BodyInterface.h>
@@ -113,6 +114,33 @@ namespace CB
 		bool IsValid() const
 		{
 			return OwnerEntity && OwnerEntity.HasComponent<DirectionalLightComponent>();
+		}
+	};
+
+	// =========================================================================
+	// MaterialProxy — wraps the material on a MeshRendererComponent
+	// =========================================================================
+	struct MaterialProxy
+	{
+		Entity OwnerEntity;
+
+		bool IsValid() const
+		{
+			return OwnerEntity && OwnerEntity.HasComponent<MeshRendererComponent>()
+				&& OwnerEntity.GetComponent<MeshRendererComponent>().MaterialAsset != nullptr;
+		}
+	};
+
+	// =========================================================================
+	// AudioSourceProxy — wraps AudioSourceComponent
+	// =========================================================================
+	struct AudioSourceProxy
+	{
+		Entity OwnerEntity;
+
+		bool IsValid() const
+		{
+			return OwnerEntity && OwnerEntity.HasComponent<AudioSourceComponent>();
 		}
 	};
 }

@@ -3,6 +3,7 @@
 #include "Entity.h"
 #include "CBEngine/Components/Components.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/AudioSourceComponent.h"
 #include <yaml-cpp/yaml.h>
 
 namespace CB
@@ -25,7 +26,8 @@ namespace CB
         RigidBodyComponent,
         ColliderComponent,
         ScriptComponent,
-        GameManagerComponent
+        GameManagerComponent,
+        AudioSourceComponent
     >;
 
     // NOTE: BlueprintInstanceComponent is NOT in SerializableComponents.

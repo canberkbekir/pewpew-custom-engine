@@ -3,6 +3,7 @@
 #include "ProcessedMeshAsset.h"
 #include "VoxelTextureAsset.h"
 #include "BlueprintAsset.h"
+#include "CBEngine/Audio/AudioClipAsset.h"
 #include "CBEngine/Core/Log.h"
 #include "CBEngine/Renderer/Resources/Texture.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
@@ -68,6 +69,9 @@ namespace CB
         RegisterLoader(AssetType::Blueprint, [](const AssetMetadata& m) -> Ref<Asset> {
             return BlueprintAsset::Load(s_AssetDirectory / m.FilePath);
         });
+        RegisterLoader(AssetType::AudioClip, [](const AssetMetadata& m) -> Ref<Asset> {
+            return AudioClipAsset::Load(s_AssetDirectory / m.FilePath);
+        });
 
         // Register built-in extensions
         RegisterExtension(".png", AssetType::Texture2D);
@@ -82,6 +86,7 @@ namespace CB
         RegisterExtension(".mesh", AssetType::ProcessedMesh);
         RegisterExtension(".vmesh", AssetType::VoxelMesh);
         RegisterExtension(".vtex", AssetType::VoxelTexture);
+        RegisterExtension(".sfx", AssetType::AudioClip);
 
         CB_CORE_INFO("AssetManager: Working directory is {0}", std::filesystem::current_path().string());
         CB_CORE_INFO("AssetManager: Asset directory set to {0}", s_AssetDirectory.string());
@@ -96,6 +101,14 @@ namespace CB
         ScanDirectory(s_AssetDirectory);
 
         CB_CORE_INFO("AssetManager initialized: {0} assets registered", s_Registry.GetAssetCount());
+    }
+
+    void AssetManager::RegisterBuiltinAsset(UUID uuid, Ref<Asset> asset, AssetType type)
+    {
+        asset->m_UUID = uuid;
+        asset->m_Type = type;
+        std::lock_guard<std::mutex> lock(s_AssetsMutex);
+        s_LoadedAssets[uuid] = std::move(asset);
     }
 
     void AssetManager::Shutdown()

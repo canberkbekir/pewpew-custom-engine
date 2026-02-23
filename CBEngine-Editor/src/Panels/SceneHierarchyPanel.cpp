@@ -15,6 +15,7 @@
 #include "CBEngine/Scene/SceneManager.h"
 #include "CBEngine/Scene/SceneSerializer.h"
 #include "CBEngine/Utils/FileDialogs.h"
+#include "CBEngine/Renderer/Resources/PrimitiveMesh.h"
 
 #include <algorithm>
 #include <cstring>
@@ -604,38 +605,31 @@ namespace CB
 
         if (ImGui::BeginMenu("3D Object"))
         {
+            // Helper lambda: create entity, add MeshRendererComponent with a primitive mesh,
+            // optionally parent to selection, then select it.
+            auto spawnPrimitive = [&](const char* name, UUID meshUUID, Ref<Mesh> mesh)
+            {
+                Entity entity = m_Context->CreateEntity(name);
+                auto& mrc = entity.AddComponent<MeshRendererComponent>();
+                mrc.MeshUUID  = meshUUID;
+                mrc.MeshAsset = mesh;
+                if (m_SelectionContext)
+                    entity.SetParent(m_SelectionContext);
+                m_SelectionContext = entity;
+                Selection::Select(Selectable::Entity(entity.GetUUID()));
+            };
+
             if (ImGui::MenuItem("Cube"))
-            {
-                Entity entity = m_Context->CreateEntity("Cube");
-                if (m_SelectionContext)
-                    entity.SetParent(m_SelectionContext);
-                m_SelectionContext = entity;
-                Selection::Select(Selectable::Entity(entity.GetUUID()));
-            }
+                spawnPrimitive("Cube",     UUID(PrimitiveUUIDs::Cube),     PrimitiveMesh::GetCube());
             if (ImGui::MenuItem("Sphere"))
-            {
-                Entity entity = m_Context->CreateEntity("Sphere");
-                if (m_SelectionContext)
-                    entity.SetParent(m_SelectionContext);
-                m_SelectionContext = entity;
-                Selection::Select(Selectable::Entity(entity.GetUUID()));
-            }
+                spawnPrimitive("Sphere",   UUID(PrimitiveUUIDs::Sphere),   PrimitiveMesh::GetSphere());
             if (ImGui::MenuItem("Plane"))
-            {
-                Entity entity = m_Context->CreateEntity("Plane");
-                if (m_SelectionContext)
-                    entity.SetParent(m_SelectionContext);
-                m_SelectionContext = entity;
-                Selection::Select(Selectable::Entity(entity.GetUUID()));
-            }
+                spawnPrimitive("Plane",    UUID(PrimitiveUUIDs::Plane),    PrimitiveMesh::GetPlane());
             if (ImGui::MenuItem("Cylinder"))
-            {
-                Entity entity = m_Context->CreateEntity("Cylinder");
-                if (m_SelectionContext)
-                    entity.SetParent(m_SelectionContext);
-                m_SelectionContext = entity;
-                Selection::Select(Selectable::Entity(entity.GetUUID()));
-            }
+                spawnPrimitive("Cylinder", UUID(PrimitiveUUIDs::Cylinder), PrimitiveMesh::GetCylinder());
+            if (ImGui::MenuItem("Capsule"))
+                spawnPrimitive("Capsule",  UUID(PrimitiveUUIDs::Capsule),  PrimitiveMesh::GetCapsule());
+
             ImGui::EndMenu();
         }
 

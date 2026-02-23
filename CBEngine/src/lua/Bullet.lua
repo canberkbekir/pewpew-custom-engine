@@ -66,7 +66,7 @@ end
 -- ── Collision ─────────────────────────────────────────────────────────────────
 
 -- Called by both solid and trigger contacts. Calls OnHit, then destroys self.
-function Bullet:OnCollision(other, point, normal)
+function Bullet:OnCollisionBegin(other, point, normal)
     self:OnHit(other, point, normal)
     self._scene:DestroyEntity(self._entity)
 end

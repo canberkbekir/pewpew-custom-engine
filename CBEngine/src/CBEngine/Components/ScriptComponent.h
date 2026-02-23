@@ -27,6 +27,7 @@ namespace CB
 		ComponentRef, // built-in component proxy (subtype = component name, e.g. "RigidBody")
 		ScriptRef,    // script instance (subtype = class name, e.g. "PlayerMovement")
 		BlueprintRef, // .blueprint asset path (StringValue); spawned via Scene:InstantiateBlueprint()
+		AudioClipRef, // .sfx asset; injected as AudioHandle at runtime
 	};
 
 	inline const char* ScriptFieldTypeToString(ScriptFieldType type)
@@ -43,6 +44,7 @@ namespace CB
 			case ScriptFieldType::ComponentRef: return "componentref";
 			case ScriptFieldType::ScriptRef:    return "scriptref";
 			case ScriptFieldType::BlueprintRef: return "blueprintref";
+		case ScriptFieldType::AudioClipRef: return "audioclipref";
 		}
 		return "float";
 	}
@@ -59,6 +61,7 @@ namespace CB
 		if (str == "componentref") return ScriptFieldType::ComponentRef;
 		if (str == "scriptref")    return ScriptFieldType::ScriptRef;
 		if (str == "blueprintref") return ScriptFieldType::BlueprintRef;
+		if (str == "audioclipref") return ScriptFieldType::AudioClipRef;
 		return ScriptFieldType::Float;
 	}
 
@@ -155,6 +158,7 @@ namespace CB
 									out << YAML::Key << "Subtype" << YAML::Value << field.EntityRefSubtype;
 								break;
 							case ScriptFieldType::BlueprintRef:
+							case ScriptFieldType::AudioClipRef:
 								out << YAML::Key << "Value" << YAML::Value << static_cast<uint64_t>(field.EntityRefValue);
 								if (!field.EntityRefSubtype.empty())
 									out << YAML::Key << "Subtype" << YAML::Value << field.EntityRefSubtype;
@@ -227,6 +231,7 @@ namespace CB
 									field.EntityRefSubtype = fieldNode["Subtype"].as<String>();
 								break;
 							case ScriptFieldType::BlueprintRef:
+							case ScriptFieldType::AudioClipRef:
 								field.EntityRefValue = UUID(val.as<uint64_t>());
 								if (fieldNode["Subtype"])
 									field.EntityRefSubtype = fieldNode["Subtype"].as<String>();

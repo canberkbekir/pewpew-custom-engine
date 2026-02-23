@@ -11,3 +11,4 @@
 #include "CameraComponent.h"
 #include "BlueprintInstanceComponent.h"
 #include "GameManagerComponent.h"
+#include "AudioSourceComponent.h"

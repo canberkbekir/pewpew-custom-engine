@@ -20,5 +20,8 @@ namespace CB
 		static void RegisterDebug(sol::state& lua);
 		static void RegisterFieldTypes(sol::state& lua);
 		static void RegisterTime(sol::state& lua);
+		static void RegisterLuaUtils(sol::state& lua);   // Phase 1: Signal, Coroutine, Tween, Pool
+		static void RegisterAudio(sol::state& lua);      // Phase 5: Audio API
+		static void RegisterSceneManagement(sol::state& lua); // Phase 6: Scene management
 	};
 }

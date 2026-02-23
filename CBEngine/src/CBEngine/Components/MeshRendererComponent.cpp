@@ -2,6 +2,7 @@
 #include "MeshRendererComponent.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
+#include "CBEngine/Renderer/Resources/PrimitiveMesh.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -27,18 +28,26 @@ namespace CB
     {
         if (MeshUUID.IsValid())
         {
-            const AssetMetadata* meta = AssetManager::GetRegistry().GetMetadata(MeshUUID);
-            if (meta && meta->Type == AssetType::ProcessedMesh)
+            // Built-in primitive meshes are resolved directly (no file on disk)
+            if (PrimitiveMesh::IsPrimitiveUUID(MeshUUID))
             {
-                auto pmAsset = AssetManager::GetAsset<ProcessedMeshAsset>(MeshUUID);
-                if (pmAsset && pmAsset->HasGeometryData())
-                    MeshAsset = pmAsset->CreateMesh();
-                else if (pmAsset && !pmAsset->SourceFilePath.empty())
-                    MeshAsset = Mesh::Load((AssetManager::GetAssetDirectory() / pmAsset->SourceFilePath).string());
+                MeshAsset = PrimitiveMesh::TryResolve(MeshUUID);
             }
             else
             {
-                MeshAsset = AssetManager::GetAsset<Mesh>(MeshUUID);
+                const AssetMetadata* meta = AssetManager::GetRegistry().GetMetadata(MeshUUID);
+                if (meta && meta->Type == AssetType::ProcessedMesh)
+                {
+                    auto pmAsset = AssetManager::GetAsset<ProcessedMeshAsset>(MeshUUID);
+                    if (pmAsset && pmAsset->HasGeometryData())
+                        MeshAsset = pmAsset->CreateMesh();
+                    else if (pmAsset && !pmAsset->SourceFilePath.empty())
+                        MeshAsset = Mesh::Load((AssetManager::GetAssetDirectory() / pmAsset->SourceFilePath).string());
+                }
+                else
+                {
+                    MeshAsset = AssetManager::GetAsset<Mesh>(MeshUUID);
+                }
             }
         }
         if (MaterialUUID.IsValid())

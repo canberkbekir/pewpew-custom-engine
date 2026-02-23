@@ -1,79 +1,106 @@
 Scene: Game
 Entities:
-  - Entity: 12145903664756383971
+  - Entity: 4288399533179096203
     TagComponent:
-      Tag: CameraPoint
+      Tag: Camera
     TransformComponent:
-      Position: [0, 1.2024527, -2.4437904e-06]
+      Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-      Parent: 893629092502978029
-  - Entity: 16020047007249049872
+      Parent: 12145903664756383971
+    CameraComponent:
+      Primary: true
+      FOV: 45
+      NearClip: 0.1
+      FarClip: 100
+  - Entity: 17285956863464234118
     TagComponent:
-      Tag: Cube
+      Tag: Plane
     TransformComponent:
-      Position: [13.428616, 0.2824064, -12.537761]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [1, 1, 1]
+      Position: [0, 3.4259644, 0]
+      Rotation: [0, 0, 0]
+      Scale: [10, 10, 10]
       Parent: 829200245983299509
     MeshRendererComponent:
-      MeshUUID: 13506778620865434867
+      MeshUUID: 9034001285339972295
+      MaterialUUID: 14976024544950598018
+      ShaderUUID: 0
+      Visible: true
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\InfinityFlight.lua
+          ClassName: InfinityFlight
+  - Entity: 10467415672658071835
+    TagComponent:
+      Tag: Player
+    TransformComponent:
+      Position: [0, 1.5122287, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 5
       MaterialUUID: 0
       ShaderUUID: 0
       Visible: true
-  - Entity: 8923458721691645312
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\PlayerMovement.lua
+          ClassName: PlayerMovement
+          Fields:
+            - Name: MouseSensitivity
+              Type: float
+              Value: 0.1
+            - Name: PitchSensitivity
+              Type: float
+              Value: 0.1
+            - Name: Camera
+              Type: entityref
+              Value: 4288399533179096203
+  - Entity: 829200245983299509
     TagComponent:
-      Tag: Cube
-    TransformComponent:
-      Position: [5.274784, 0.8506768, -16.083769]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [1, 1, 1]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-  - Entity: 7911143129962106815
-    TagComponent:
-      Tag: Cube
-    TransformComponent:
-      Position: [-2.6865735, 1.7309898, -12.007553]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [1, 1, 1]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-  - Entity: 6182194607524461280
-    TagComponent:
-      Tag: Cube
-    TransformComponent:
-      Position: [-8.947405, 2.004602, -8.802013]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [1, 1, 1]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-  - Entity: 10370022810352722993
-    TagComponent:
-      Tag: GameManager
+      Tag: Level
     TransformComponent:
       Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
       Parent: 0
-    ScriptComponent:
-      Scripts:
-        - ScriptPath: C:\Codes\GitKraken\pewpew-custom-engine\CBEngine-Editor\assets\scripts\CustomGameManager.lua
-          ClassName: Collectible
-    GameManagerComponent:
-      {}
+  - Entity: 1812297280797331399
+    TagComponent:
+      Tag: Directional Light
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    DirectionalLightComponent:
+      Visible: true
+      Color: [1, 1, 1]
+      Intensity: 1
+      CastShadows: false
+      SourceAngleDegrees: 0.53
   - Entity: 6705410063973906264
     TagComponent:
       Tag: Floor
@@ -95,133 +122,77 @@ Entities:
       CapsuleHalfHeight: 0.5
       Offset: [0, 0, 0]
       IsTrigger: false
-  - Entity: 1812297280797331399
+  - Entity: 10370022810352722993
     TagComponent:
-      Tag: Directional Light
+      Tag: GameManager
     TransformComponent:
       Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
       Parent: 0
-    DirectionalLightComponent:
-      Visible: true
-      Color: [1, 1, 1]
-      Intensity: 1
-      CastShadows: false
-      SourceAngleDegrees: 0.53
-  - Entity: 829200245983299509
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: C:\Codes\GitKraken\pewpew-custom-engine\CBEngine-Editor\assets\scripts\CustomGameManager.lua
+          ClassName: Collectible
+    GameManagerComponent:
+      {}
+  - Entity: 6182194607524461280
     TagComponent:
-      Tag: Level
+      Tag: Cube
     TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
+      Position: [-8.947405, 2.004602, -8.802013]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
       Scale: [1, 1, 1]
-      Parent: 0
-  - Entity: 893629092502978029
-    Layer: 1
-    TagComponent:
-      Tag: Player
-    TransformComponent:
-      Position: [-2.165548, 1.4720271, -0.2635104]
-      Rotation: [6.6069945e-09, 0, 7.4001836e-09]
-      Scale: [1, 1, 1]
-      Parent: 0
+      Parent: 829200245983299509
     MeshRendererComponent:
       MeshUUID: 13506778620865434867
-      MaterialUUID: 10679708688162182362
+      MaterialUUID: 0
       ShaderUUID: 0
       Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: true
-      FreezeRotationY: true
-      FreezeRotationZ: true
-    ColliderComponent:
-      Shape: 0
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    ScriptComponent:
-      Scripts:
-        - ScriptPath: scripts\PlayerMovement.lua
-          ClassName: PlayerMovement
-          Fields:
-            - Name: MouseSensitivity
-              Type: float
-              Value: 0.1
-            - Name: MaxSpeed
-              Type: float
-              Value: 12
-            - Name: Camera
-              Type: entityref
-              Value: 4288399533179096203
-            - Name: PitchSensitivity
-              Type: float
-              Value: 0.05
-  - Entity: 17195169648695367070
+  - Entity: 7911143129962106815
     TagComponent:
-      Tag: Empty Entity
+      Tag: Cube
     TransformComponent:
-      Position: [-11.820205, 0.38235208, -4.9488707]
+      Position: [-2.6865735, 1.7309898, -12.007553]
       Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [0.01, 0.01, 0.01]
+      Scale: [1, 1, 1]
       Parent: 829200245983299509
-    VoxelRendererComponent:
-      VoxelMeshUUID: 16725038486124727391
-      VoxelTextureUUID: 5428517137321186404
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 0
+      ShaderUUID: 0
       Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: false
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 3
-      HalfExtents: [0.5, 0.5, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    ScriptComponent:
-      Scripts:
-        - ScriptPath: scripts\Collectible.lua
-          ClassName: Collectible
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 15884251345058734463
-      BlueprintPath: assets\blueprints\test.blueprint
-      OriginalYAML: "Blueprint: Empty Entity\nEntities:\n  - Entity: 1075940986449725326\n    TagComponent:\n      Tag: Empty Entity\n    TransformComponent:\n      Position: [-5.9604645e-08, 3.7066455, -2.3841858e-07]\n      Rotation: [-3.1415925, 1.0975952, -3.1415925]\n      Scale: [0.01, 0.01, 0.01]\n      Parent: 829200245983299509\n    VoxelRendererComponent:\n      VoxelMeshUUID: 16725038486124727391\n      VoxelTextureUUID: 2879451016976322528\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n    ColliderComponent:\n      Shape: 3\n      HalfExtents: [0.5, 0.5, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 4288399533179096203
+  - Entity: 8923458721691645312
     TagComponent:
-      Tag: Camera
+      Tag: Cube
     TransformComponent:
-      Position: [0, 0, 0]
+      Position: [5.274784, 0.8506768, -16.083769]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [1, 1, 1]
+      Parent: 829200245983299509
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 0
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 16020047007249049872
+    TagComponent:
+      Tag: Cube
+    TransformComponent:
+      Position: [13.428616, 0.2824064, -12.537761]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [1, 1, 1]
+      Parent: 829200245983299509
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 0
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 12145903664756383971
+    TagComponent:
+      Tag: CameraPoint
+    TransformComponent:
+      Position: [0, 1.162251, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-      Parent: 12145903664756383971
-    CameraComponent:
-      Primary: true
-      FOV: 45
-      NearClip: 0.1
-      FarClip: 100
+      Parent: 10467415672658071835

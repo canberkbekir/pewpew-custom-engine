@@ -168,8 +168,8 @@ function PlayerMovement:OnUpdate(dt)
     local move = Vector3(0, 0, 0)
     if Input.IsKeyPressed(Key.W) then move = move + Vector3(0, 0, 1) end
     if Input.IsKeyPressed(Key.S) then move = move - Vector3(0, 0, 1) end
-    if Input.IsKeyPressed(Key.A) then move = move - Vector3(1, 0, 0) end
-    if Input.IsKeyPressed(Key.D) then move = move + Vector3(1, 0, 0) end
+    if Input.IsKeyPressed(Key.A) then move = move + Vector3(1, 0, 0) end
+    if Input.IsKeyPressed(Key.D) then move = move - Vector3(1, 0, 0) end
 
     move = FlattenXZ(move)
     local hasMove = move:Length() > 0.01
@@ -263,9 +263,9 @@ function PlayerMovement:Shoot()
     end
 
     -- Spawn bullet hierarchy with fresh UUIDs.
-    local entities = self._scene:InstantiateBlueprint(self.BulletBlueprint)
+    local entities = self._scene:Instantiate(self.BulletBlueprint)
     if #entities == 0 then
-        Log.Warn("PlayerMovement: InstantiateBlueprint returned no entities")
+        Log.Warn("PlayerMovement: Instantiate returned no entities")
         return
     end
 

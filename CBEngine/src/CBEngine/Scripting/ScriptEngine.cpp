@@ -16,8 +16,10 @@
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/AudioSourceComponent.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/Asset.h"
+#include "CBEngine/Audio/AudioClipAsset.h"
 
 #define SOL_ALL_SAFETIES_ON 1
 #include <sol/sol.hpp>
@@ -31,6 +33,11 @@ namespace CB
 	// Time tracking for the Lua Time global
 	static float s_TotalTime = 0.0f;
 	static uint64_t s_FrameCount = 0;
+
+	// Deferred scene management (set by Lua, consumed by EditorLayer after scripts run)
+	static std::string s_PendingScenePath;
+	static bool s_PendingReload = false;
+	static bool s_HasPendingSceneChange = false;
 
 	// Per-entity: vector of script instances (indexed same as ScriptComponent::Scripts)
 	static std::unordered_map<uint64_t, std::vector<sol::table>> s_ScriptInstances;
@@ -80,7 +87,7 @@ namespace CB
 		// where FieldTypeName is one of the registered field constructors
 		static const std::unordered_set<std::string> s_FieldTypes = {
 			"Float", "Int", "Bool", "String", "Color", "Vec3",
-			"EntityRef", "ComponentRef", "ScriptRef", "BlueprintRef"
+			"EntityRef", "ComponentRef", "ScriptRef", "BlueprintRef", "AudioRef"
 		};
 
 		std::istringstream ss(block);
@@ -241,15 +248,91 @@ namespace CB
 		s_TotalTime += ts.GetSeconds();
 		s_FrameCount++;
 
+		float dt = ts.GetSeconds();
+
 		// Update the Lua Time global table
 		sol::object timeObj = (*s_LuaState)["Time"];
 		if (timeObj.valid() && timeObj.get_type() == sol::type::table)
 		{
 			sol::table time = timeObj;
-			time["DeltaTime"] = ts.GetSeconds();
+			time["DeltaTime"] = dt;
 			time["TotalTime"] = s_TotalTime;
 			time["FrameCount"] = static_cast<lua_Integer>(s_FrameCount);
 		}
+
+		// Tick coroutine scheduler
+		{
+			sol::object coObj = (*s_LuaState)["Coroutine"];
+			if (coObj.valid() && coObj.get_type() == sol::type::table)
+			{
+				sol::table co = coObj;
+				sol::object tickFn = co["_Tick"];
+				if (tickFn.is<sol::protected_function>())
+				{
+					sol::protected_function fn = tickFn;
+					auto result = fn(dt);
+					if (!result.valid())
+					{
+						sol::error err = result;
+						CB_CORE_ERROR("[Lua] Coroutine._Tick error: {0}", err.what());
+					}
+				}
+			}
+		}
+
+		// Tick tween engine
+		{
+			sol::object tweenObj = (*s_LuaState)["Tween"];
+			if (tweenObj.valid() && tweenObj.get_type() == sol::type::table)
+			{
+				sol::table tween = tweenObj;
+				sol::object tickFn = tween["_Tick"];
+				if (tickFn.is<sol::protected_function>())
+				{
+					sol::protected_function fn = tickFn;
+					auto result = fn(dt);
+					if (!result.valid())
+					{
+						sol::error err = result;
+						CB_CORE_ERROR("[Lua] Tween._Tick error: {0}", err.what());
+					}
+				}
+			}
+		}
+	}
+
+	// =========================================================================
+	// Deferred scene management
+	// =========================================================================
+	void ScriptEngine::RequestSceneLoad(const std::string& path)
+	{
+		s_PendingScenePath = path;
+		s_PendingReload = false;
+		s_HasPendingSceneChange = true;
+	}
+
+	void ScriptEngine::RequestSceneReload()
+	{
+		s_PendingScenePath = "";
+		s_PendingReload = true;
+		s_HasPendingSceneChange = true;
+	}
+
+	bool ScriptEngine::HasPendingSceneChange()
+	{
+		return s_HasPendingSceneChange;
+	}
+
+	std::string ScriptEngine::GetPendingScenePath()
+	{
+		return s_PendingScenePath;
+	}
+
+	void ScriptEngine::ClearPendingSceneChange()
+	{
+		s_HasPendingSceneChange = false;
+		s_PendingReload = false;
+		s_PendingScenePath = "";
 	}
 
 	void ScriptEngine::RegisterBindings()
@@ -344,6 +427,12 @@ namespace CB
 					return sol::make_object(L, sol::nil);
 				return sol::make_object(L, DirectionalLightProxy{e});
 			}
+			if (componentName == "AudioSource" || componentName == "AudioSourceComponent")
+			{
+				if (!e.HasComponent<AudioSourceComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, AudioSourceProxy{e});
+			}
 
 			CB_CORE_WARN("[Lua] GetComponent: unknown component type '{0}'", componentName);
 			return sol::make_object(L, sol::nil);
@@ -419,6 +508,8 @@ namespace CB
 				key == "Collider" || key == "MeshRenderer" || key == "VoxelRenderer" ||
 				key == "DirectionalLight" || key == "RaycastHit" ||
 				key == "EntityRef" || key == "ComponentRef" || key == "ScriptRef" || key == "BlueprintRef" ||
+				key == "AudioRef" || key == "Audio" || key == "Signal" || key == "Coroutine" ||
+				key == "Tween" || key == "Easing" || key == "Pool" ||
 				key == "BlueprintHandle" || key == "Bullet" || key == "Vec3")
 				continue;
 
@@ -1352,16 +1443,28 @@ function Bullet:GetDamage() return self.Damage end
 				}
 				case ScriptFieldType::BlueprintRef:
 				{
-					// Always inject a BlueprintHandle — scripts never branch on source type.
-					// InstantiateBlueprint dispatches internally on AssetUUID vs EntityUUID.
 					if (field.EntityRefSubtype == "blueprint_asset")
-						self[field.Name] = sol::make_object(lua, BlueprintHandle::FromAsset(field.EntityRefValue));
-					else if (field.EntityRefValue.IsValid())
-						self[field.Name] = sol::make_object(lua, BlueprintHandle::FromEntity(field.EntityRefValue));
+					{
+						// .blueprint file — inject as BlueprintHandle carrying the asset UUID
+						self[field.Name] = sol::make_object(lua, BlueprintHandle(field.EntityRefValue));
+					}
+					else if (scene && field.EntityRefValue.IsValid())
+					{
+						// Scene entity dragged in — inject as Entity directly
+						self[field.Name] = sol::make_object(lua, scene->GetEntityByUUID(field.EntityRefValue));
+					}
 					else
-						self[field.Name] = sol::make_object(lua, BlueprintHandle{});
+					{
+						self[field.Name] = sol::make_object(lua, Entity{});
+					}
 					break;
 				}
+			case ScriptFieldType::AudioClipRef:
+			{
+				// Inject AudioHandle carrying the asset UUID
+				self[field.Name] = sol::make_object(lua, AudioHandle(field.EntityRefValue));
+				break;
+			}
 			}
 		}
 	}

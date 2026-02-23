@@ -118,6 +118,26 @@ namespace CB
 			uint16_t layerMask = PhysicsLayers::AllLayers,
 			UUID ignoreEntity = UUID()) const;
 
+		// Sweep casts — cast a shape along a ray, return first hit
+		bool SphereCast(const Vector3& origin, const Vector3& dir, float radius, float maxDist,
+			RaycastHit& outHit, uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
+		bool BoxCast(const Vector3& origin, const Vector3& dir, const Vector3& halfExtents, float maxDist,
+			RaycastHit& outHit, uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
+
+		std::vector<RaycastHit> SphereCastAll(const Vector3& origin, const Vector3& dir, float radius,
+			float maxDist, uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> BoxCastAll(const Vector3& origin, const Vector3& dir, const Vector3& halfExtents,
+			float maxDist, uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
+
+		// Overlap capsule
+		std::vector<RaycastHit> OverlapCapsule(const Vector3& center, float radius, float halfHeight,
+			uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
+
 		// JPH::ContactListener interface
 		JPH::ValidateResult OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2,
 			JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override;

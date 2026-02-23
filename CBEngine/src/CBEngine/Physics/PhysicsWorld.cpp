@@ -9,8 +9,10 @@
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
+#include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Body/BodyLock.h>
 
 namespace CB
@@ -440,6 +442,205 @@ namespace CB
 		JPH::BoxShape boxShape(JPH::Vec3(safeHalf.x, safeHalf.y, safeHalf.z));
 		JPH::RMat44 transform = JPH::RMat44::sTranslation(JPH::RVec3(center.x, center.y, center.z));
 		return DoOverlapQuery(this, &boxShape, transform, center, layerMask, ignoreEntity);
+	}
+
+	// -------------------------------------------------------------------------
+	// Sweep cast helpers
+	// -------------------------------------------------------------------------
+
+	// Shared helper: build a RaycastHit from a ShapeCastResult
+	static RaycastHit MakeSweepHit(const PhysicsWorld* world,
+		const JPH::RShapeCast& shapeCast, const JPH::ShapeCastResult& result, float maxDist)
+	{
+		RaycastHit hit;
+		hit.Fraction = result.mFraction;
+		hit.Distance = result.mFraction * maxDist;
+		hit.EntityUUID = world->GetEntityFromBody(result.mBodyID2);
+
+		// Hit center-of-mass position = start + direction * fraction
+		JPH::RVec3 hitPos = JPH::RVec3(shapeCast.mCenterOfMassStart.GetTranslation())
+			+ JPH::RVec3(shapeCast.mDirection) * result.mFraction;
+		hit.Point = Vector3(
+			static_cast<float>(hitPos.GetX()),
+			static_cast<float>(hitPos.GetY()),
+			static_cast<float>(hitPos.GetZ()));
+
+		// Penetration axis points from body 2 to body 1; negate for surface normal
+		hit.Normal = Vector3(
+			-result.mPenetrationAxis.GetX(),
+			-result.mPenetrationAxis.GetY(),
+			-result.mPenetrationAxis.GetZ());
+		return hit;
+	}
+
+	// Shared shape-cast executor — returns sorted results
+	static std::vector<JPH::ShapeCastResult> DoCastShape(
+		const PhysicsWorld* world,
+		const JPH::Shape* shape,
+		const Vector3& origin, const JPH::Vec3& normDir, float maxDist,
+		uint16_t layerMask, UUID ignoreEntity)
+	{
+		JPH::RMat44 startTransform = JPH::RMat44::sTranslation(JPH::RVec3(origin.x, origin.y, origin.z));
+		JPH::RShapeCast shapeCast = JPH::RShapeCast::sFromWorldTransform(
+			shape, JPH::Vec3::sReplicate(1.0f), startTransform, normDir * maxDist);
+
+		JPH::ShapeCastSettings settings;
+		JPH::AllHitCollisionCollector<JPH::CastShapeCollector> collector;
+		LayerMaskObjectLayerFilter layerFilter(layerMask);
+
+		const auto& narrowPhase = world->GetPhysicsSystem().GetNarrowPhaseQuery();
+		if (ignoreEntity.IsValid())
+		{
+			JPH::BodyID ignoreBody = world->GetBodyFromEntity(ignoreEntity);
+			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
+			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
+				collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+		}
+		else
+		{
+			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
+				collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
+		}
+
+		collector.Sort();
+		return { collector.mHits.begin(), collector.mHits.end() };
+	}
+
+	bool PhysicsWorld::SphereCast(const Vector3& origin, const Vector3& dir, float radius, float maxDist,
+		RaycastHit& outHit, uint16_t layerMask, UUID ignoreEntity) const
+	{
+		if (!m_Initialized) return false;
+		JPH::Vec3 jDir(dir.x, dir.y, dir.z);
+		float dirLen = jDir.Length();
+		if (dirLen < 0.0001f) return false;
+		jDir /= dirLen;
+
+		JPH::SphereShape sphereShape(std::max(radius, 0.001f));
+		JPH::RMat44 startTransform = JPH::RMat44::sTranslation(JPH::RVec3(origin.x, origin.y, origin.z));
+		JPH::RShapeCast shapeCast = JPH::RShapeCast::sFromWorldTransform(
+			&sphereShape, JPH::Vec3::sReplicate(1.0f), startTransform, jDir * maxDist);
+
+		JPH::ShapeCastSettings settings;
+		JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector> collector;
+		LayerMaskObjectLayerFilter layerFilter(layerMask);
+
+		const auto& narrowPhase = m_PhysicsSystem.GetNarrowPhaseQuery();
+		if (ignoreEntity.IsValid())
+		{
+			JPH::BodyID ignoreBody = GetBodyFromEntity(ignoreEntity);
+			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
+			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
+				collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+		}
+		else
+		{
+			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
+				collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
+		}
+
+		if (!collector.HadHit()) return false;
+		outHit = MakeSweepHit(this, shapeCast, collector.mHit, maxDist);
+		return true;
+	}
+
+	bool PhysicsWorld::BoxCast(const Vector3& origin, const Vector3& dir, const Vector3& halfExtents, float maxDist,
+		RaycastHit& outHit, uint16_t layerMask, UUID ignoreEntity) const
+	{
+		if (!m_Initialized) return false;
+		JPH::Vec3 jDir(dir.x, dir.y, dir.z);
+		float dirLen = jDir.Length();
+		if (dirLen < 0.0001f) return false;
+		jDir /= dirLen;
+
+		Vector3 safeHalf = Vector3(
+			std::max(halfExtents.x, 0.001f),
+			std::max(halfExtents.y, 0.001f),
+			std::max(halfExtents.z, 0.001f));
+		JPH::BoxShape boxShape(JPH::Vec3(safeHalf.x, safeHalf.y, safeHalf.z));
+		JPH::RMat44 startTransform = JPH::RMat44::sTranslation(JPH::RVec3(origin.x, origin.y, origin.z));
+		JPH::RShapeCast shapeCast = JPH::RShapeCast::sFromWorldTransform(
+			&boxShape, JPH::Vec3::sReplicate(1.0f), startTransform, jDir * maxDist);
+
+		JPH::ShapeCastSettings settings;
+		JPH::ClosestHitCollisionCollector<JPH::CastShapeCollector> collector;
+		LayerMaskObjectLayerFilter layerFilter(layerMask);
+
+		const auto& narrowPhase = m_PhysicsSystem.GetNarrowPhaseQuery();
+		if (ignoreEntity.IsValid())
+		{
+			JPH::BodyID ignoreBody = GetBodyFromEntity(ignoreEntity);
+			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
+			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
+				collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+		}
+		else
+		{
+			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
+				collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
+		}
+
+		if (!collector.HadHit()) return false;
+		outHit = MakeSweepHit(this, shapeCast, collector.mHit, maxDist);
+		return true;
+	}
+
+	std::vector<RaycastHit> PhysicsWorld::SphereCastAll(const Vector3& origin, const Vector3& dir, float radius,
+		float maxDist, uint16_t layerMask, UUID ignoreEntity) const
+	{
+		if (!m_Initialized) return {};
+		JPH::Vec3 jDir(dir.x, dir.y, dir.z);
+		float dirLen = jDir.Length();
+		if (dirLen < 0.0001f) return {};
+		jDir /= dirLen;
+
+		JPH::SphereShape sphereShape(std::max(radius, 0.001f));
+		JPH::RMat44 startTransform = JPH::RMat44::sTranslation(JPH::RVec3(origin.x, origin.y, origin.z));
+		JPH::RShapeCast shapeCast = JPH::RShapeCast::sFromWorldTransform(
+			&sphereShape, JPH::Vec3::sReplicate(1.0f), startTransform, jDir * maxDist);
+
+		auto results = DoCastShape(this, &sphereShape, origin, jDir, maxDist, layerMask, ignoreEntity);
+		std::vector<RaycastHit> hits;
+		hits.reserve(results.size());
+		for (const auto& r : results)
+			hits.push_back(MakeSweepHit(this, shapeCast, r, maxDist));
+		return hits;
+	}
+
+	std::vector<RaycastHit> PhysicsWorld::BoxCastAll(const Vector3& origin, const Vector3& dir, const Vector3& halfExtents,
+		float maxDist, uint16_t layerMask, UUID ignoreEntity) const
+	{
+		if (!m_Initialized) return {};
+		JPH::Vec3 jDir(dir.x, dir.y, dir.z);
+		float dirLen = jDir.Length();
+		if (dirLen < 0.0001f) return {};
+		jDir /= dirLen;
+
+		Vector3 safeHalf = Vector3(
+			std::max(halfExtents.x, 0.001f),
+			std::max(halfExtents.y, 0.001f),
+			std::max(halfExtents.z, 0.001f));
+		JPH::BoxShape boxShape(JPH::Vec3(safeHalf.x, safeHalf.y, safeHalf.z));
+		JPH::RMat44 startTransform = JPH::RMat44::sTranslation(JPH::RVec3(origin.x, origin.y, origin.z));
+		JPH::RShapeCast shapeCast = JPH::RShapeCast::sFromWorldTransform(
+			&boxShape, JPH::Vec3::sReplicate(1.0f), startTransform, jDir * maxDist);
+
+		auto results = DoCastShape(this, &boxShape, origin, jDir, maxDist, layerMask, ignoreEntity);
+		std::vector<RaycastHit> hits;
+		hits.reserve(results.size());
+		for (const auto& r : results)
+			hits.push_back(MakeSweepHit(this, shapeCast, r, maxDist));
+		return hits;
+	}
+
+	std::vector<RaycastHit> PhysicsWorld::OverlapCapsule(const Vector3& center, float radius, float halfHeight,
+		uint16_t layerMask, UUID ignoreEntity) const
+	{
+		if (!m_Initialized) return {};
+
+		// Jolt CapsuleShape(halfHeight, radius) — capsule along Y axis
+		JPH::CapsuleShape capsuleShape(std::max(halfHeight, 0.001f), std::max(radius, 0.001f));
+		JPH::RMat44 transform = JPH::RMat44::sTranslation(JPH::RVec3(center.x, center.y, center.z));
+		return DoOverlapQuery(this, &capsuleShape, transform, center, layerMask, ignoreEntity);
 	}
 
 	// Contact listener implementation

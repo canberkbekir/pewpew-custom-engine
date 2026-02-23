@@ -26,6 +26,8 @@ IncludeDir["yaml_cpp"] = "CBEngine/vendor/yaml-cpp/include"
 IncludeDir["JoltPhysics"] = "CBEngine/vendor/JoltPhysics"
 IncludeDir["lua"] = "CBEngine/vendor/lua/src"
 IncludeDir["sol2"] = "CBEngine/vendor/sol2"
+IncludeDir["OpenALSoft"] = "CBEngine/vendor/OpenAL-Soft/include"
+IncludeDir["dr_libs"] = "CBEngine/vendor/dr_libs"
 
 include "CBEngine/vendor/JoltPhysics"
 
@@ -162,7 +164,8 @@ project "CBEngine"
 		"_CRT_SECURE_NO_WARNINGS",
 		"YAML_CPP_STATIC_DEFINE",
 		"JPH_DISABLE_CUSTOM_ALLOCATOR",
-		"JPH_CROSS_PLATFORM_DETERMINISTIC"
+		"JPH_CROSS_PLATFORM_DETERMINISTIC",
+		"CB_AUDIO_ENABLED"
 	}
 
 	includedirs
@@ -182,11 +185,14 @@ project "CBEngine"
 		"%{IncludeDir.JoltPhysics}",
 		"%{IncludeDir.lua}",
 		"%{IncludeDir.sol2}",
+		"%{IncludeDir.OpenALSoft}",
+		"%{IncludeDir.dr_libs}",
 	}
 
 	libdirs
 	{
-		"%{prj.name}/vendor/assimp/lib"
+		"%{prj.name}/vendor/assimp/lib",
+		"%{prj.name}/vendor/OpenAL-Soft/libs/Win64"
 	}
 
 	links
@@ -194,7 +200,8 @@ project "CBEngine"
 		"opengl32.lib",
 		"assimp-vc143-mt",
 		"JoltPhysics",
-		"Lua"
+		"Lua",
+		"OpenAL32"
 	}
 
 
@@ -288,7 +295,8 @@ project "Sandbox"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.JoltPhysics}",
 		"%{IncludeDir.lua}",
-		"%{IncludeDir.sol2}"
+		"%{IncludeDir.sol2}",
+		"%{IncludeDir.OpenALSoft}"
     }
 
     links { "CBEngine" }
@@ -306,6 +314,7 @@ project "Sandbox"
 		postbuildcommands
 		{
 			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}",
+			"{COPYFILE} %{wks.location}CBEngine/vendor/OpenAL-Soft/bin/Win64/OpenAL32.dll %{cfg.targetdir}",
 			"{MKDIR} %{cfg.targetdir}/lua",
 			"{COPYDIR} %{wks.location}CBEngine/src/lua %{cfg.targetdir}/lua"
 		}
@@ -376,7 +385,8 @@ project "CBEngine-Editor"
 		"%{IncludeDir.yaml_cpp}",
 		"%{IncludeDir.JoltPhysics}",
 		"%{IncludeDir.lua}",
-		"%{IncludeDir.sol2}"
+		"%{IncludeDir.sol2}",
+		"%{IncludeDir.OpenALSoft}"
     }
 
     links { "CBEngine" }
@@ -390,10 +400,12 @@ project "CBEngine-Editor"
 	    }
 
 		-- Copy Assimp DLL to output folder after build
+		-- Copy OpenAL DLL to output folder after build
 		-- Copy engine Lua library to output folder
 		postbuildcommands
 		{
 			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}",
+			"{COPYFILE} %{wks.location}CBEngine/vendor/OpenAL-Soft/bin/Win64/OpenAL32.dll %{cfg.targetdir}",
 			"{MKDIR} %{cfg.targetdir}/lua",
 			"{COPYDIR} %{wks.location}CBEngine/src/lua %{cfg.targetdir}/lua"
 		}

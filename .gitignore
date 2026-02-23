@@ -61,8 +61,11 @@ obj/
 !**/vendor/assimp/**/*.lib
 !**/vendor/assimp/**/*.pdb
 
-# Claude Code (local settings, hooks - CLAUDE.md is intentionally kept)
+# Claude Code (local settings, hooks)
 .claude/
+.claudeignore
+CLAUDE.md
+claude.md
 
 # IDE user settings
 *.DotSettings.user

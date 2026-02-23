@@ -1,0 +1,19 @@
+Blueprint: Plane
+Entities:
+  - Entity: 17285956863464234118
+    TagComponent:
+      Tag: Plane
+    TransformComponent:
+      Position: [0, 3.4259644, 0]
+      Rotation: [0, 0, 0]
+      Scale: [10, 10, 10]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 9034001285339972295
+      MaterialUUID: 14976024544950598018
+      ShaderUUID: 0
+      Visible: true
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\InfinityFlight.lua
+          ClassName: InfinityFlight
