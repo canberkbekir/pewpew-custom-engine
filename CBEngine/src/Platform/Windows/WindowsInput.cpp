@@ -13,24 +13,43 @@ namespace CB
     {
         auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
 
-        // Snapshot current key states into prev.
-        // GLFW_KEY_SPACE (32) is the lowest valid key; GLFW_KEY_LAST (348) is the highest.
-        // Keys outside this range cause GLFW error 65539 "Invalid key".
+        // Snapshot current key/mouse states for IsKeyPressed (held-down queries).
         for (int i = GLFW_KEY_SPACE; i <= GLFW_KEY_LAST; i++)
         {
             int state = glfwGetKey(window, i);
             m_PrevKeyStates[i] = (state == GLFW_PRESS || state == GLFW_REPEAT);
         }
-
-        // Snapshot mouse button states for unified-key JustPressed/JustReleased
         for (int i = 0; i < 8; i++)
             m_PrevMouseButtonStates[i] = (glfwGetMouseButton(window, i) == GLFW_PRESS);
 
-        // Snapshot current mouse position for delta computation this frame.
-        // With GLFW_CURSOR_DISABLED the virtual cursor is unbounded, so current-prev
-        // gives the total raw accumulated motion since last frame.
+        // Snapshot callback-fed just-pressed/released accumulators into per-frame arrays.
+        // The accumulators were filled by FeedKeyPress/Release during the previous frame's
+        // glfwPollEvents(). Swap into frame arrays and clear for next frame.
+        m_FrameJustPressed       = m_AccumJustPressed;
+        m_FrameJustReleased      = m_AccumJustReleased;
+        m_FrameMouseJustPressed  = m_AccumMouseJustPressed;
+        m_FrameMouseJustReleased = m_AccumMouseJustReleased;
+        m_AccumJustPressed.fill(false);
+        m_AccumJustReleased.fill(false);
+        m_AccumMouseJustPressed.fill(false);
+        m_AccumMouseJustReleased.fill(false);
+
+        // Compute and store the frame delta BEFORE overwriting m_Prev.
+        // GetMouseDeltaImpl() returns this stored value; querying glfwGetCursorPos live
+        // during OnUpdate would always return the same position as m_Prev because
+        // glfwPollEvents hasn't run yet (it's called at the end of the frame).
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
+        if (!m_FirstFrame)
+        {
+            m_FrameMouseDeltaX = static_cast<float>(xpos) - m_PrevMouseX;
+            m_FrameMouseDeltaY = static_cast<float>(ypos) - m_PrevMouseY;
+        }
+        else
+        {
+            m_FrameMouseDeltaX = 0.0f;
+            m_FrameMouseDeltaY = 0.0f;
+        }
         m_PrevMouseX = static_cast<float>(xpos);
         m_PrevMouseY = static_cast<float>(ypos);
 
@@ -64,14 +83,10 @@ namespace CB
         {
             int button = keycode - CB_MOUSE_BUTTON_KEY_BASE;
             if (button < 0 || button >= 8) return false;
-            auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-            return (glfwGetMouseButton(window, button) == GLFW_PRESS) && !m_PrevMouseButtonStates[button];
+            return m_FrameMouseJustPressed[button];
         }
-        if (keycode < 0 || keycode >= 512)
-            return false;
-        auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-        bool pressedNow = (glfwGetKey(window, keycode) == GLFW_PRESS);
-        return pressedNow && !m_PrevKeyStates[keycode];
+        if (keycode < 0 || keycode >= 512) return false;
+        return m_FrameJustPressed[keycode];
     }
 
     bool WindowsInput::IsKeyJustReleasedImpl(int keycode)
@@ -80,15 +95,10 @@ namespace CB
         {
             int button = keycode - CB_MOUSE_BUTTON_KEY_BASE;
             if (button < 0 || button >= 8) return false;
-            auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-            return (glfwGetMouseButton(window, button) != GLFW_PRESS) && m_PrevMouseButtonStates[button];
+            return m_FrameMouseJustReleased[button];
         }
-        if (keycode < 0 || keycode >= 512)
-            return false;
-        auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-        int state = glfwGetKey(window, keycode);
-        bool pressedNow = (state == GLFW_PRESS || state == GLFW_REPEAT);
-        return !pressedNow && m_PrevKeyStates[keycode];
+        if (keycode < 0 || keycode >= 512) return false;
+        return m_FrameJustReleased[keycode];
     }
 
     bool WindowsInput::IsMouseButtonPressedImpl(int button)
@@ -121,16 +131,7 @@ namespace CB
 
     std::pair<float, float> WindowsInput::GetMouseDeltaImpl()
     {
-        if (m_FirstFrame)
-            return {0.0f, 0.0f};
-
-        auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
-        double xpos, ypos;
-        glfwGetCursorPos(window, &xpos, &ypos);
-
-        float dx = static_cast<float>(xpos) - m_PrevMouseX;
-        float dy = static_cast<float>(ypos) - m_PrevMouseY;
-        return {dx, dy};
+        return {m_FrameMouseDeltaX, m_FrameMouseDeltaY};
     }
 
     std::pair<float, float> WindowsInput::GetMouseScrollDeltaImpl()
@@ -166,11 +167,37 @@ namespace CB
         glfwGetCursorPos(window, &xpos, &ypos);
         m_PrevMouseX = static_cast<float>(xpos);
         m_PrevMouseY = static_cast<float>(ypos);
+        m_FrameMouseDeltaX = 0.0f;
+        m_FrameMouseDeltaY = 0.0f;
     }
 
     void WindowsInput::FeedScrollImpl(float x, float y)
     {
         m_AccumScrollX += x;
         m_AccumScrollY += y;
+    }
+
+    void WindowsInput::FeedKeyPressImpl(int key)
+    {
+        if (key >= 0 && key < 512)
+            m_AccumJustPressed[key] = true;
+    }
+
+    void WindowsInput::FeedKeyReleaseImpl(int key)
+    {
+        if (key >= 0 && key < 512)
+            m_AccumJustReleased[key] = true;
+    }
+
+    void WindowsInput::FeedMousePressImpl(int button)
+    {
+        if (button >= 0 && button < 8)
+            m_AccumMouseJustPressed[button] = true;
+    }
+
+    void WindowsInput::FeedMouseReleaseImpl(int button)
+    {
+        if (button >= 0 && button < 8)
+            m_AccumMouseJustReleased[button] = true;
     }
 }

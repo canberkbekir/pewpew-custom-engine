@@ -12,6 +12,14 @@ function MeshRenderer:IsVisible() end
 ---@param visible boolean
 function MeshRenderer:SetVisible(visible) end
 
+--- Get the material proxy for this mesh renderer. Returns nil if no material is assigned.
+---@return Material|nil
+function MeshRenderer:GetMaterial() end
+
+--- Get the mesh proxy for this mesh renderer. Returns nil if no mesh is assigned.
+---@return Mesh|nil
+function MeshRenderer:GetMesh() end
+
 --- Check if the mesh renderer proxy is valid.
 ---@return boolean
 function MeshRenderer:IsValid() end

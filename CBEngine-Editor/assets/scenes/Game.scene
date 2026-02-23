@@ -1,5 +1,13 @@
 Scene: Game
 Entities:
+  - Entity: 12160050135553676369
+    TagComponent:
+      Tag: GunPoint
+    TransformComponent:
+      Position: [0, 0.7084098, 0.6159079]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 10467415672658071835
   - Entity: 4288399533179096203
     TagComponent:
       Tag: Camera
@@ -54,9 +62,9 @@ Entities:
       FreezePositionX: false
       FreezePositionY: false
       FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
+      FreezeRotationX: true
+      FreezeRotationY: true
+      FreezeRotationZ: true
     ColliderComponent:
       Shape: 2
       HalfExtents: [0.5, 1, 0.5]
@@ -71,9 +79,6 @@ Entities:
           ClassName: PlayerMovement
           Fields:
             - Name: MouseSensitivity
-              Type: float
-              Value: 0.1
-            - Name: PitchSensitivity
               Type: float
               Value: 0.1
             - Name: Camera

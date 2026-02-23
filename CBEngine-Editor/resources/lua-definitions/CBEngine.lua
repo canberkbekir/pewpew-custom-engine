@@ -281,6 +281,11 @@ function Entity:GetRight() end
 ---@return Vector3
 function Entity:GetUp() end
 
+---Get the Transform component proxy for this entity.
+---Always valid (all entities have a Transform).
+---@return Transform
+function Entity:GetTransform() end
+
 ---Move the entity by a delta. Shorthand for SetPosition(GetPosition() + delta).
 ---@param delta Vector3
 function Entity:Translate(delta) end
@@ -505,6 +510,20 @@ function Scene:GetMainCamera() end
 ---Get the GameManager entity.
 ---@return Entity|nil
 function Scene:GetGameManager() end
+
+---Find the first entity that has the given component.
+---Pass a component token (Transform, RigidBody, Collider, Camera, MeshRenderer,
+---VoxelRenderer, DirectionalLight, AudioSource, Script).
+---@param componentToken table
+---@return Entity
+function Scene:FindFirstWithComponent(componentToken) end
+
+---Find all entities that have the given component.
+---Pass a component token (Transform, RigidBody, Collider, Camera, MeshRenderer,
+---VoxelRenderer, DirectionalLight, AudioSource, Script).
+---@param componentToken table
+---@return Entity[]
+function Scene:FindAllWithComponent(componentToken) end
 
 ---Instantiate a blueprint or clone an entity into the scene.
 ---Returns a table of created entities (root first, then children in hierarchy order).
@@ -808,6 +827,76 @@ function String(default) end
 ---@param a? number @ Alpha (0-1), default 1
 ---@return FieldDef
 function Color(r, g, b, a) end
+
+---@class Field
+Field = {}
+
+---Create a float field.
+---@param default? number
+---@param min? number
+---@param max? number
+---@return FieldDef
+function Field.Float(default, min, max) end
+
+---Create an int field.
+---@param default? integer
+---@param min? integer
+---@param max? integer
+---@return FieldDef
+function Field.Int(default, min, max) end
+
+---Create a bool field.
+---@param default? boolean
+---@return FieldDef
+function Field.Bool(default) end
+
+---Create a string field.
+---@param default? string
+---@return FieldDef
+function Field.String(default) end
+
+---Create a color field (RGBA).
+---@param r? number @ Red (0-1), default 1
+---@param g? number @ Green (0-1), default 1
+---@param b? number @ Blue (0-1), default 1
+---@param a? number @ Alpha (0-1), default 1
+---@return FieldDef
+function Field.Color(r, g, b, a) end
+
+---Create a Vector3 field. Use Field.Vector3 ONLY inside __fields = { }.
+---For actual vectors in script logic, use Vector3(x, y, z).
+---@param x? number @ Default 0
+---@param y? number @ Default 0
+---@param z? number @ Default 0
+---@return FieldDef
+function Field.Vector3(x, y, z) end
+
+---Create an entity reference field.
+---Accepts drag-drop from the hierarchy. At runtime receives the referenced Entity.
+---@return FieldDef
+function Field.EntityRef() end
+
+---Create a component reference field.
+---@param componentToken table A global component token (RigidBody, Transform, Camera, etc.)
+---@return FieldDef
+function Field.ComponentRef(componentToken) end
+
+---Create a script reference field.
+---@param classTable table The global class table of the target script
+---@return FieldDef
+function Field.ScriptRef(classTable) end
+
+---Create a blueprint reference field.
+---Accepts drag-drop from the content browser (.blueprint assets) OR from the hierarchy (scene entities).
+---At runtime: .blueprint drops inject a BlueprintHandle; scene entity drops inject an Entity.
+---Both types are accepted by Scene:Instantiate() — no branching needed in script.
+---@return FieldDef
+function Field.BlueprintRef() end
+
+---Create an audio clip reference field.
+---Accepts drag-drop from the content browser (.sfx assets).
+---@return FieldDef
+function Field.AudioRef() end
 
 ---Create a Vector3 field. Use Vec3 ONLY inside __fields = { }.
 ---For actual vectors in script logic, use Vector3(x, y, z).

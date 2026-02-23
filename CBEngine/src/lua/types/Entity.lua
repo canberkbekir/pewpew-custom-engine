@@ -28,19 +28,19 @@ function Entity:SetLocalPosition(position) end
 ---@return Vec3
 function Entity:GetWorldPosition() end
 
---- Get the local rotation as euler angles (in radians).
+--- Get the local rotation as euler angles (in degrees).
 ---@return Vec3
 function Entity:GetRotation() end
 
---- Set the local rotation from euler angles (in radians).
+--- Set the local rotation from euler angles (in degrees).
 ---@param rotation Vec3
 function Entity:SetRotation(rotation) end
 
---- Get the local rotation as euler angles (in radians). Alias for GetRotation.
+--- Get the local rotation as euler angles (in degrees). Alias for GetRotation.
 ---@return Vec3
 function Entity:GetLocalRotation() end
 
---- Set the local rotation from euler angles (in radians). Alias for SetRotation.
+--- Set the local rotation from euler angles (in degrees). Alias for SetRotation.
 ---@param rotation Vec3
 function Entity:SetLocalRotation(rotation) end
 
@@ -72,11 +72,16 @@ function Entity:GetRight() end
 ---@return Vec3
 function Entity:GetUp() end
 
+--- Get the Transform component proxy for this entity.
+--- Always valid (all entities have a Transform).
+---@return Transform
+function Entity:GetTransform() end
+
 --- Move the entity by a delta in local space. Shorthand for SetPosition(GetPosition() + delta).
 ---@param delta Vec3
 function Entity:Translate(delta) end
 
---- Rotate the entity by euler angle deltas (in radians). Shorthand for SetRotation(GetRotation() + delta).
+--- Rotate the entity by euler angle deltas (in degrees). Shorthand for SetRotation(GetRotation() + delta).
 ---@param delta Vec3
 function Entity:Rotate(delta) end
 

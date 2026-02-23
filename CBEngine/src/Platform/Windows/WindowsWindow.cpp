@@ -104,12 +104,14 @@ namespace CB
             {
             case GLFW_PRESS:
                 {
+                    Input::FeedKeyPress(key);
                     KeyPressedEvent pressed_event(key, 0);
                     data.EventCallback(pressed_event);
                     break;
                 }
             case GLFW_RELEASE:
                 {
+                    Input::FeedKeyRelease(key);
                     KeyReleasedEvent released_event(key);
                     data.EventCallback(released_event);
                     break;
@@ -143,12 +145,14 @@ namespace CB
             {
             case GLFW_PRESS:
                 {
+                    Input::FeedMousePress(button);
                     MouseButtonPressedEvent event(button);
                     data.EventCallback(event);
                     break;
                 }
             case GLFW_RELEASE:
                 {
+                    Input::FeedMouseRelease(button);
                     MouseButtonReleasedEvent event(button);
                     data.EventCallback(event);
                     break;

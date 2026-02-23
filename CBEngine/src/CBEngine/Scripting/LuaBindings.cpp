@@ -391,16 +391,16 @@ end
 				return Vector3(0.0f);
 			},
 
-			// Rotation (euler angles)
+			// Rotation (euler angles — degrees in Lua, radians in storage, same as the editor)
 			"GetRotation", [](Entity& e) -> Vector3 {
 				if (e.HasComponent<TransformComponent>())
-					return e.GetComponent<TransformComponent>().Rotation;
+					return glm::degrees(e.GetComponent<TransformComponent>().Rotation);
 				return Vector3(0.0f);
 			},
 			"SetRotation", [](Entity& e, const Vector3& rot) {
 				if (e.HasComponent<TransformComponent>())
 				{
-					e.GetComponent<TransformComponent>().Rotation = rot;
+					e.GetComponent<TransformComponent>().Rotation = glm::radians(rot);
 					e.GetComponent<TransformComponent>().Dirty = true;
 				}
 			},
@@ -434,6 +434,10 @@ end
 				if (e.HasComponent<TransformComponent>())
 					return e.GetComponent<TransformComponent>().GetUp();
 				return Vector3(0.0f, 1.0f, 0.0f);
+			},
+			// Transform proxy
+			"GetTransform", [](Entity& e) -> TransformProxy {
+				return TransformProxy{ e };
 			},
 
 			// Identity
@@ -503,13 +507,13 @@ end
 			},
 			"GetLocalRotation", [](Entity& e) -> Vector3 {
 				if (e.HasComponent<TransformComponent>())
-					return e.GetComponent<TransformComponent>().Rotation;
+					return glm::degrees(e.GetComponent<TransformComponent>().Rotation);
 				return Vector3(0.0f);
 			},
 			"SetLocalRotation", [](Entity& e, const Vector3& rot) {
 				if (e.HasComponent<TransformComponent>())
 				{
-					e.GetComponent<TransformComponent>().Rotation = rot;
+					e.GetComponent<TransformComponent>().Rotation = glm::radians(rot);
 					e.GetComponent<TransformComponent>().Dirty = true;
 				}
 			},
@@ -582,6 +586,17 @@ end
 
 	void LuaBindings::RegisterScene(sol::state& lua)
 	{
+		auto resolveComponentName = [](sol::object token) -> std::string {
+			if (token.get_type() == sol::type::table)
+			{
+				sol::table tbl = token;
+				sol::object comp = tbl["__component"];
+				if (comp.valid() && comp.get_type() == sol::type::string)
+					return comp.as<std::string>();
+			}
+			return "";
+		};
+
 		// BlueprintHandle usertype — wraps an asset UUID, never exposes raw paths to Lua
 		lua.new_usertype<BlueprintHandle>("BlueprintHandle",
 			"IsValid", &BlueprintHandle::IsValid
@@ -627,6 +642,116 @@ end
 			// Get entity count
 			"GetEntityCount", [](Scene& scene) -> int {
 				return static_cast<int>(scene.GetRegistry().view<IDComponent>().size());
+			},
+			// Find first entity with a component
+			"FindFirstWithComponent", [resolveComponentName](Scene& scene, sol::object token) -> Entity {
+				std::string componentName = resolveComponentName(token);
+				if (componentName.empty())
+				{
+					CB_CORE_WARN("[Lua] FindFirstWithComponent: invalid component token");
+					return Entity{};
+				}
+
+				auto& reg = scene.GetRegistry();
+				if (componentName == "Transform" || componentName == "TransformComponent")
+				{
+					auto view = reg.view<TransformComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
+				if (componentName == "RigidBody" || componentName == "RigidBodyComponent")
+				{
+					auto view = reg.view<RigidBodyComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
+				if (componentName == "Collider" || componentName == "ColliderComponent")
+				{
+					auto view = reg.view<ColliderComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
+				if (componentName == "Camera" || componentName == "CameraComponent")
+				{
+					auto view = reg.view<CameraComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
+				if (componentName == "MeshRenderer" || componentName == "MeshRendererComponent")
+				{
+					auto view = reg.view<MeshRendererComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
+				if (componentName == "VoxelRenderer" || componentName == "VoxelRendererComponent")
+				{
+					auto view = reg.view<VoxelRendererComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
+				if (componentName == "DirectionalLight" || componentName == "DirectionalLightComponent")
+				{
+					auto view = reg.view<DirectionalLightComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
+				if (componentName == "AudioSource" || componentName == "AudioSourceComponent")
+				{
+					auto view = reg.view<AudioSourceComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
+				if (componentName == "Script" || componentName == "ScriptComponent")
+				{
+					auto view = reg.view<ScriptComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
+
+				CB_CORE_WARN("[Lua] FindFirstWithComponent: unknown component '{0}'", componentName);
+				return Entity{};
+			},
+			// Find all entities with a component
+			"FindAllWithComponent", [resolveComponentName](Scene& scene, sol::object token, sol::this_state L) -> sol::table {
+				sol::state_view sv(L);
+				sol::table result = sv.create_table();
+
+				std::string componentName = resolveComponentName(token);
+				if (componentName.empty())
+				{
+					CB_CORE_WARN("[Lua] FindAllWithComponent: invalid component token");
+					return result;
+				}
+
+				auto& reg = scene.GetRegistry();
+				int idx = 1;
+				auto pushEntities = [&](auto view) {
+					for (auto e : view)
+						result[idx++] = Entity{ e, &scene };
+				};
+
+				if (componentName == "Transform" || componentName == "TransformComponent")
+					pushEntities(reg.view<TransformComponent>());
+				else if (componentName == "RigidBody" || componentName == "RigidBodyComponent")
+					pushEntities(reg.view<RigidBodyComponent>());
+				else if (componentName == "Collider" || componentName == "ColliderComponent")
+					pushEntities(reg.view<ColliderComponent>());
+				else if (componentName == "Camera" || componentName == "CameraComponent")
+					pushEntities(reg.view<CameraComponent>());
+				else if (componentName == "MeshRenderer" || componentName == "MeshRendererComponent")
+					pushEntities(reg.view<MeshRendererComponent>());
+				else if (componentName == "VoxelRenderer" || componentName == "VoxelRendererComponent")
+					pushEntities(reg.view<VoxelRendererComponent>());
+				else if (componentName == "DirectionalLight" || componentName == "DirectionalLightComponent")
+					pushEntities(reg.view<DirectionalLightComponent>());
+				else if (componentName == "AudioSource" || componentName == "AudioSourceComponent")
+					pushEntities(reg.view<AudioSourceComponent>());
+				else if (componentName == "Script" || componentName == "ScriptComponent")
+					pushEntities(reg.view<ScriptComponent>());
+				else
+					CB_CORE_WARN("[Lua] FindAllWithComponent: unknown component '{0}'", componentName);
+
+				return result;
 			},
 			// Find entities within radius — uses OverlapSphere
 			"FindEntitiesInRadius", [](Scene& scene, const Vector3& center, float radius,
@@ -937,12 +1062,12 @@ end
 			},
 			"GetRotation", [](TransformProxy& tp) -> Vector3 {
 				if (!tp.IsValid()) return Vector3(0.0f);
-				return tp.OwnerEntity.GetComponent<TransformComponent>().Rotation;
+				return glm::degrees(tp.OwnerEntity.GetComponent<TransformComponent>().Rotation);
 			},
 			"SetRotation", [](TransformProxy& tp, const Vector3& rot) {
 				if (!tp.IsValid()) return;
 				auto& tc = tp.OwnerEntity.GetComponent<TransformComponent>();
-				tc.Rotation = rot;
+				tc.Rotation = glm::radians(rot);
 				tc.Dirty = true;
 			},
 			"GetScale", [](TransformProxy& tp) -> Vector3 {
@@ -1168,7 +1293,22 @@ end
 				if (!comp.MaterialAsset) return sol::make_object(L, sol::nil);
 				return sol::make_object(L, MaterialProxy{mp.OwnerEntity});
 			},
+			"GetMesh", [](MeshRendererProxy& mp, sol::this_state L) -> sol::object {
+				if (!mp.IsValid()) return sol::make_object(L, sol::nil);
+				auto& comp = mp.OwnerEntity.GetComponent<MeshRendererComponent>();
+				if (!comp.MeshAsset) return sol::make_object(L, sol::nil);
+				return sol::make_object(L, MeshProxy{comp.MeshAsset});
+			},
 			"IsValid", [](MeshRendererProxy& mp) -> bool { return mp.IsValid(); }
+		);
+
+		// --- MeshProxy usertype ---
+		lua.new_usertype<MeshProxy>("__MeshProxy",
+			"IsValid",        [](MeshProxy& mp) -> bool   { return mp.IsValid(); },
+			"GetVertexCount", [](MeshProxy& mp) -> int     { return mp.IsValid() ? static_cast<int>(mp.MeshAsset->GetVertexCount()) : 0; },
+			"GetIndexCount",  [](MeshProxy& mp) -> int     { return mp.IsValid() ? static_cast<int>(mp.MeshAsset->GetIndexCount())  : 0; },
+			"GetBoundsMin",   [](MeshProxy& mp) -> Vector3 { return mp.IsValid() ? mp.MeshAsset->GetBoundsMin() : Vector3(0.0f); },
+			"GetBoundsMax",   [](MeshProxy& mp) -> Vector3 { return mp.IsValid() ? mp.MeshAsset->GetBoundsMax() : Vector3(0.0f); }
 		);
 
 		// --- VoxelRendererProxy usertype ---
@@ -1787,7 +1927,9 @@ end
 
 	void LuaBindings::RegisterFieldTypes(sol::state& lua)
 	{
-		lua["Float"] = [](sol::optional<float> def, sol::optional<float> min, sol::optional<float> max, sol::this_state L) -> sol::table {
+		sol::table field = lua.create_named_table("Field");
+
+		auto floatFn = [](sol::optional<float> def, sol::optional<float> min, sol::optional<float> max, sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "float";
@@ -1796,8 +1938,10 @@ end
 			if (max) t["max"] = max.value();
 			return t;
 		};
+		lua["Float"] = floatFn;
+		field["Float"] = floatFn;
 
-		lua["Int"] = [](sol::optional<int> def, sol::optional<int> min, sol::optional<int> max, sol::this_state L) -> sol::table {
+		auto intFn = [](sol::optional<int> def, sol::optional<int> min, sol::optional<int> max, sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "int";
@@ -1806,24 +1950,30 @@ end
 			if (max) t["max"] = max.value();
 			return t;
 		};
+		lua["Int"] = intFn;
+		field["Int"] = intFn;
 
-		lua["Bool"] = [](sol::optional<bool> def, sol::this_state L) -> sol::table {
+		auto boolFn = [](sol::optional<bool> def, sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "bool";
 			t["default"] = def.value_or(false);
 			return t;
 		};
+		lua["Bool"] = boolFn;
+		field["Bool"] = boolFn;
 
-		lua["String"] = [](sol::optional<std::string> def, sol::this_state L) -> sol::table {
+		auto stringFn = [](sol::optional<std::string> def, sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "string";
 			t["default"] = def.value_or("");
 			return t;
 		};
+		lua["String"] = stringFn;
+		field["String"] = stringFn;
 
-		lua["Color"] = [](sol::optional<float> r, sol::optional<float> g, sol::optional<float> b, sol::optional<float> a, sol::this_state L) -> sol::table {
+		auto colorFn = [](sol::optional<float> r, sol::optional<float> g, sol::optional<float> b, sol::optional<float> a, sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "color";
@@ -1835,10 +1985,12 @@ end
 			t["default"] = def;
 			return t;
 		};
+		lua["Color"] = colorFn;
+		field["Color"] = colorFn;
 
 		// Vec3 = Vector3 field descriptor for __fields blocks only.
 		// The actual Vector3 math type is registered separately in RegisterMath.
-		lua["Vec3"] = [](sol::optional<float> x, sol::optional<float> y, sol::optional<float> z, sol::this_state L) -> sol::table {
+		auto vec3Fn = [](sol::optional<float> x, sol::optional<float> y, sol::optional<float> z, sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "vector3";
@@ -1849,18 +2001,23 @@ end
 			t["default"] = def;
 			return t;
 		};
+		lua["Vec3"] = vec3Fn;
+		field["Vec3"] = vec3Fn;
+		field["Vector3"] = vec3Fn;
 
 		// EntityRef() — editor drag target; injects Entity handle at runtime
-		lua["EntityRef"] = [](sol::this_state L) -> sol::table {
+		auto entityRefFn = [](sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "entityref";
 			return t;
 		};
+		lua["EntityRef"] = entityRefFn;
+		field["EntityRef"] = entityRefFn;
 
 		// ComponentRef(componentToken) — editor drag target; injects component proxy at runtime
 		// Usage: ComponentRef(RigidBody)  where RigidBody is the global component token
-		lua["ComponentRef"] = [](sol::table token, sol::this_state L) -> sol::table {
+		auto componentRefFn = [](sol::table token, sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "componentref";
@@ -1869,10 +2026,12 @@ end
 				t["subtype"] = compName.as<std::string>();
 			return t;
 		};
+		lua["ComponentRef"] = componentRefFn;
+		field["ComponentRef"] = componentRefFn;
 
 		// ScriptRef(ClassTable) — editor drag target; injects script instance at runtime
 		// Usage: ScriptRef(PlayerMovement)  where PlayerMovement is the global class table
-		lua["ScriptRef"] = [](sol::table classTable, sol::this_state L) -> sol::table {
+		auto scriptRefFn = [](sol::table classTable, sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "scriptref";
@@ -1891,22 +2050,28 @@ end
 			}
 			return t;
 		};
+		lua["ScriptRef"] = scriptRefFn;
+		field["ScriptRef"] = scriptRefFn;
 
 		// BlueprintRef() -- editor drag target for .blueprint assets; injects path string at runtime
-		lua["BlueprintRef"] = [](sol::this_state L) -> sol::table {
+		auto blueprintRefFn = [](sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "blueprintref";
 			return t;
 		};
+		lua["BlueprintRef"] = blueprintRefFn;
+		field["BlueprintRef"] = blueprintRefFn;
 
 		// AudioRef() — editor drag target for .sfx assets; injects AudioHandle at runtime
-		lua["AudioRef"] = [](sol::this_state L) -> sol::table {
+		auto audioRefFn = [](sol::this_state L) -> sol::table {
 			sol::state_view sv(L);
 			sol::table t = sv.create_table();
 			t["type"] = "audioclipref";
 			return t;
 		};
+		lua["AudioRef"] = audioRefFn;
+		field["AudioRef"] = audioRefFn;
 	}
 
 	// =========================================================================
@@ -2180,6 +2345,21 @@ local function _newTween(from, to, duration)
     function tw:Pause()    self._paused = true  end
     function tw:Resume()   self._paused = false end
     function tw:IsActive() return self._active  end
+    function tw:Restart()
+        self._elapsed   = 0.0
+        self._started   = false
+        self._loopsDone = 0
+        self._from      = self._origFrom
+        self._to        = self._origTo
+        self._active    = true
+        -- Re-add to active list if it was already removed (e.g. after completing)
+        local found = false
+        for _, t in ipairs(Tween._active) do
+            if t == self then found = true; break end
+        end
+        if not found then table.insert(Tween._active, self) end
+        return self
+    end
     return tw
 end
 
@@ -2250,6 +2430,11 @@ function Tween.Value(from, to, duration, easingFn, onUpdate, onComplete)
     if onComplete then tw._onComplete = onComplete end
     table.insert(Tween._active, tw)
     return tw
+end
+
+-- Tween.Delay — fire a callback after `seconds`, nothing more
+function Tween.Delay(seconds, fn)
+    return Tween.Value(0.0, 1.0, seconds):OnComplete(fn)
 end
 
 -- Kill helpers

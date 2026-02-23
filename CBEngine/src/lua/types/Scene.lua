@@ -40,3 +40,21 @@ function Scene:GetMainCamera() end
 --- Get the GameManager entity (the entity with a GameManagerComponent).
 ---@return Entity|nil
 function Scene:GetGameManager() end
+
+-- =====================
+-- Component Queries
+-- =====================
+
+--- Find the first entity that has a given component.
+--- Pass a component token (Transform, RigidBody, Collider, Camera, MeshRenderer,
+--- VoxelRenderer, DirectionalLight, AudioSource, Script).
+---@param componentToken table
+---@return Entity
+function Scene:FindFirstWithComponent(componentToken) end
+
+--- Find all entities that have a given component.
+--- Pass a component token (Transform, RigidBody, Collider, Camera, MeshRenderer,
+--- VoxelRenderer, DirectionalLight, AudioSource, Script).
+---@param componentToken table
+---@return Entity[]
+function Scene:FindAllWithComponent(componentToken) end

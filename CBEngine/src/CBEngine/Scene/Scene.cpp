@@ -14,6 +14,7 @@
 #include "CBEngine/Systems/ScriptSystem.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Events/SceneEvent.h"
+#include "CBEngine/Input/Input.h"
 
 namespace CB
 {
@@ -207,6 +208,9 @@ namespace CB
     {
         if (!m_PhysicsInitialized)
             return;
+
+        // Always release cursor lock when stopping play mode
+        Input::SetCursorLocked(false);
 
         // Unregister physics-phase and script systems
         UnregisterSystem("TransformPostPhysics");

@@ -28,12 +28,11 @@ PlayerMovement = {
         CoyoteTime       = Float(0.10, 0, 0.5),
         EnableSprint     = Bool(true),
 
-        -- Look
-        MouseSensitivity  = Float(0.002, 0, 0.02),
-        PitchSensitivity  = Float(0.002, 0, 0.02),
+        -- Look (sensitivity is degrees per pixel)
+        MouseSensitivity  = Float(0.1, 0.01, 5.0),
         PitchMin         = Float(-85.0, -89, 0),
         PitchMax         = Float(85.0,   0, 89),
-        LookSmoothTime   = Float(0.05, 0.0, 0.3),
+        LookSmoothTime   = Float(0.05, 0.0, 0.3), 
 
         -- Shooting
         BulletBlueprint  = BlueprintRef(),   -- drag .blueprint or scene entity here
@@ -79,8 +78,9 @@ end
 function PlayerMovement:OnCreate()
     local entity = self._entity
 
-    -- Look state
-    local rot = entity:GetRotation()
+    -- Look state — all angles stored in DEGREES.
+    -- SetRotation/GetRotation now take/return degrees (same convention as the editor).
+    local rot = entity:GetRotation()   -- returns degrees
     self.yawTarget     = rot.y
     self.pitchTarget   = 0.0
     self.yawSmoothed   = rot.y
@@ -97,7 +97,7 @@ function PlayerMovement:OnCreate()
         Log.Error("PlayerMovement: needs RigidBody")
         return
     end
-    self.rb:SetAngularDamping(100.0)
+    Input.SetCursorLocked(true)
 
     -- Resolve camera entity
     if self.Camera and self.Camera:IsValid() then
@@ -112,11 +112,21 @@ function PlayerMovement:OnCreate()
     end
 
     -- Resolve pitch pivot (intermediate parent between player and camera)
+    -- Priority: Camera's parent (if not the player), else a child named CameraPoint/PitchPivot, else camera.
     if self.cam and self.cam:IsValid() then
         if self.cam:HasParent() then
             local p = self.cam:GetParent()
             if p and p:IsValid() and p:GetUUID() ~= entity:GetUUID() then
                 self.pitchNode = p
+            end
+        end
+        if not self.pitchNode then
+            for _, child in ipairs(entity:GetChildren()) do
+                local n = child:GetName()
+                if n == "CameraPoint" or n == "PitchPivot" then
+                    self.pitchNode = child
+                    break
+                end
             end
         end
         if not self.pitchNode then
@@ -132,17 +142,28 @@ function PlayerMovement:OnUpdate(dt)
     if not rb then return end
     dt = Math.Max(dt, 0.0001)
 
+    -- Toggle cursor lock: Esc to release, left-click to re-lock.
+    if Input.IsKeyJustPressed(Key.Escape) then
+        Input.SetCursorLocked(false)
+    elseif Input.IsKeyJustPressed(Key.MouseLeft) and not Input.IsCursorLocked() then
+        Input.SetCursorLocked(true)
+    end
+
     -- ── Look ──────────────────────────────────────────────────────────────────
-    local md = Input.GetMouseDelta()
+    -- Angles are degrees. SetRotation/GetRotation use degrees (matches the editor).
+    local md = Input.IsCursorLocked() and Input.GetMouseDelta() or Vector2(0, 0)
     self.yawTarget   = self.yawTarget   - md.x * self.MouseSensitivity
-    self.pitchTarget = self.pitchTarget + md.y * self.PitchSensitivity
-    self.pitchTarget = Math.Clamp(self.pitchTarget,
-        Math.Rad(self.PitchMin), Math.Rad(self.PitchMax))
+    self.pitchTarget = Math.Clamp(
+        self.pitchTarget + md.y * self.MouseSensitivity,
+        self.PitchMin, self.PitchMax)
 
     local a = ExpAlpha(dt, self.LookSmoothTime)
     self.yawSmoothed   = self.yawSmoothed   + (self.yawTarget   - self.yawSmoothed)   * a
-    self.pitchSmoothed = self.pitchSmoothed + (self.pitchTarget - self.pitchSmoothed) * a
+    self.pitchSmoothed = Math.Clamp(
+        self.pitchSmoothed + (self.pitchTarget - self.pitchSmoothed) * a,
+        self.PitchMin, self.PitchMax)
 
+    -- Pass degrees directly — SetRotation now expects degrees
     entity:SetRotation(Vector3(0.0, self.yawSmoothed, 0.0))
     if self.pitchNode and self.pitchNode:IsValid() then
         self.pitchNode:SetLocalRotation(Vector3(self.pitchSmoothed, 0.0, 0.0))
@@ -165,17 +186,18 @@ function PlayerMovement:OnUpdate(dt)
     end
 
     -- ── Movement ──────────────────────────────────────────────────────────────
+    -- W/S = forward/back, D/A = strafe right/left
     local move = Vector3(0, 0, 0)
     if Input.IsKeyPressed(Key.W) then move = move + Vector3(0, 0, 1) end
     if Input.IsKeyPressed(Key.S) then move = move - Vector3(0, 0, 1) end
-    if Input.IsKeyPressed(Key.A) then move = move + Vector3(1, 0, 0) end
     if Input.IsKeyPressed(Key.D) then move = move - Vector3(1, 0, 0) end
+    if Input.IsKeyPressed(Key.A) then move = move + Vector3(1, 0, 0) end
 
-    move = FlattenXZ(move)
     local hasMove = move:Length() > 0.01
-    move = SafeNormalize(move)
 
-    local forward, right = YawBasis(self.yawSmoothed)
+    -- Derive forward/right from yawSmoothed (always current-frame, no WorldMatrix lag)
+    local forward, right = YawBasis(Math.Rad(self.yawSmoothed))
+
     local wishDir = SafeNormalize(forward * move.z + right * move.x)
 
     local targetSpeed = self.MoveSpeed

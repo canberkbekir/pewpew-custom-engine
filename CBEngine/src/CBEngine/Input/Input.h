@@ -40,6 +40,13 @@ namespace CB
         // Called by the platform window scroll callback to feed scroll events.
         static void FeedScroll(float x, float y) { s_Instance->FeedScrollImpl(x, y); }
 
+        // Called by the platform window key/mouse callbacks to feed just-pressed/released events.
+        // These accumulate between frames and are snapshotted in Update(), fixing the polling-order bug.
+        static void FeedKeyPress(int key)         { s_Instance->FeedKeyPressImpl(key); }
+        static void FeedKeyRelease(int key)        { s_Instance->FeedKeyReleaseImpl(key); }
+        static void FeedMousePress(int button)     { s_Instance->FeedMousePressImpl(button); }
+        static void FeedMouseRelease(int button)   { s_Instance->FeedMouseReleaseImpl(button); }
+
     protected:
         virtual void UpdateImpl() = 0;
         virtual bool IsKeyPressedImpl(int keycode) = 0;
@@ -54,6 +61,10 @@ namespace CB
         virtual void SetCursorLockedImpl(bool locked) {}
         virtual bool IsCursorLockedImpl() const { return false; }
         virtual void FeedScrollImpl(float x, float y) {}
+        virtual void FeedKeyPressImpl(int key) {}
+        virtual void FeedKeyReleaseImpl(int key) {}
+        virtual void FeedMousePressImpl(int button) {}
+        virtual void FeedMouseReleaseImpl(int button) {}
 
     private:
         static Scope<Input> s_Instance;

@@ -118,6 +118,16 @@ namespace CB
 	};
 
 	// =========================================================================
+	// MeshProxy — wraps a Ref<Mesh>
+	// =========================================================================
+	struct MeshProxy
+	{
+		Ref<Mesh> MeshAsset;
+
+		bool IsValid() const { return MeshAsset != nullptr; }
+	};
+
+	// =========================================================================
 	// MaterialProxy — wraps the material on a MeshRendererComponent
 	// =========================================================================
 	struct MaterialProxy
