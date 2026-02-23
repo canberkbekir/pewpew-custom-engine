@@ -123,3 +123,16 @@
 #define CB_KEY_RIGHT_ALT          346
 #define CB_KEY_RIGHT_SUPER        347
 #define CB_KEY_MENU               348
+
+// Mouse buttons mapped into the unified key space.
+// GLFW key codes max at 348; mouse entries start at 1000 to avoid conflicts.
+// Use Key.MouseLeft / Key.MouseRight etc. with Input.IsKeyPressed / IsKeyJustPressed.
+#define CB_MOUSE_BUTTON_KEY_BASE   1000
+#define CB_KEY_MOUSE_LEFT          1000   // GLFW_MOUSE_BUTTON_LEFT   (0)
+#define CB_KEY_MOUSE_RIGHT         1001   // GLFW_MOUSE_BUTTON_RIGHT  (1)
+#define CB_KEY_MOUSE_MIDDLE        1002   // GLFW_MOUSE_BUTTON_MIDDLE (2)
+#define CB_KEY_MOUSE_X1            1003   // GLFW_MOUSE_BUTTON_4 (side button 1)
+#define CB_KEY_MOUSE_X2            1004   // GLFW_MOUSE_BUTTON_5 (side button 2)
+#define CB_KEY_MOUSE_BUTTON6       1005
+#define CB_KEY_MOUSE_BUTTON7       1006
+#define CB_KEY_MOUSE_BUTTON8       1007

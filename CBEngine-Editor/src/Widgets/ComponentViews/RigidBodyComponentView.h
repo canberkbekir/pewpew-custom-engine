@@ -37,6 +37,8 @@ namespace CB
                 rb.AngularDamping = 0.05f;
                 rb.Friction = 0.2f;
                 rb.Restitution = 0.0f;
+                rb.FreezePositionX = rb.FreezePositionY = rb.FreezePositionZ = false;
+                rb.FreezeRotationX = rb.FreezeRotationY = rb.FreezeRotationZ = false;
             }
 
             if (opened)
@@ -47,9 +49,7 @@ namespace CB
                 const char* bodyTypeNames[] = { "Static", "Dynamic", "Kinematic" };
                 int currentType = static_cast<int>(rb.Type);
                 if (ImGui::Combo("Body Type", &currentType, bodyTypeNames, IM_ARRAYSIZE(bodyTypeNames)))
-                {
                     rb.Type = static_cast<BodyType>(currentType);
-                }
 
                 // Only show mass/gravity for dynamic bodies
                 if (rb.Type == BodyType::Dynamic)
@@ -71,6 +71,33 @@ namespace CB
 
                 ImGui::DragFloat("Friction", &rb.Friction, 0.01f, 0.0f, 1.0f, "%.3f");
                 ImGui::DragFloat("Restitution", &rb.Restitution, 0.01f, 0.0f, 1.0f, "%.3f");
+
+                // Freeze constraints (only relevant for Dynamic / Kinematic)
+                if (rb.Type != BodyType::Static)
+                {
+                    ImGui::Spacing();
+                    ImGui::TextUnformatted("Constraints");
+                    ImGui::Separator();
+                    ImGui::TextDisabled("Takes effect when play mode starts");
+
+                    // Freeze Position row
+                    ImGui::TextUnformatted("Freeze Position");
+                    ImGui::SameLine(120.0f);
+                    ImGui::Checkbox("X##FPX", &rb.FreezePositionX);
+                    ImGui::SameLine();
+                    ImGui::Checkbox("Y##FPY", &rb.FreezePositionY);
+                    ImGui::SameLine();
+                    ImGui::Checkbox("Z##FPZ", &rb.FreezePositionZ);
+
+                    // Freeze Rotation row
+                    ImGui::TextUnformatted("Freeze Rotation");
+                    ImGui::SameLine(120.0f);
+                    ImGui::Checkbox("X##FRX", &rb.FreezeRotationX);
+                    ImGui::SameLine();
+                    ImGui::Checkbox("Y##FRY", &rb.FreezeRotationY);
+                    ImGui::SameLine();
+                    ImGui::Checkbox("Z##FRZ", &rb.FreezeRotationZ);
+                }
             }
 
             ComponentCard::End();

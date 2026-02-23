@@ -16,6 +16,14 @@ function Entity:GetPosition() end
 ---@param position Vec3
 function Entity:SetPosition(position) end
 
+--- Get the local position of this entity (alias for GetPosition).
+---@return Vec3
+function Entity:GetLocalPosition() end
+
+--- Set the local position of this entity (alias for SetPosition).
+---@param position Vec3
+function Entity:SetLocalPosition(position) end
+
 --- Get the world-space position of this entity (accounts for parent hierarchy).
 ---@return Vec3
 function Entity:GetWorldPosition() end
@@ -28,6 +36,14 @@ function Entity:GetRotation() end
 ---@param rotation Vec3
 function Entity:SetRotation(rotation) end
 
+--- Get the local rotation as euler angles (in radians). Alias for GetRotation.
+---@return Vec3
+function Entity:GetLocalRotation() end
+
+--- Set the local rotation from euler angles (in radians). Alias for SetRotation.
+---@param rotation Vec3
+function Entity:SetLocalRotation(rotation) end
+
 --- Get the local scale of this entity.
 ---@return Vec3
 function Entity:GetScale() end
@@ -35,6 +51,14 @@ function Entity:GetScale() end
 --- Set the local scale of this entity.
 ---@param scale Vec3
 function Entity:SetScale(scale) end
+
+--- Get the local scale of this entity (alias for GetScale).
+---@return Vec3
+function Entity:GetLocalScale() end
+
+--- Set the local scale of this entity (alias for SetScale).
+---@param scale Vec3
+function Entity:SetLocalScale(scale) end
 
 --- Get the forward direction vector (local Z axis in world space).
 ---@return Vec3
@@ -47,6 +71,24 @@ function Entity:GetRight() end
 --- Get the up direction vector (local Y axis in world space).
 ---@return Vec3
 function Entity:GetUp() end
+
+--- Move the entity by a delta in local space. Shorthand for SetPosition(GetPosition() + delta).
+---@param delta Vec3
+function Entity:Translate(delta) end
+
+--- Rotate the entity by euler angle deltas (in radians). Shorthand for SetRotation(GetRotation() + delta).
+---@param delta Vec3
+function Entity:Rotate(delta) end
+
+--- Get the world-space rotation as euler angles (in degrees), derived from the world matrix.
+---@return Vec3
+function Entity:GetWorldRotation() end
+
+--- Orient the entity to look towards a world-space target point.
+--- Sets the local rotation using a look-at quaternion.
+---@param target Vec3 World-space target position
+---@param up? Vec3 Up vector (default: Vec3(0, 1, 0))
+function Entity:LookAt(target, up) end
 
 -- =====================
 -- Identity

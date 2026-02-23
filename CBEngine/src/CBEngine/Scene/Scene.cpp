@@ -271,6 +271,20 @@ namespace CB
 
         if (m_PhysicsStepOneFrame)
             m_PhysicsStepOneFrame = false;
+
+        // 3. Late update pass — runs after all systems (e.g. camera follow after physics)
+        for (auto& system : m_Systems)
+        {
+            if (system->GetPriority() >= 200)
+            {
+                if (!m_PhysicsInitialized)
+                    continue;
+                if (m_PhysicsPaused)
+                    continue;
+            }
+
+            system->OnLateUpdate(this, ts);
+        }
     }
 
     void Scene::OnRender()

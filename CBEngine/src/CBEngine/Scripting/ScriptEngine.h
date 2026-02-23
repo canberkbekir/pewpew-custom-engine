@@ -30,13 +30,22 @@ namespace CB
 		// Parse __fields from a Lua script entry without entering play mode
 		static void ParseScriptFields(ScriptEntry& entry);
 
+		// Called at the start of each frame to update the Lua Time global table
+		static void BeginFrame(Timestep ts);
+
 		// Script lifecycle per entity (loops all script entries)
 		static void OnEntityCreate(Scene* scene, Entity entity);
 		static void OnEntityUpdate(Scene* scene, Entity entity, Timestep ts);
+		static void OnEntityLateUpdate(Scene* scene, Entity entity, Timestep ts);
+		// Called at a fixed timestep in sync with the physics step rate
+		static void OnEntityFixedUpdate(Scene* scene, Entity entity, Timestep fixedTs);
 		static void OnEntityDestroy(Scene* scene, Entity entity);
 		static void OnCollision(Scene* scene, Entity entity, Entity other,
 			const Vector3& contactPoint, const Vector3& contactNormal);
 		static void OnCollisionEnd(Scene* scene, Entity entity, Entity other);
+		static void OnTriggerEnter(Scene* scene, Entity entity, Entity other,
+			const Vector3& contactPoint, const Vector3& contactNormal);
+		static void OnTriggerExit(Scene* scene, Entity entity, Entity other);
 
 		// Call OnValidate on a script entry's class table when a field changes in the editor
 		static void CallOnValidate(ScriptEntry& entry, const std::string& changedField);

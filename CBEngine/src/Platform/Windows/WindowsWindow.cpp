@@ -7,6 +7,7 @@
 #include "CBEngine/Events/KeyEvent.h"
 #include "Platform/OpenGL/OpenGLContext.h"
 #include "CBEngine/Debug/Instrumentor.h"
+#include "CBEngine/Input/Input.h"
 #include "stb_image.h"
 
 namespace CB
@@ -164,6 +165,9 @@ namespace CB
 
             MouseScrolledEvent event(static_cast<float>(xOffset), static_cast<float>(yOffset));
             data.EventCallback(event);
+
+            // Feed into Input system scroll accumulator so Lua can query it
+            Input::FeedScroll(static_cast<float>(xOffset), static_cast<float>(yOffset));
         });
 
         glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos)

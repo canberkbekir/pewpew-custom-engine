@@ -29,6 +29,8 @@
 
 #include <functional>
 #include <vector>
+#include <unordered_set>
+#include <mutex>
 
 namespace CB
 {
@@ -83,12 +85,16 @@ namespace CB
 
 		JPH::BodyInterface& GetBodyInterface();
 		JPH::PhysicsSystem& GetPhysicsSystem() { return m_PhysicsSystem; }
+		const JPH::PhysicsSystem& GetPhysicsSystem() const { return m_PhysicsSystem; }
 
 		CollisionShapeCache& GetShapeCache() { return m_ShapeCache; }
 
 		using CollisionCallbackFn = std::function<void(const CollisionCallback&)>;
 		void SetCollisionBeginCallback(CollisionCallbackFn fn) { m_CollisionBeginCallback = std::move(fn); }
 		void SetCollisionEndCallback(CollisionCallbackFn fn) { m_CollisionEndCallback = std::move(fn); }
+		// Trigger callbacks fire only when at least one body has IsSensor=true
+		void SetTriggerEnterCallback(CollisionCallbackFn fn) { m_TriggerEnterCallback = std::move(fn); }
+		void SetTriggerExitCallback(CollisionCallbackFn fn) { m_TriggerExitCallback = std::move(fn); }
 
 		// Map Jolt BodyID -> Entity UUID for collision callback lookup
 		void RegisterBodyEntity(JPH::BodyID bodyID, UUID entityUUID);
@@ -102,6 +108,14 @@ namespace CB
 			UUID ignoreEntity = UUID()) const;
 		std::vector<RaycastHit> RaycastAll(const Vector3& origin, const Vector3& direction,
 			float maxDistance, uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
+
+		// Overlap queries — return all entities whose physics shape overlaps the test volume
+		std::vector<RaycastHit> OverlapSphere(const Vector3& center, float radius,
+			uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> OverlapBox(const Vector3& center, const Vector3& halfExtents,
+			uint16_t layerMask = PhysicsLayers::AllLayers,
 			UUID ignoreEntity = UUID()) const;
 
 		// JPH::ContactListener interface
@@ -129,8 +143,16 @@ namespace CB
 
 		CollisionCallbackFn m_CollisionBeginCallback;
 		CollisionCallbackFn m_CollisionEndCallback;
+		CollisionCallbackFn m_TriggerEnterCallback;
+		CollisionCallbackFn m_TriggerExitCallback;
 
 		CollisionShapeCache m_ShapeCache;
+
+		// Tracks active sensor (trigger) contact pairs so OnContactRemoved can
+		// route correctly without needing a BodyLockRead (which deadlocks in Jolt).
+		// Key = canonical pair key: min(bodyA,bodyB) | (max(bodyA,bodyB) << 32)
+		std::unordered_set<uint64_t> m_SensorPairs;
+		std::mutex m_SensorPairsMutex;
 
 		bool m_Initialized = false;
 	};

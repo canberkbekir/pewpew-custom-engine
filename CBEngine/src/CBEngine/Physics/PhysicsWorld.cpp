@@ -8,6 +8,9 @@
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Collision/CollideShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Body/BodyLock.h>
 
 namespace CB
@@ -129,6 +132,10 @@ namespace CB
 			return;
 
 		m_BodyToEntityMap.clear();
+		{
+			std::lock_guard<std::mutex> lock(m_SensorPairsMutex);
+			m_SensorPairs.clear();
+		}
 
 		m_PhysicsSystem.SetContactListener(nullptr);
 
@@ -350,6 +357,91 @@ namespace CB
 		return hits;
 	}
 
+	// -------------------------------------------------------------------------
+	// Overlap helpers — shared logic for sphere/box overlap queries
+	// -------------------------------------------------------------------------
+
+	static std::vector<RaycastHit> DoOverlapQuery(
+		const PhysicsWorld* world,
+		const JPH::Shape* testShape,
+		const JPH::RMat44& transform,
+		const Vector3& center,
+		uint16_t layerMask,
+		UUID ignoreEntity)
+	{
+		std::vector<RaycastHit> hits;
+
+		JPH::CollideShapeSettings settings;
+		settings.mMaxSeparationDistance = 0.0f;
+
+		JPH::AllHitCollisionCollector<JPH::CollideShapeCollector> collector;
+		LayerMaskObjectLayerFilter layerFilter(layerMask);
+
+		const auto& narrowPhase = world->GetPhysicsSystem().GetNarrowPhaseQuery();
+
+		if (ignoreEntity.IsValid())
+		{
+			JPH::BodyID ignoreBody = world->GetBodyFromEntity(ignoreEntity);
+			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
+			narrowPhase.CollideShape(testShape, JPH::Vec3::sReplicate(1.0f),
+				transform, settings, JPH::RVec3::sZero(),
+				collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+		}
+		else
+		{
+			narrowPhase.CollideShape(testShape, JPH::Vec3::sReplicate(1.0f),
+				transform, settings, JPH::RVec3::sZero(),
+				collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
+		}
+
+		hits.reserve(collector.mHits.size());
+		for (const auto& result : collector.mHits)
+		{
+			RaycastHit hit;
+			hit.EntityUUID = world->GetEntityFromBody(result.mBodyID2);
+			if (!hit.EntityUUID.IsValid())
+				continue;
+
+			hit.Point = Vector3(
+				static_cast<float>(result.mContactPointOn2.GetX()),
+				static_cast<float>(result.mContactPointOn2.GetY()),
+				static_cast<float>(result.mContactPointOn2.GetZ()));
+			hit.Normal = Vector3(
+				result.mPenetrationAxis.GetX(),
+				result.mPenetrationAxis.GetY(),
+				result.mPenetrationAxis.GetZ());
+			hit.Distance = glm::distance(center, hit.Point);
+			hit.Fraction = 0.0f;
+			hits.push_back(hit);
+		}
+
+		return hits;
+	}
+
+	std::vector<RaycastHit> PhysicsWorld::OverlapSphere(const Vector3& center, float radius,
+		uint16_t layerMask, UUID ignoreEntity) const
+	{
+		if (!m_Initialized) return {};
+
+		JPH::SphereShape sphereShape(std::max(radius, 0.001f));
+		JPH::RMat44 transform = JPH::RMat44::sTranslation(JPH::RVec3(center.x, center.y, center.z));
+		return DoOverlapQuery(this, &sphereShape, transform, center, layerMask, ignoreEntity);
+	}
+
+	std::vector<RaycastHit> PhysicsWorld::OverlapBox(const Vector3& center, const Vector3& halfExtents,
+		uint16_t layerMask, UUID ignoreEntity) const
+	{
+		if (!m_Initialized) return {};
+
+		Vector3 safeHalf = Vector3(
+			std::max(halfExtents.x, 0.001f),
+			std::max(halfExtents.y, 0.001f),
+			std::max(halfExtents.z, 0.001f));
+		JPH::BoxShape boxShape(JPH::Vec3(safeHalf.x, safeHalf.y, safeHalf.z));
+		JPH::RMat44 transform = JPH::RMat44::sTranslation(JPH::RVec3(center.x, center.y, center.z));
+		return DoOverlapQuery(this, &boxShape, transform, center, layerMask, ignoreEntity);
+	}
+
 	// Contact listener implementation
 
 	JPH::ValidateResult PhysicsWorld::OnContactValidate(
@@ -363,9 +455,6 @@ namespace CB
 		const JPH::Body& inBody1, const JPH::Body& inBody2,
 		const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings)
 	{
-		if (!m_CollisionBeginCallback)
-			return;
-
 		auto itA = m_BodyToEntityMap.find(inBody1.GetID().GetIndexAndSequenceNumber());
 		auto itB = m_BodyToEntityMap.find(inBody2.GetID().GetIndexAndSequenceNumber());
 		if (itA == m_BodyToEntityMap.end() || itB == m_BodyToEntityMap.end())
@@ -383,14 +472,30 @@ namespace CB
 			static_cast<float>(contactPoint.GetZ()));
 		callback.ContactNormal = Vector3(contactNormal.GetX(), contactNormal.GetY(), contactNormal.GetZ());
 
-		m_CollisionBeginCallback(callback);
+		// Route sensor contacts to trigger callbacks; physical contacts to collision callbacks
+		bool isSensor = inBody1.IsSensor() || inBody2.IsSensor();
+		if (isSensor)
+		{
+			// Track this pair so OnContactRemoved can route it without a body lock
+			uint32_t a = inBody1.GetID().GetIndexAndSequenceNumber();
+			uint32_t b = inBody2.GetID().GetIndexAndSequenceNumber();
+			uint64_t key = (uint64_t)std::min(a, b) | ((uint64_t)std::max(a, b) << 32);
+			{
+				std::lock_guard<std::mutex> lock(m_SensorPairsMutex);
+				m_SensorPairs.insert(key);
+			}
+			if (m_TriggerEnterCallback)
+				m_TriggerEnterCallback(callback);
+		}
+		else
+		{
+			if (m_CollisionBeginCallback)
+				m_CollisionBeginCallback(callback);
+		}
 	}
 
 	void PhysicsWorld::OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair)
 	{
-		if (!m_CollisionEndCallback)
-			return;
-
 		auto itA = m_BodyToEntityMap.find(inSubShapePair.GetBody1ID().GetIndexAndSequenceNumber());
 		auto itB = m_BodyToEntityMap.find(inSubShapePair.GetBody2ID().GetIndexAndSequenceNumber());
 		if (itA == m_BodyToEntityMap.end() || itB == m_BodyToEntityMap.end())
@@ -400,6 +505,32 @@ namespace CB
 		callback.EntityA = itA->second;
 		callback.EntityB = itB->second;
 
-		m_CollisionEndCallback(callback);
+		// Check the sensor pair set — no body lock needed (BodyLockRead inside
+		// OnContactRemoved deadlocks because Jolt already holds internal locks here).
+		uint32_t a = inSubShapePair.GetBody1ID().GetIndexAndSequenceNumber();
+		uint32_t b = inSubShapePair.GetBody2ID().GetIndexAndSequenceNumber();
+		uint64_t key = (uint64_t)std::min(a, b) | ((uint64_t)std::max(a, b) << 32);
+
+		bool isSensor = false;
+		{
+			std::lock_guard<std::mutex> lock(m_SensorPairsMutex);
+			auto it = m_SensorPairs.find(key);
+			if (it != m_SensorPairs.end())
+			{
+				isSensor = true;
+				m_SensorPairs.erase(it);
+			}
+		}
+
+		if (isSensor)
+		{
+			if (m_TriggerExitCallback)
+				m_TriggerExitCallback(callback);
+		}
+		else
+		{
+			if (m_CollisionEndCallback)
+				m_CollisionEndCallback(callback);
+		}
 	}
 }

@@ -2,6 +2,7 @@
 #include "ScriptEngine.h"
 #include "LuaBindings.h"
 #include "ComponentProxies.h"
+#include <fstream>
 
 #include "CBEngine/Scene/Scene.h"
 #include "CBEngine/Scene/Entity.h"
@@ -27,8 +28,110 @@ namespace CB
 {
 	static sol::state* s_LuaState = nullptr;
 
+	// Time tracking for the Lua Time global
+	static float s_TotalTime = 0.0f;
+	static uint64_t s_FrameCount = 0;
+
 	// Per-entity: vector of script instances (indexed same as ScriptComponent::Scripts)
 	static std::unordered_map<uint64_t, std::vector<sol::table>> s_ScriptInstances;
+
+	// -------------------------------------------------------------------------
+	// Forward declaration — ResolveScriptPath is defined after static data below.
+	// -------------------------------------------------------------------------
+	static std::string ResolveScriptPath(const std::string& scriptPath);
+
+	// -------------------------------------------------------------------------
+	// ExtractFieldOrder — scan raw Lua source to recover __fields declaration order.
+	// Lua's pairs() does not guarantee string-key iteration order; the text scan
+	// gives us the order the user actually wrote.
+	// -------------------------------------------------------------------------
+	static std::vector<std::string> ExtractFieldOrder(const std::string& scriptPath)
+	{
+		std::vector<std::string> order;
+
+		std::string resolved = ResolveScriptPath(scriptPath);
+		std::ifstream file(resolved);
+		if (!file.is_open())
+			return order;
+
+		std::string content((std::istreambuf_iterator<char>(file)),
+			std::istreambuf_iterator<char>());
+
+		// Find __fields = { ... } and extract its body at brace-depth 1
+		size_t fieldsPos = content.find("__fields");
+		if (fieldsPos == std::string::npos)
+			return order;
+
+		size_t braceOpen = content.find('{', fieldsPos);
+		if (braceOpen == std::string::npos)
+			return order;
+
+		int depth = 0;
+		size_t blockEnd = content.size();
+		for (size_t i = braceOpen; i < content.size(); i++)
+		{
+			if (content[i] == '{') depth++;
+			else if (content[i] == '}') { depth--; if (depth == 0) { blockEnd = i; break; } }
+		}
+
+		std::string block = content.substr(braceOpen + 1, blockEnd - braceOpen - 1);
+
+		// Scan line by line for:  identifier = FieldTypeName(
+		// where FieldTypeName is one of the registered field constructors
+		static const std::unordered_set<std::string> s_FieldTypes = {
+			"Float", "Int", "Bool", "String", "Color", "Vec3",
+			"EntityRef", "ComponentRef", "ScriptRef", "BlueprintRef"
+		};
+
+		std::istringstream ss(block);
+		std::string line;
+		while (std::getline(ss, line))
+		{
+			// Strip leading whitespace
+			size_t start = line.find_first_not_of(" \t\r\n");
+			if (start == std::string::npos) continue;
+			line = line.substr(start);
+
+			// Skip comment lines
+			if (line.size() >= 2 && line[0] == '-' && line[1] == '-') continue;
+
+			// Find '='
+			size_t eqPos = line.find('=');
+			if (eqPos == std::string::npos || eqPos == 0) continue;
+
+			// Extract and validate identifier to the left of '='
+			std::string namePart = line.substr(0, eqPos);
+			size_t nameEnd = namePart.find_last_not_of(" \t");
+			if (nameEnd == std::string::npos) continue;
+			namePart = namePart.substr(0, nameEnd + 1);
+
+			bool validId = !namePart.empty() && (std::isalpha((unsigned char)namePart[0]) || namePart[0] == '_');
+			for (char c : namePart)
+				if (!std::isalnum((unsigned char)c) && c != '_') { validId = false; break; }
+			if (!validId) continue;
+
+			// Check that the right side starts with a known field type constructor
+			size_t rhsStart = line.find_first_not_of(" \t", eqPos + 1);
+			if (rhsStart == std::string::npos) continue;
+			std::string rhs = line.substr(rhsStart);
+
+			bool knownType = false;
+			for (const auto& ft : s_FieldTypes)
+			{
+				if (rhs.substr(0, ft.size()) == ft &&
+					(rhs.size() == ft.size() || rhs[ft.size()] == '(' || rhs[ft.size()] == ' '))
+				{
+					knownType = true;
+					break;
+				}
+			}
+			if (!knownType) continue;
+
+			order.push_back(namePart);
+		}
+
+		return order;
+	}
 
 	// Cached class tables by script path — ensures same class table reference for GetScript
 	static std::unordered_map<std::string, sol::table> s_ClassTables;
@@ -117,6 +220,8 @@ namespace CB
 		s_ClassTables.clear();
 		s_KnownClassNames.clear();
 		s_GameManagerScripts.clear();
+		s_TotalTime = 0.0f;
+		s_FrameCount = 0;
 		delete s_LuaState;
 		s_LuaState = nullptr;
 		CB_CORE_INFO("ScriptEngine shut down");
@@ -126,6 +231,25 @@ namespace CB
 	{
 		CB_CORE_ASSERT(s_LuaState, "ScriptEngine not initialized!");
 		return *s_LuaState;
+	}
+
+	void ScriptEngine::BeginFrame(Timestep ts)
+	{
+		if (!s_LuaState)
+			return;
+
+		s_TotalTime += ts.GetSeconds();
+		s_FrameCount++;
+
+		// Update the Lua Time global table
+		sol::object timeObj = (*s_LuaState)["Time"];
+		if (timeObj.valid() && timeObj.get_type() == sol::type::table)
+		{
+			sol::table time = timeObj;
+			time["DeltaTime"] = ts.GetSeconds();
+			time["TotalTime"] = s_TotalTime;
+			time["FrameCount"] = static_cast<lua_Integer>(s_FrameCount);
+		}
 	}
 
 	void ScriptEngine::RegisterBindings()
@@ -284,14 +408,18 @@ namespace CB
 			if (key == "string" || key == "table" || key == "math" || key == "io" ||
 				key == "os" || key == "coroutine" || key == "debug" || key == "package" ||
 				key == "utf8" || key == "_G" || key == "Log" || key == "Input" ||
-				key == "Key" || key == "Mouse" || key == "Vec3" || key == "Vec4" ||
+				key == "Key" || key == "Mouse" || key == "Math" || key == "Physic" ||
+				key == "Vector2" || key == "Vector3" || key == "Quat" ||
 				key == "Float" || key == "Int" || key == "Bool" || key == "String" ||
-				key == "Color" || key == "Vector3" || key == "BodyType" ||
-				key == "Layer" || key == "Debug" || key == "Quat" ||
+				key == "Color" || key == "BodyType" ||
+				key == "Layer" || key == "Debug" || key == "Time" ||
+				key == "Timer" ||
 				key == "Entity" || key == "Scene" || key == "Mouse" ||
 				key == "RigidBody" || key == "Transform" || key == "Camera" ||
 				key == "Collider" || key == "MeshRenderer" || key == "VoxelRenderer" ||
-				key == "DirectionalLight" || key == "RaycastHit")
+				key == "DirectionalLight" || key == "RaycastHit" ||
+				key == "EntityRef" || key == "ComponentRef" || key == "ScriptRef" || key == "BlueprintRef" ||
+				key == "BlueprintHandle" || key == "Bullet" || key == "Vec3")
 				continue;
 
 			// Skip already-known class tables
@@ -380,6 +508,11 @@ namespace CB
 				if (typeObj.valid() && typeObj.get_type() == sol::type::string)
 					def.Type = ScriptFieldTypeFromString(typeObj.as<std::string>());
 
+				// For reference types, read optional subtype (component or script class name)
+				sol::object subtypeObj = fieldDef["subtype"];
+				if (subtypeObj.valid() && subtypeObj.get_type() == sol::type::string)
+					def.EntityRefSubtype = subtypeObj.as<std::string>();
+
 				sol::object minObj = fieldDef["min"];
 				if (minObj.valid() && minObj.get_type() == sol::type::number)
 					def.Min = minObj.as<float>();
@@ -446,9 +579,34 @@ namespace CB
 					def.StringValue = it->second.StringValue;
 					def.ColorValue = it->second.ColorValue;
 					def.Vector3Value = it->second.Vector3Value;
+					def.EntityRefValue = it->second.EntityRefValue;
+					def.EntityRefSubtype = it->second.EntityRefSubtype;
 				}
 
 				entry.Fields.push_back(def);
+			}
+
+			// Sort fields to match the declaration order in the Lua source file.
+			// Lua's pairs() iterates string-keyed tables in hash order (non-deterministic),
+			// so without this sort the editor panel would show fields in a random order.
+			if (!entry.Fields.empty() && !entry.ScriptPath.empty())
+			{
+				auto declOrder = ExtractFieldOrder(entry.ScriptPath);
+				if (!declOrder.empty())
+				{
+					std::unordered_map<std::string, int> orderMap;
+					orderMap.reserve(declOrder.size());
+					for (size_t i = 0; i < declOrder.size(); i++)
+						orderMap[declOrder[i]] = static_cast<int>(i);
+
+					std::stable_sort(entry.Fields.begin(), entry.Fields.end(),
+						[&orderMap](const ScriptFieldDef& a, const ScriptFieldDef& b)
+						{
+							int oa = orderMap.count(a.Name) ? orderMap.at(a.Name) : INT_MAX;
+							int ob = orderMap.count(b.Name) ? orderMap.at(b.Name) : INT_MAX;
+							return oa < ob;
+						});
+				}
 			}
 
 			// Keep class table in globals for GetScript access, but track it
@@ -654,6 +812,42 @@ namespace CB
 	}
 
 	// =========================================================================
+	// OnEntityFixedUpdate — call OnFixedUpdate on all script instances (physics rate)
+	// =========================================================================
+	void ScriptEngine::OnEntityFixedUpdate(Scene* scene, Entity entity, Timestep fixedTs)
+	{
+		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
+			return;
+
+		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
+		auto it = s_ScriptInstances.find(uuid);
+		if (it == s_ScriptInstances.end())
+			return;
+
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
+
+		for (size_t i = 0; i < it->second.size(); i++)
+		{
+			sol::table& self = it->second[i];
+			if (!self.valid()) continue;
+
+			sol::object onFixedUpdateObj = self["OnFixedUpdate"];
+			if (onFixedUpdateObj.is<sol::protected_function>())
+			{
+				sol::protected_function onFixedUpdate = onFixedUpdateObj;
+				auto result = onFixedUpdate(self, fixedTs.GetSeconds());
+				if (!result.valid())
+				{
+					sol::error err = result;
+					const String& path = (i < scriptComp.Scripts.size())
+						? scriptComp.Scripts[i].ScriptPath : "unknown";
+					CB_CORE_ERROR("Lua OnFixedUpdate error ({0}): {1}", path, err.what());
+				}
+			}
+		}
+	}
+
+	// =========================================================================
 	// OnEntityDestroy — call OnDestroy on all instances, then clean up
 	// =========================================================================
 	void ScriptEngine::OnEntityDestroy(Scene* scene, Entity entity)
@@ -764,6 +958,112 @@ namespace CB
 		}
 	}
 
+	// =========================================================================
+	// OnEntityLateUpdate — call OnLateUpdate on all script instances
+	// =========================================================================
+	void ScriptEngine::OnEntityLateUpdate(Scene* scene, Entity entity, Timestep ts)
+	{
+		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
+			return;
+
+		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
+		auto it = s_ScriptInstances.find(uuid);
+		if (it == s_ScriptInstances.end())
+			return;
+
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
+
+		for (size_t i = 0; i < it->second.size(); i++)
+		{
+			sol::table& self = it->second[i];
+			if (!self.valid()) continue;
+
+			sol::object onLateUpdateObj = self["OnLateUpdate"];
+			if (onLateUpdateObj.is<sol::protected_function>())
+			{
+				sol::protected_function onLateUpdate = onLateUpdateObj;
+				auto result = onLateUpdate(self, ts.GetSeconds());
+				if (!result.valid())
+				{
+					sol::error err = result;
+					const String& path = (i < scriptComp.Scripts.size())
+						? scriptComp.Scripts[i].ScriptPath : "unknown";
+					CB_CORE_ERROR("Lua OnLateUpdate error ({0}): {1}", path, err.what());
+				}
+			}
+		}
+	}
+
+	// =========================================================================
+	// OnTriggerEnter / OnTriggerExit — call on all instances
+	// =========================================================================
+	void ScriptEngine::OnTriggerEnter(Scene* scene, Entity entity, Entity other,
+		const Vector3& contactPoint, const Vector3& contactNormal)
+	{
+		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
+			return;
+
+		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
+		auto it = s_ScriptInstances.find(uuid);
+		if (it == s_ScriptInstances.end())
+			return;
+
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
+
+		for (size_t i = 0; i < it->second.size(); i++)
+		{
+			sol::table& self = it->second[i];
+			if (!self.valid()) continue;
+
+			sol::object onTriggerEnterObj = self["OnTriggerEnter"];
+			if (onTriggerEnterObj.is<sol::protected_function>())
+			{
+				sol::protected_function onTriggerEnter = onTriggerEnterObj;
+				auto result = onTriggerEnter(self, other, contactPoint, contactNormal);
+				if (!result.valid())
+				{
+					sol::error err = result;
+					const String& path = (i < scriptComp.Scripts.size())
+						? scriptComp.Scripts[i].ScriptPath : "unknown";
+					CB_CORE_ERROR("Lua OnTriggerEnter error ({0}): {1}", path, err.what());
+				}
+			}
+		}
+	}
+
+	void ScriptEngine::OnTriggerExit(Scene* scene, Entity entity, Entity other)
+	{
+		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
+			return;
+
+		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
+		auto it = s_ScriptInstances.find(uuid);
+		if (it == s_ScriptInstances.end())
+			return;
+
+		auto& scriptComp = entity.GetComponent<ScriptComponent>();
+
+		for (size_t i = 0; i < it->second.size(); i++)
+		{
+			sol::table& self = it->second[i];
+			if (!self.valid()) continue;
+
+			sol::object onTriggerExitObj = self["OnTriggerExit"];
+			if (onTriggerExitObj.is<sol::protected_function>())
+			{
+				sol::protected_function onTriggerExit = onTriggerExitObj;
+				auto result = onTriggerExit(self, other);
+				if (!result.valid())
+				{
+					sol::error err = result;
+					const String& path = (i < scriptComp.Scripts.size())
+						? scriptComp.Scripts[i].ScriptPath : "unknown";
+					CB_CORE_ERROR("Lua OnTriggerExit error ({0}): {1}", path, err.what());
+				}
+			}
+		}
+	}
+
 	void ScriptEngine::ReloadScript(const std::string& path)
 	{
 		s_ClassTables.erase(path);
@@ -804,6 +1104,7 @@ end
 
 function GameManager:OnCreate() end
 function GameManager:OnUpdate(dt) end
+function GameManager:OnLateUpdate(dt) end
 function GameManager:OnDestroy() end
 )lua";
 
@@ -817,6 +1118,69 @@ function GameManager:OnDestroy() end
 		{
 			sol::error err = result;
 			CB_CORE_ERROR("Failed to preload GameManager base class: {0}", err.what());
+		}
+
+		// ── Bullet base class ──
+		static const char* s_BulletLua = R"lua(
+Bullet = {
+    __fields = {
+        Damage   = Float(10,  0, 1000),
+        Speed    = Float(50,  1, 500),
+        Lifetime = Float(5,   0.1, 30),
+    }
+}
+
+function Bullet:Extend()
+    local child = {}
+    child.__fields = {}
+    for k, v in pairs(self.__fields) do child.__fields[k] = v end
+    setmetatable(child, { __index = self })
+    return child
+end
+
+function Bullet:OnCreate()
+    self._lifeRemaining = self.Lifetime
+    self._direction = self._entity:GetForward()
+    local rb = self._entity:GetComponent(RigidBody)
+    if rb then
+        self._rb = rb
+        rb:SetUseGravity(false)
+        rb:SetLinearVelocity(self._direction * self.Speed)
+    end
+end
+
+function Bullet:OnUpdate(dt)
+    self._lifeRemaining = self._lifeRemaining - dt
+    if self._lifeRemaining <= 0 then
+        self._scene:DestroyEntity(self._entity)
+    end
+end
+
+function Bullet:OnCollision(other, point, normal)
+    self:OnHit(other, point, normal)
+    self._scene:DestroyEntity(self._entity)
+end
+
+function Bullet:OnTriggerEnter(other, point, normal)
+    self:OnHit(other, point, normal)
+    self._scene:DestroyEntity(self._entity)
+end
+
+function Bullet:OnHit(other, point, normal) end
+
+function Bullet:GetDamage() return self.Damage end
+)lua";
+
+		auto bulletResult = s_LuaState->script(s_BulletLua, sol::script_pass_on_error);
+		if (bulletResult.valid())
+		{
+			s_KnownClassNames.insert("Bullet");
+			CB_CORE_INFO("Preloaded Bullet base class");
+		}
+		else
+		{
+			sol::error err = bulletResult;
+			CB_CORE_ERROR("Failed to preload Bullet base class: {0}", err.what());
 		}
 	}
 
@@ -881,7 +1245,8 @@ function GameManager:OnDestroy() end
 	// File-scope helper implementations
 	// =========================================================================
 
-	static void InjectFields(sol::state& lua, sol::table& self, const std::vector<ScriptFieldDef>& fields)
+	static void InjectFields(sol::state& lua, sol::table& self, const std::vector<ScriptFieldDef>& fields,
+		Scene* scene = nullptr)
 	{
 		for (const auto& field : fields)
 		{
@@ -910,6 +1275,93 @@ function GameManager:OnDestroy() end
 				case ScriptFieldType::Vector3:
 					self[field.Name] = field.Vector3Value;
 					break;
+				case ScriptFieldType::EntityRef:
+				{
+					// Inject the referenced entity (invalid entity if not assigned or scene unavailable)
+					if (scene && field.EntityRefValue.IsValid())
+						self[field.Name] = scene->GetEntityByUUID(field.EntityRefValue);
+					else
+						self[field.Name] = Entity{};
+					break;
+				}
+				case ScriptFieldType::ComponentRef:
+				{
+					// Inject built-in component proxy for the referenced entity
+					if (scene && field.EntityRefValue.IsValid())
+					{
+						Entity ref = scene->GetEntityByUUID(field.EntityRefValue);
+						const std::string& compName = field.EntityRefSubtype;
+						bool injected = false;
+						if (ref)
+						{
+							if ((compName == "RigidBody" || compName == "RigidBodyComponent") && ref.HasComponent<RigidBodyComponent>())
+							{ self[field.Name] = sol::make_object(lua, RigidBodyProxy{ref}); injected = true; }
+							else if ((compName == "Transform" || compName == "TransformComponent") && ref.HasComponent<TransformComponent>())
+							{ self[field.Name] = sol::make_object(lua, TransformProxy{ref}); injected = true; }
+							else if ((compName == "Camera" || compName == "CameraComponent") && ref.HasComponent<CameraComponent>())
+							{ self[field.Name] = sol::make_object(lua, CameraProxy{ref}); injected = true; }
+							else if ((compName == "Collider" || compName == "ColliderComponent") && ref.HasComponent<ColliderComponent>())
+							{ self[field.Name] = sol::make_object(lua, ColliderProxy{ref}); injected = true; }
+							else if ((compName == "MeshRenderer" || compName == "MeshRendererComponent") && ref.HasComponent<MeshRendererComponent>())
+							{ self[field.Name] = sol::make_object(lua, MeshRendererProxy{ref}); injected = true; }
+							else if ((compName == "VoxelRenderer" || compName == "VoxelRendererComponent") && ref.HasComponent<VoxelRendererComponent>())
+							{ self[field.Name] = sol::make_object(lua, VoxelRendererProxy{ref}); injected = true; }
+							else if ((compName == "DirectionalLight" || compName == "DirectionalLightComponent") && ref.HasComponent<DirectionalLightComponent>())
+							{ self[field.Name] = sol::make_object(lua, DirectionalLightProxy{ref}); injected = true; }
+						}
+						if (!injected)
+							self[field.Name] = ref; // fallback: inject entity
+					}
+					else
+					{
+						self[field.Name] = Entity{};
+					}
+					break;
+				}
+				case ScriptFieldType::ScriptRef:
+				{
+					// Inject the script instance running on the referenced entity
+					if (scene && field.EntityRefValue.IsValid() && !field.EntityRefSubtype.empty())
+					{
+						Entity ref = scene->GetEntityByUUID(field.EntityRefValue);
+						if (ref && ref.HasComponent<ScriptComponent>())
+						{
+							// Look up the class table by name and find matching instance
+							sol::object classTableObj = lua[field.EntityRefSubtype];
+							if (classTableObj.valid() && classTableObj.get_type() == sol::type::table)
+							{
+								sol::table classTable = classTableObj;
+								sol::object instance = GetScriptInstanceByTable(ref.GetUUID(), classTable, lua.lua_state());
+								self[field.Name] = instance;
+							}
+							else
+							{
+								self[field.Name] = ref; // fallback
+							}
+						}
+						else
+						{
+							self[field.Name] = Entity{};
+						}
+					}
+					else
+					{
+						self[field.Name] = Entity{};
+					}
+					break;
+				}
+				case ScriptFieldType::BlueprintRef:
+				{
+					// Always inject a BlueprintHandle — scripts never branch on source type.
+					// InstantiateBlueprint dispatches internally on AssetUUID vs EntityUUID.
+					if (field.EntityRefSubtype == "blueprint_asset")
+						self[field.Name] = sol::make_object(lua, BlueprintHandle::FromAsset(field.EntityRefValue));
+					else if (field.EntityRefValue.IsValid())
+						self[field.Name] = sol::make_object(lua, BlueprintHandle::FromEntity(field.EntityRefValue));
+					else
+						self[field.Name] = sol::make_object(lua, BlueprintHandle{});
+					break;
+				}
 			}
 		}
 	}
@@ -1063,7 +1515,7 @@ function GameManager:OnDestroy() end
 				if (!entry.FieldsParsed)
 					ScriptEngine::ParseScriptFields(entry);
 
-				InjectFields(*s_LuaState, self, entry.Fields);
+				InjectFields(*s_LuaState, self, entry.Fields, scene);
 			}
 			else
 			{

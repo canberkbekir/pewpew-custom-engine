@@ -87,6 +87,9 @@ namespace CB
             Timestep timestep = time - m_LastFrameTime;
             m_LastFrameTime = time;
 
+            // Snapshot previous input state for JustPressed/Released/MouseDelta
+            Input::Update();
+
             // Process asset hot reloads
             AssetManager::ProcessReloadQueue();
 

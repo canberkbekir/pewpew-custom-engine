@@ -2,39 +2,63 @@
 
 #include "CBEngine/Utils/YAMLHelpers.h"
 #include "CBEngine/Math/CoreMath.h"
+#include "CBEngine/Core/UUID.h"
 
 #include <string>
 #include <vector>
 
 namespace CB
 {
+	// Handle for a .blueprint asset reference (BlueprintRef field, content browser drag).
+	// For scene entity cloning use Scene:Instantiate(entity) directly.
+	struct BlueprintHandle
+	{
+		UUID AssetUUID;
+		BlueprintHandle() = default;
+		explicit BlueprintHandle(UUID uuid) : AssetUUID(uuid) {}
+		bool IsValid() const { return AssetUUID.IsValid(); }
+	};
+
 	enum class ScriptFieldType
 	{
-		Float, Int, Bool, String, Color, Vector3
+		Float, Int, Bool, String, Color, Vector3,
+		// Reference types — editor drag-drop; injected as Entity/proxy/script at runtime
+		EntityRef,    // entity handle
+		ComponentRef, // built-in component proxy (subtype = component name, e.g. "RigidBody")
+		ScriptRef,    // script instance (subtype = class name, e.g. "PlayerMovement")
+		BlueprintRef, // .blueprint asset path (StringValue); spawned via Scene:InstantiateBlueprint()
 	};
 
 	inline const char* ScriptFieldTypeToString(ScriptFieldType type)
 	{
 		switch (type)
 		{
-			case ScriptFieldType::Float:  return "float";
-			case ScriptFieldType::Int:    return "int";
-			case ScriptFieldType::Bool:   return "bool";
-			case ScriptFieldType::String: return "string";
-			case ScriptFieldType::Color:  return "color";
-			case ScriptFieldType::Vector3:   return "vector3";
+			case ScriptFieldType::Float:        return "float";
+			case ScriptFieldType::Int:          return "int";
+			case ScriptFieldType::Bool:         return "bool";
+			case ScriptFieldType::String:       return "string";
+			case ScriptFieldType::Color:        return "color";
+			case ScriptFieldType::Vector3:      return "vector3";
+			case ScriptFieldType::EntityRef:    return "entityref";
+			case ScriptFieldType::ComponentRef: return "componentref";
+			case ScriptFieldType::ScriptRef:    return "scriptref";
+			case ScriptFieldType::BlueprintRef: return "blueprintref";
 		}
 		return "float";
 	}
 
 	inline ScriptFieldType ScriptFieldTypeFromString(const String& str)
 	{
-		if (str == "float")  return ScriptFieldType::Float;
-		if (str == "int")    return ScriptFieldType::Int;
-		if (str == "bool")   return ScriptFieldType::Bool;
-		if (str == "string") return ScriptFieldType::String;
-		if (str == "color")  return ScriptFieldType::Color;
-		if (str == "vector3")   return ScriptFieldType::Vector3;
+		if (str == "float")        return ScriptFieldType::Float;
+		if (str == "int")          return ScriptFieldType::Int;
+		if (str == "bool")         return ScriptFieldType::Bool;
+		if (str == "string")       return ScriptFieldType::String;
+		if (str == "color")        return ScriptFieldType::Color;
+		if (str == "vector3")      return ScriptFieldType::Vector3;
+		if (str == "entityref")    return ScriptFieldType::EntityRef;
+		if (str == "componentref") return ScriptFieldType::ComponentRef;
+		if (str == "scriptref")    return ScriptFieldType::ScriptRef;
+		if (str == "blueprintref") return ScriptFieldType::BlueprintRef;
 		return ScriptFieldType::Float;
 	}
 
@@ -49,6 +73,10 @@ namespace CB
 		String StringValue;
 		Vector4 ColorValue = { 1.0f, 1.0f, 1.0f, 1.0f };
 		Vector3 Vector3Value = { 0.0f, 0.0f, 0.0f };
+
+		// For EntityRef / ComponentRef / ScriptRef
+		UUID EntityRefValue = UUID(0);   // UUID of the referenced entity
+		String EntityRefSubtype;          // component name (ComponentRef) or class name (ScriptRef)
 
 		float Min = 0.0f;
 		float Max = 0.0f; // 0,0 = no constraint
@@ -119,6 +147,18 @@ namespace CB
 									<< YAML::BeginSeq << field.Vector3Value.x << field.Vector3Value.y
 									<< field.Vector3Value.z << YAML::EndSeq;
 								break;
+							case ScriptFieldType::EntityRef:
+							case ScriptFieldType::ComponentRef:
+							case ScriptFieldType::ScriptRef:
+								out << YAML::Key << "Value" << YAML::Value << static_cast<uint64_t>(field.EntityRefValue);
+								if (!field.EntityRefSubtype.empty())
+									out << YAML::Key << "Subtype" << YAML::Value << field.EntityRefSubtype;
+								break;
+							case ScriptFieldType::BlueprintRef:
+								out << YAML::Key << "Value" << YAML::Value << static_cast<uint64_t>(field.EntityRefValue);
+								if (!field.EntityRefSubtype.empty())
+									out << YAML::Key << "Subtype" << YAML::Value << field.EntityRefSubtype;
+								break;
 						}
 
 						out << YAML::EndMap;
@@ -178,6 +218,18 @@ namespace CB
 									field.Vector3Value.y = val[1].as<float>();
 									field.Vector3Value.z = val[2].as<float>();
 								}
+								break;
+							case ScriptFieldType::EntityRef:
+							case ScriptFieldType::ComponentRef:
+							case ScriptFieldType::ScriptRef:
+								field.EntityRefValue = UUID(val.as<uint64_t>());
+								if (fieldNode["Subtype"])
+									field.EntityRefSubtype = fieldNode["Subtype"].as<String>();
+								break;
+							case ScriptFieldType::BlueprintRef:
+								field.EntityRefValue = UUID(val.as<uint64_t>());
+								if (fieldNode["Subtype"])
+									field.EntityRefSubtype = fieldNode["Subtype"].as<String>();
 								break;
 						}
 					}

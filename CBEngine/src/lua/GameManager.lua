@@ -18,4 +18,5 @@ end
 
 function GameManager:OnCreate() end
 function GameManager:OnUpdate(dt) end
+function GameManager:OnLateUpdate(dt) end
 function GameManager:OnDestroy() end

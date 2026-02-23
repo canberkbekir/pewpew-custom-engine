@@ -8,6 +8,7 @@
 #include "../ComponentCard.h"
 
 #include <filesystem>
+#include "CBEngine/Asset/AssetManager.h"
 
 namespace CB
 {
@@ -214,6 +215,112 @@ namespace CB
 										if (ImGui::DragFloat3(fieldLabel.c_str(), &field.Vector3Value.x, 0.1f))
 										{
 											field.HasOverride = true;
+											changed = true;
+										}
+										break;
+									}
+									case ScriptFieldType::EntityRef:
+									case ScriptFieldType::ComponentRef:
+									case ScriptFieldType::ScriptRef:
+									{
+										// Determine display label for the assigned entity
+										std::string refLabel = "None";
+										if (field.EntityRefValue.IsValid())
+										{
+											Scene* refScene = entity.GetScene();
+											if (refScene && refScene->EntityExists(field.EntityRefValue))
+											{
+												Entity refEntity = refScene->GetEntityByUUID(field.EntityRefValue);
+												if (refEntity) refLabel = std::string(refEntity.GetName());
+											}
+											else { refLabel = "Missing"; }
+										}
+										if (field.Type != ScriptFieldType::EntityRef && !field.EntityRefSubtype.empty())
+											refLabel += " (" + field.EntityRefSubtype + ")";
+
+										// Draw field label + drag-drop target button
+										ImGui::Text("%s", fieldLabel.c_str());
+										ImGui::SameLine();
+										float availW = ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight() - 4.0f;
+										ImGui::Button(refLabel.c_str(), ImVec2(availW, 0));
+										if (ImGui::BeginDragDropTarget())
+										{
+											if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY"))
+											{
+												uint64_t droppedUUID = *static_cast<const uint64_t*>(payload->Data);
+												field.EntityRefValue = UUID(droppedUUID);
+												field.HasOverride = true;
+												changed = true;
+											}
+											ImGui::EndDragDropTarget();
+										}
+										ImGui::SameLine();
+										if (ImGui::SmallButton("X"))
+										{
+											field.EntityRefValue = UUID(0);
+											field.EntityRefSubtype = "";
+											field.HasOverride = false;
+											changed = true;
+										}
+										break;
+									}
+									case ScriptFieldType::BlueprintRef:
+									{
+										std::string bpLabel = "None";
+										if (field.EntityRefValue.IsValid())
+										{
+											if (field.EntityRefSubtype == "blueprint_asset")
+											{
+												const AssetMetadata* meta = AssetManager::GetRegistry().GetMetadata(field.EntityRefValue);
+												bpLabel = meta ? (meta->FilePath.stem().string() + " (Blueprint)") : "Missing Asset";
+											}
+											else
+											{
+												Scene* refScene = entity.GetScene();
+												if (refScene && refScene->EntityExists(field.EntityRefValue))
+												{
+													Entity refEntity = refScene->GetEntityByUUID(field.EntityRefValue);
+													bpLabel = refEntity ? (std::string(refEntity.GetName()) + " (Entity)") : "Missing Entity";
+												}
+												else { bpLabel = "Missing Entity"; }
+											}
+										}
+										ImGui::Text("%s", fieldLabel.c_str());
+										ImGui::SameLine();
+										float availW = ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight() - 4.0f;
+										ImGui::Button(bpLabel.c_str(), ImVec2(availW, 0));
+										if (ImGui::BeginDragDropTarget())
+										{
+											if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY"))
+											{
+												field.EntityRefValue = UUID(*static_cast<const uint64_t*>(payload->Data));
+												field.EntityRefSubtype = "";
+												field.HasOverride = true;
+												changed = true;
+											}
+											if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
+											{
+												std::string droppedPath(static_cast<const char*>(payload->Data), payload->DataSize - 1);
+												if (std::filesystem::path(droppedPath).extension() == ".blueprint")
+												{
+													UUID assetUUID = AssetManager::ImportAsset(droppedPath);
+													if (assetUUID.IsValid())
+													{
+														field.EntityRefValue = assetUUID;
+														field.EntityRefSubtype = "blueprint_asset";
+														field.HasOverride = true;
+														changed = true;
+													}
+												}
+											}
+											ImGui::EndDragDropTarget();
+										}
+										ImGui::SameLine();
+										if (ImGui::SmallButton("X"))
+										{
+											field.EntityRefValue = UUID(0);
+											field.EntityRefSubtype = "";
+											field.HasOverride = false;
 											changed = true;
 										}
 										break;

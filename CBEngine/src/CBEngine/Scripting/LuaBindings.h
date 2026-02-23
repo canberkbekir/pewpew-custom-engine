@@ -19,5 +19,6 @@ namespace CB
 		static void RegisterPhysics(sol::state& lua);
 		static void RegisterDebug(sol::state& lua);
 		static void RegisterFieldTypes(sol::state& lua);
+		static void RegisterTime(sol::state& lua);
 	};
 }

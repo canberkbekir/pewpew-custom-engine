@@ -24,6 +24,14 @@ namespace CB
 		float Restitution = 0.3f;
 		bool UseGravity = true;
 
+		// Freeze constraints — lock individual axes at body creation time
+		bool FreezePositionX = false;
+		bool FreezePositionY = false;
+		bool FreezePositionZ = false;
+		bool FreezeRotationX = false;
+		bool FreezeRotationY = false;
+		bool FreezeRotationZ = false;
+
 		// Runtime-only (not serialized)
 		JPH::BodyID RuntimeBodyID;
 		bool BodyCreated = false;
@@ -42,6 +50,12 @@ namespace CB
 			out << YAML::Key << "Friction" << YAML::Value << Friction;
 			out << YAML::Key << "Restitution" << YAML::Value << Restitution;
 			out << YAML::Key << "UseGravity" << YAML::Value << UseGravity;
+			out << YAML::Key << "FreezePositionX" << YAML::Value << FreezePositionX;
+			out << YAML::Key << "FreezePositionY" << YAML::Value << FreezePositionY;
+			out << YAML::Key << "FreezePositionZ" << YAML::Value << FreezePositionZ;
+			out << YAML::Key << "FreezeRotationX" << YAML::Value << FreezeRotationX;
+			out << YAML::Key << "FreezeRotationY" << YAML::Value << FreezeRotationY;
+			out << YAML::Key << "FreezeRotationZ" << YAML::Value << FreezeRotationZ;
 		}
 
 		void Deserialize(const YAML::Node& node)
@@ -53,6 +67,12 @@ namespace CB
 			Friction = node["Friction"].as<float>();
 			Restitution = node["Restitution"].as<float>();
 			UseGravity = node["UseGravity"].as<bool>();
+			if (node["FreezePositionX"]) FreezePositionX = node["FreezePositionX"].as<bool>();
+			if (node["FreezePositionY"]) FreezePositionY = node["FreezePositionY"].as<bool>();
+			if (node["FreezePositionZ"]) FreezePositionZ = node["FreezePositionZ"].as<bool>();
+			if (node["FreezeRotationX"]) FreezeRotationX = node["FreezeRotationX"].as<bool>();
+			if (node["FreezeRotationY"]) FreezeRotationY = node["FreezeRotationY"].as<bool>();
+			if (node["FreezeRotationZ"]) FreezeRotationZ = node["FreezeRotationZ"].as<bool>();
 		}
 	};
 }

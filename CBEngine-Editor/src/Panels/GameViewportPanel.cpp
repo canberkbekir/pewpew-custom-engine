@@ -74,10 +74,9 @@ namespace CB
                 Vector3 worldPos = tc.GetWorldPosition();
                 m_GameCamera.SetPosition(worldPos);
 
-                // Extract pitch/yaw from the entity's rotation
-                // The entity rotation is in euler angles (radians)
-                glm::quat q = glm::quat(tc.Rotation);
-                Vector3 forward = q * Vector3(0.0f, 0.0f, 1.0f);
+                // Extract world-space forward from WorldMatrix so the full
+                // parent hierarchy rotation (e.g. player yaw + camera pitch) is captured.
+                Vector3 forward = glm::normalize(Vector3(tc.WorldMatrix[2]));
 
                 float pitch = glm::degrees(asin(glm::clamp(forward.y, -1.0f, 1.0f)));
                 float yaw = glm::degrees(atan2(forward.z, forward.x));

@@ -17,6 +17,7 @@
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/AllowedDOFs.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
@@ -34,6 +35,8 @@ namespace CB
 	static std::mutex s_CollisionMutex;
 	static std::vector<CollisionCallback> s_PendingCollisionBegin;
 	static std::vector<CollisionCallback> s_PendingCollisionEnd;
+	static std::vector<CollisionCallback> s_PendingTriggerEnter;
+	static std::vector<CollisionCallback> s_PendingTriggerExit;
 
 	static JPH::EMotionType ToJoltMotionType(BodyType type)
 	{
@@ -169,6 +172,18 @@ namespace CB
 			s_PendingCollisionEnd.push_back(cb);
 		});
 
+		world->SetTriggerEnterCallback([](const CollisionCallback& cb)
+		{
+			std::lock_guard<std::mutex> lock(s_CollisionMutex);
+			s_PendingTriggerEnter.push_back(cb);
+		});
+
+		world->SetTriggerExitCallback([](const CollisionCallback& cb)
+		{
+			std::lock_guard<std::mutex> lock(s_CollisionMutex);
+			s_PendingTriggerExit.push_back(cb);
+		});
+
 		CB_CORE_INFO("PhysicsSystem initialized");
 	}
 
@@ -183,6 +198,8 @@ namespace CB
 			std::lock_guard<std::mutex> lock(s_CollisionMutex);
 			s_PendingCollisionBegin.clear();
 			s_PendingCollisionEnd.clear();
+			s_PendingTriggerEnter.clear();
+			s_PendingTriggerExit.clear();
 		}
 
 		CB_CORE_INFO("PhysicsSystem shut down");
@@ -268,6 +285,42 @@ namespace CB
 		}
 	}
 
+	static void FlushTriggerEvents(Scene* scene, PhysicsWorld* world)
+	{
+		std::vector<CollisionCallback> enterEvents;
+		std::vector<CollisionCallback> exitEvents;
+
+		{
+			std::lock_guard<std::mutex> lock(s_CollisionMutex);
+			enterEvents = std::move(s_PendingTriggerEnter);
+			s_PendingTriggerEnter.clear();
+			exitEvents = std::move(s_PendingTriggerExit);
+			s_PendingTriggerExit.clear();
+		}
+
+		for (const auto& cb : enterEvents)
+		{
+			Entity entityA = scene->GetEntityByUUID(cb.EntityA);
+			Entity entityB = scene->GetEntityByUUID(cb.EntityB);
+			if (entityA && entityB)
+			{
+				ScriptEngine::OnTriggerEnter(scene, entityA, entityB, cb.ContactPoint, cb.ContactNormal);
+				ScriptEngine::OnTriggerEnter(scene, entityB, entityA, cb.ContactPoint, -cb.ContactNormal);
+			}
+		}
+
+		for (const auto& cb : exitEvents)
+		{
+			Entity entityA = scene->GetEntityByUUID(cb.EntityA);
+			Entity entityB = scene->GetEntityByUUID(cb.EntityB);
+			if (entityA && entityB)
+			{
+				ScriptEngine::OnTriggerExit(scene, entityA, entityB);
+				ScriptEngine::OnTriggerExit(scene, entityB, entityA);
+			}
+		}
+	}
+
 	void PhysicsSystem::OnUpdate(Scene* scene, PhysicsWorld* world, Timestep ts)
 	{
 		if (!world)
@@ -275,6 +328,7 @@ namespace CB
 
 		// 1.7: Flush collision events at the start of the update
 		FlushCollisionEvents(scene, world);
+		FlushTriggerEvents(scene, world);
 
 		SyncStaticColliders(scene, world);
 		SyncToPhysics(scene, world);
@@ -358,6 +412,9 @@ namespace CB
 
 			glm::quat worldQuat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
 
+			// When all rotation axes are frozen, the script owns rotation -- skip physics writeback
+			bool allRotFrozen = rb.FreezeRotationX && rb.FreezeRotationY && rb.FreezeRotationZ;
+
 			if (transform.HasParent())
 			{
 				// Convert world position/rotation to local space using parent's world matrix
@@ -370,21 +427,26 @@ namespace CB
 					// Convert world position to local
 					transform.Position = Vector3(invParent * Vector4(worldPos, 1.0f));
 
-					// Convert world rotation to local
-					glm::quat parentWorldQuat = glm::quat_cast(parentWorldMatrix);
-					glm::quat localQuat = glm::inverse(parentWorldQuat) * worldQuat;
-					transform.Rotation = glm::eulerAngles(localQuat);
+					// Convert world rotation to local (skip if script controls rotation)
+					if (!allRotFrozen)
+					{
+						glm::quat parentWorldQuat = glm::quat_cast(parentWorldMatrix);
+						glm::quat localQuat = glm::inverse(parentWorldQuat) * worldQuat;
+						transform.Rotation = glm::eulerAngles(localQuat);
+					}
 				}
 				else
 				{
 					transform.Position = worldPos;
-					transform.Rotation = glm::eulerAngles(worldQuat);
+					if (!allRotFrozen)
+						transform.Rotation = glm::eulerAngles(worldQuat);
 				}
 			}
 			else
 			{
 				transform.Position = worldPos;
-				transform.Rotation = glm::eulerAngles(worldQuat);
+				if (!allRotFrozen)
+					transform.Rotation = glm::eulerAngles(worldQuat);
 			}
 
 			transform.Dirty = true;
@@ -435,6 +497,19 @@ namespace CB
 		bodySettings.mRestitution = rb.Restitution;
 		bodySettings.mGravityFactor = rb.UseGravity ? 1.0f : 0.0f;
 		bodySettings.mIsSensor = collider.IsTrigger;
+
+		// Freeze individual degrees of freedom
+		if (rb.Type == BodyType::Dynamic || rb.Type == BodyType::Kinematic)
+		{
+			uint8_t dofs = static_cast<uint8_t>(JPH::EAllowedDOFs::All);
+			if (rb.FreezePositionX) dofs &= ~static_cast<uint8_t>(JPH::EAllowedDOFs::TranslationX);
+			if (rb.FreezePositionY) dofs &= ~static_cast<uint8_t>(JPH::EAllowedDOFs::TranslationY);
+			if (rb.FreezePositionZ) dofs &= ~static_cast<uint8_t>(JPH::EAllowedDOFs::TranslationZ);
+			if (rb.FreezeRotationX) dofs &= ~static_cast<uint8_t>(JPH::EAllowedDOFs::RotationX);
+			if (rb.FreezeRotationY) dofs &= ~static_cast<uint8_t>(JPH::EAllowedDOFs::RotationY);
+			if (rb.FreezeRotationZ) dofs &= ~static_cast<uint8_t>(JPH::EAllowedDOFs::RotationZ);
+			bodySettings.mAllowedDOFs = static_cast<JPH::EAllowedDOFs>(dofs);
+		}
 
 		// Create body in Jolt
 		JPH::Body* body = world->GetBodyInterface().CreateBody(bodySettings);
