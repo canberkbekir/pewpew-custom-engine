@@ -15,7 +15,7 @@ PlayerBullet = {
         Damage        = Float(10.0,  0.0, 1000.0),
         Speed         = Float(50.0,  1.0, 500.0),
         Lifetime      = Float(4.0,   0.1, 30.0),
-        GravityScale  = Float(0.0,   0.0, 1.0),   -- 0 = hitscan-style flat arc
+        UseGravity    = Bool(false),               -- false = hitscan-style flat arc
         SpawnSafeTime = Float(0.05,  0.0, 0.5),   -- ignore collisions for this long after spawn
     }
 }
@@ -38,7 +38,7 @@ function PlayerBullet:OnCreate()
     -- so forward points straight at the target.
     local dir = self._entity:GetForward()
     self._rb:SetLinearVelocity(dir * self.Speed)
-    self._rb:SetGravityScale(self.GravityScale)
+    self._rb:SetUseGravity(self.UseGravity)
     self._rb:SetAngularDamping(100.0)  -- no spinning
 end
 

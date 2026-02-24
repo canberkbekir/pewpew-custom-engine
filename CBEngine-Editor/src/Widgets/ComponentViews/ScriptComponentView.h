@@ -300,8 +300,11 @@ namespace CB
 											}
 											if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTENT_BROWSER_ITEM"))
 											{
-												std::string droppedPath(static_cast<const char*>(payload->Data), payload->DataSize - 1);
-												if (std::filesystem::path(droppedPath).extension() == ".blueprint")
+												std::filesystem::path droppedPath(static_cast<const char*>(payload->Data),
+													static_cast<const char*>(payload->Data) + payload->DataSize - 1);
+												if (droppedPath.is_relative())
+													droppedPath = std::filesystem::absolute(droppedPath);
+												if (droppedPath.extension() == ".blueprint")
 												{
 													UUID assetUUID = AssetManager::ImportAsset(droppedPath);
 													if (assetUUID.IsValid())

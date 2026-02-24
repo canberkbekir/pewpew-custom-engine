@@ -565,8 +565,9 @@ end
 				if (len < 0.0001f) return;
 				dir /= len;
 				Vector3 up = upOpt.value_or(Vector3(0.0f, 1.0f, 0.0f));
-				glm::quat q = glm::quatLookAt(dir, up);
-				tc.Rotation = glm::degrees(glm::eulerAngles(q));
+				// glm::quatLookAt points -Z toward dir; negate to align +Z (GetForward) with target.
+			glm::quat q = glm::quatLookAt(-dir, up);
+				tc.Rotation = glm::eulerAngles(q);  // store radians — tc.Rotation is always radians
 				tc.Dirty = true;
 			},
 

@@ -35,7 +35,8 @@ PlayerMovement = {
         LookSmoothTime   = Float(0.05, 0.0, 0.3), 
 
         -- Shooting
-        BulletBlueprint  = BlueprintRef(),   -- drag .blueprint or scene entity here
+        BulletBlueprint  = BlueprintRef(),   -- drag .blueprint here
+        BulletPoint      = EntityRef(),      -- muzzle transform (child of gun/camera)
         FireRate         = Float(0.15, 0.01, 5.0),
 
         -- Drag the Camera entity here (used for aim direction + muzzle position).
@@ -257,34 +258,22 @@ function PlayerMovement:Shoot()
         return
     end
 
-    -- Muzzle position and aim direction come from the camera (FPS accuracy).
-    -- If no camera is set, fall back to the player entity.
-    local muzzlePos, aimDir
-    if self.cam and self.cam:IsValid() then
-        muzzlePos = self.cam:GetWorldPosition()
-        aimDir    = self.cam:GetForward()
+    -- Spawn position and fire direction come from BulletPoint (muzzle transform).
+    -- Falls back to camera, then player root if neither is set.
+    local spawnPos, fireDir
+    if self.BulletPoint and self.BulletPoint:IsValid() then
+        spawnPos = self.BulletPoint:GetWorldPosition()
+        fireDir  = self.BulletPoint:GetForward()
+    elseif self.cam and self.cam:IsValid() then
+        spawnPos = self.cam:GetWorldPosition()
+        fireDir  = self.cam:GetForward()
     else
-        muzzlePos = self._entity:GetWorldPosition()
-        aimDir    = self._entity:GetForward()
+        spawnPos = self._entity:GetWorldPosition()
+        fireDir  = self._entity:GetForward()
     end
 
-    -- Raycast from camera forward to find the precise hit point.
-    -- This ensures the bullet travels toward whatever the crosshair is over,
-    -- even when the muzzle is slightly offset from the camera.
-    local rayHit = Physic.Raycast(
-        self._scene, muzzlePos, aimDir, 1000,
-        Layer.Mask(Layer.Default, Layer.Enemy, Layer.Environment),
-        self._entity
-    )
-
-    local targetPoint
-    if rayHit then
-        targetPoint = rayHit.point
-    else
-        targetPoint = muzzlePos + aimDir * 1000
-    end
-
-    -- Spawn bullet hierarchy with fresh UUIDs.
+    -- Spawn bullet and orient it along the fire direction.
+    -- PlayerBullet:OnCreate reads GetForward() for its RigidBody velocity.
     local entities = self._scene:Instantiate(self.BulletBlueprint)
     if #entities == 0 then
         Log.Warn("PlayerMovement: Instantiate returned no entities")
@@ -292,9 +281,6 @@ function PlayerMovement:Shoot()
     end
 
     local bullet = entities[1]
-
-    -- Place bullet at the camera/muzzle, oriented toward the target point.
-    -- Bullet:OnCreate fires next frame and reads GetForward() for velocity.
-    bullet:SetPosition(muzzlePos)
-    bullet:LookAt(targetPoint)
+    bullet:SetPosition(spawnPos)
+    bullet:LookAt(spawnPos + fireDir * 100)
 end

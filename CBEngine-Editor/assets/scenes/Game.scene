@@ -4,10 +4,10 @@ Entities:
     TagComponent:
       Tag: GunPoint
     TransformComponent:
-      Position: [0, 0.7084098, 0.6159079]
+      Position: [0, -0.4538412, 0.98682207]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-      Parent: 10467415672658071835
+      Parent: 4288399533179096203
   - Entity: 4288399533179096203
     TagComponent:
       Tag: Camera
@@ -81,6 +81,13 @@ Entities:
             - Name: MouseSensitivity
               Type: float
               Value: 0.1
+            - Name: BulletBlueprint
+              Type: blueprintref
+              Value: 544593730339155609
+              Subtype: blueprint_asset
+            - Name: BulletPoint
+              Type: entityref
+              Value: 12160050135553676369
             - Name: Camera
               Type: entityref
               Value: 4288399533179096203
@@ -154,6 +161,14 @@ Entities:
       MaterialUUID: 0
       ShaderUUID: 0
       Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
   - Entity: 7911143129962106815
     TagComponent:
       Tag: Cube
@@ -167,6 +182,14 @@ Entities:
       MaterialUUID: 0
       ShaderUUID: 0
       Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
   - Entity: 8923458721691645312
     TagComponent:
       Tag: Cube
@@ -180,6 +203,14 @@ Entities:
       MaterialUUID: 0
       ShaderUUID: 0
       Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
   - Entity: 16020047007249049872
     TagComponent:
       Tag: Cube
@@ -193,6 +224,14 @@ Entities:
       MaterialUUID: 0
       ShaderUUID: 0
       Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
   - Entity: 12145903664756383971
     TagComponent:
       Tag: CameraPoint
@@ -201,3 +240,42 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
       Parent: 10467415672658071835
+  - Entity: 15649565200962769049
+    TagComponent:
+      Tag: Bullet
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.2, 0.2, 0.2]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 2
+      MaterialUUID: 0
+      ShaderUUID: 0
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 1
+      HalfExtents: [0.5, 0.5, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\PlayerBullet.lua
+          ClassName: PlayerBullet
