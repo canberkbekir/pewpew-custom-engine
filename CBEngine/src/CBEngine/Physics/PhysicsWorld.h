@@ -133,8 +133,13 @@ namespace CB
 			float maxDist, uint16_t layerMask = PhysicsLayers::AllLayers,
 			UUID ignoreEntity = UUID()) const;
 
-		// Overlap capsule
+		// Overlap capsule (Y-axis aligned)
 		std::vector<RaycastHit> OverlapCapsule(const Vector3& center, float radius, float halfHeight,
+			uint16_t layerMask = PhysicsLayers::AllLayers,
+			UUID ignoreEntity = UUID()) const;
+
+		// Overlap capsule oriented along the segment p0→p1 with the given radius
+		std::vector<RaycastHit> OverlapCapsuleSegment(const Vector3& p0, const Vector3& p1, float radius,
 			uint16_t layerMask = PhysicsLayers::AllLayers,
 			UUID ignoreEntity = UUID()) const;
 

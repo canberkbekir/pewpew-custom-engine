@@ -1,8 +1,11 @@
 #include "cbpch.h"
 #include "SceneSerializer.h"
 #include "Entity.h"
-#include "ComponentRegistry.h"
 #include "RuntimeComponentRegistry.h"
+
+#include "CBEngine/Components/BlueprintInstanceComponent.h"
+#include "CBEngine/Components/TransformComponent.h"
+#include "CBEngine/Components/CoreComponents.h"
 
 #include <yaml-cpp/yaml.h>
 #include <fstream>
@@ -26,11 +29,12 @@ namespace CB
         if (layer != 0)
             out << YAML::Key << "Layer" << YAML::Value << static_cast<int>(layer);
 
-        // Serialize all built-in components via fold expression
-        SerializeAll(out, entity);
+        // Serialize all auto-registered components
+        RuntimeComponentRegistry::SerializeAll(out, registry, entity);
 
-        // BlueprintInstanceComponent is handled manually (not in SerializableComponents)
-        // to prevent it from leaking into .blueprint files
+        // BlueprintInstanceComponent is handled manually to prevent it from
+        // leaking into .blueprint files (would cause YAML-in-YAML bloat and
+        // duplicate-component crashes on re-instantiation).
         if (entity.HasComponent<BlueprintInstanceComponent>())
         {
             auto& bic = entity.GetComponent<BlueprintInstanceComponent>();
@@ -39,9 +43,6 @@ namespace CB
             bic.Serialize(out);
             out << YAML::EndMap;
         }
-
-        // Serialize runtime-registered components
-        RuntimeComponentRegistry::SerializeAll(out, registry, entity);
 
         out << YAML::EndMap;
     }
@@ -130,7 +131,7 @@ namespace CB
         {
             uint64_t uuid = entityNode["Entity"].as<uint64_t>();
 
-            // Read name before creating entity (CreateEntityWithUUID needs it)
+            // Read name before creating entity
             String name = "Entity";
             auto tagComponent = entityNode["TagComponent"];
             if (tagComponent)
@@ -142,10 +143,10 @@ namespace CB
             if (entityNode["Layer"])
                 entity.GetComponent<IDComponent>().Layer = static_cast<uint8_t>(entityNode["Layer"].as<int>());
 
-            // Deserialize all registered components via fold expression
-            DeserializeAll(entityNode, entity);
+            // Deserialize all auto-registered components
+            RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
 
-            // BlueprintInstanceComponent is handled manually (not in SerializableComponents)
+            // BlueprintInstanceComponent handled manually
             auto bicNode = entityNode[BlueprintInstanceComponent::YAMLKey];
             if (bicNode)
             {
@@ -153,11 +154,8 @@ namespace CB
                 bic.Deserialize(bicNode);
             }
 
-            // Deserialize runtime-registered components
-            RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
-
-            // Resolve asset UUIDs to loaded assets
-            ResolveAssetsAll(entity);
+            // Resolve asset UUIDs → loaded Ref<> assets
+            RuntimeComponentRegistry::ResolveAssetsAll(m_Scene->GetRegistry(), entity);
         }
 
         // Rebuild Children lists from Parent references
@@ -240,13 +238,11 @@ namespace CB
 
             Entity entity = m_Scene->CreateEntityWithUUID(UUID(uuid), name);
 
-            // Physics layer
             if (entityNode["Layer"])
                 entity.GetComponent<IDComponent>().Layer = static_cast<uint8_t>(entityNode["Layer"].as<int>());
 
-            DeserializeAll(entityNode, entity);
+            RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
 
-            // BlueprintInstanceComponent handled manually
             auto bicNode = entityNode[BlueprintInstanceComponent::YAMLKey];
             if (bicNode)
             {
@@ -254,8 +250,7 @@ namespace CB
                 bic.Deserialize(bicNode);
             }
 
-            RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
-            ResolveAssetsAll(entity);
+            RuntimeComponentRegistry::ResolveAssetsAll(m_Scene->GetRegistry(), entity);
         }
 
         // Rebuild Children lists from Parent references
@@ -297,7 +292,6 @@ namespace CB
 
     String SceneSerializer::SerializeEntityHierarchy(Entity root)
     {
-        // Collect root + all descendants
         std::vector<Entity> entities;
         CollectEntityHierarchy(root, entities);
 
@@ -313,7 +307,7 @@ namespace CB
             uint8_t layer = entity.GetComponent<IDComponent>().Layer;
             if (layer != 0)
                 out << YAML::Key << "Layer" << YAML::Value << static_cast<int>(layer);
-            SerializeAll(out, entity);
+            RuntimeComponentRegistry::SerializeAll(out, entity.GetScene()->GetRegistry(), entity);
             out << YAML::EndMap;
         }
 
@@ -350,7 +344,7 @@ namespace CB
         for (auto entityNode : entities)
         {
             uint64_t oldUUID = entityNode["Entity"].as<uint64_t>();
-            UUID newUUID; // generates a new random UUID
+            UUID newUUID;
 
             String name = "Entity";
             auto tagComponent = entityNode["TagComponent"];
@@ -368,17 +362,14 @@ namespace CB
         {
             Entity entity = createdEntities[idx++];
 
-            // Physics layer
             if (entityNode["Layer"])
                 entity.GetComponent<IDComponent>().Layer = static_cast<uint8_t>(entityNode["Layer"].as<int>());
 
-            DeserializeAll(entityNode, entity);
             RuntimeComponentRegistry::DeserializeAll(entityNode, m_Scene->GetRegistry(), entity);
-            ResolveAssetsAll(entity);
+            RuntimeComponentRegistry::ResolveAssetsAll(m_Scene->GetRegistry(), entity);
         }
 
-        // Third pass: clear children lists (will rebuild from parent refs),
-        // then remap parent UUIDs to new UUIDs
+        // Third pass: remap parent UUIDs to new UUIDs, rebuild children lists
         for (Entity entity : createdEntities)
         {
             if (!entity.HasComponent<TransformComponent>())
@@ -407,7 +398,6 @@ namespace CB
                 }
                 else
                 {
-                    // Parent not in blueprint, clear it
                     tc.Parent = UUID(0);
                 }
             }

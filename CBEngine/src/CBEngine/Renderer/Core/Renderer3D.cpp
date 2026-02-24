@@ -180,4 +180,34 @@ namespace CB
         tempVAO->Bind();
         RenderCommand::DrawIndexedInstanced(tempVAO, instanceCount);
     }
+
+    void Renderer3D::SubmitVAO(const Ref<Shader>& shader, const Ref<Material>& material,
+                                const Ref<VertexArray>& vao, const Ref<IndexBuffer>& /*ibo*/,
+                                const Mat4& transform, int entityID)
+    {
+        CB_PROFILE_FUNCTION();
+        using namespace ShaderUniforms;
+
+        if (!vao)
+            return;
+
+        shader->Bind();
+
+        shader->SetMat4(ViewProjection, s_SceneData->ViewProjectionMatrix);
+        shader->SetMat4(Transform, transform);
+        shader->SetFloat3(CameraPosition, s_SceneData->CameraPosition);
+        shader->SetInt(EntityID, entityID);
+        shader->SetInt(UseInstancing, 0);
+        shader->SetInt(UsePalette, 0);
+        shader->SetInt(UseVertexColor, 0);
+
+        shader->SetFloat3(LightDirection, s_SceneData->LightDirection);
+        shader->SetFloat3(LightColor, s_SceneData->LightColor);
+        shader->SetFloat(LightIntensity, s_SceneData->LightIntensity);
+        shader->SetFloat3(AmbientColor, s_SceneData->AmbientColor);
+
+        material->Bind(shader);
+
+        RenderCommand::DrawIndexed(vao);
+    }
 }

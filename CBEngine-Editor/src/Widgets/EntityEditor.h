@@ -23,6 +23,8 @@
 #include "ComponentViews/GameManagerComponentView.h"
 #include "ComponentViews/CameraComponentView.h"
 #include "ComponentViews/BlueprintInstanceComponentView.h"
+#include "ComponentViews/HingeJointComponentView.h"
+#include "ComponentViews/HingeChainComponentView.h"
 #include "ComponentViews/AddComponentMenu.h"
 
 #include <fstream>
@@ -127,6 +129,8 @@ namespace CB
             ColliderComponentView::Draw(entity);
             ScriptComponentView::Draw(entity);
             GameManagerComponentView::Draw(entity);
+            HingeJointComponentView::Draw(entity);
+            HingeChainComponentView::Draw(entity);
             BlueprintInstanceComponentView::Draw(entity);
 
             ImGui::Separator();

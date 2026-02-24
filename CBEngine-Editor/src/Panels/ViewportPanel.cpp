@@ -798,76 +798,73 @@ namespace CB
         ImGuizmo::SetOrthographic(false);
         ImGuizmo::SetDrawlist();
 
-        ImVec2 imageMin = ImGui::GetItemRectMin();
+        ImVec2 imageMin  = ImGui::GetItemRectMin();
         ImVec2 imageSize = ImGui::GetItemRectSize();
         ImGuizmo::SetRect(imageMin.x, imageMin.y, imageSize.x, imageSize.y);
 
-        // Build entity transform matrix (world space for parented entities)
-        Mat4 transformMatrix = tc.HasParent() ? tc.WorldMatrix : tc.GetLocalTransform();
-
-        // Snap values
-        float snapValues[3] = {0.0f, 0.0f, 0.0f};
-        bool useSnap = ImGui::GetIO().KeyCtrl;
-        if (useSnap)
+        // --- Main entity gizmo ---
         {
-            if (m_GizmoOperation == ImGuizmo::TRANSLATE)
-                snapValues[0] = snapValues[1] = snapValues[2] = 0.5f;
-            else if (m_GizmoOperation == ImGuizmo::ROTATE)
-                snapValues[0] = snapValues[1] = snapValues[2] = 15.0f;
-            else if (m_GizmoOperation == ImGuizmo::SCALE)
-                snapValues[0] = snapValues[1] = snapValues[2] = 0.1f;
-        }
+            Mat4 transformMatrix = tc.HasParent() ? tc.WorldMatrix : tc.GetLocalTransform();
 
-        // Manipulate
-        Manipulate(
-            value_ptr(viewMatrix),
-            value_ptr(projMatrix),
-            m_GizmoOperation,
-            m_GizmoOperation == ImGuizmo::SCALE ? ImGuizmo::LOCAL : m_GizmoMode,
-            value_ptr(transformMatrix),
-            nullptr,
-            useSnap ? snapValues : nullptr
-        );
-
-        if (ImGuizmo::IsUsing())
-        {
-            // If entity has a parent, convert world-space matrix back to local space
-            if (tc.HasParent())
+            float snapValues[3] = {0.0f, 0.0f, 0.0f};
+            bool useSnap = ImGui::GetIO().KeyCtrl;
+            if (useSnap)
             {
-                Entity parent = entity.GetParent();
-                if (parent && parent.HasComponent<TransformComponent>())
+                if (m_GizmoOperation == ImGuizmo::TRANSLATE)
+                    snapValues[0] = snapValues[1] = snapValues[2] = 0.5f;
+                else if (m_GizmoOperation == ImGuizmo::ROTATE)
+                    snapValues[0] = snapValues[1] = snapValues[2] = 15.0f;
+                else if (m_GizmoOperation == ImGuizmo::SCALE)
+                    snapValues[0] = snapValues[1] = snapValues[2] = 0.1f;
+            }
+
+            Manipulate(
+                value_ptr(viewMatrix),
+                value_ptr(projMatrix),
+                m_GizmoOperation,
+                m_GizmoOperation == ImGuizmo::SCALE ? ImGuizmo::LOCAL : m_GizmoMode,
+                value_ptr(transformMatrix),
+                nullptr,
+                useSnap ? snapValues : nullptr
+            );
+
+            if (ImGuizmo::IsUsing())
+            {
+                if (tc.HasParent())
                 {
-                    Mat4 parentWorldMatrix = parent.GetComponent<TransformComponent>().WorldMatrix;
-                    transformMatrix = inverse(parentWorldMatrix) * transformMatrix;
+                    Entity parent = entity.GetParent();
+                    if (parent && parent.HasComponent<TransformComponent>())
+                    {
+                        Mat4 parentWorldMatrix = parent.GetComponent<TransformComponent>().WorldMatrix;
+                        transformMatrix = inverse(parentWorldMatrix) * transformMatrix;
+                    }
                 }
-            }
 
-            // Only update the component relevant to the current operation
-            // to avoid euler angle roundtrip instability
-            if (m_GizmoOperation == ImGuizmo::TRANSLATE)
-            {
-                tc.Position = Vector3(transformMatrix[3]);
-            }
-            else if (m_GizmoOperation == ImGuizmo::ROTATE)
-            {
-                Vector3 decomposedScale, skew;
-                Vector4 perspective;
-                Quaternion rotation;
-                Vector3 translation;
-                decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
-                tc.Rotation = eulerAngles(rotation);
-            }
-            else if (m_GizmoOperation == ImGuizmo::SCALE)
-            {
-                Vector3 decomposedScale, skew;
-                Vector4 perspective;
-                Quaternion rotation;
-                Vector3 translation;
-                decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
-                tc.Scale = decomposedScale;
-            }
+                if (m_GizmoOperation == ImGuizmo::TRANSLATE)
+                {
+                    tc.Position = Vector3(transformMatrix[3]);
+                }
+                else if (m_GizmoOperation == ImGuizmo::ROTATE)
+                {
+                    Vector3 decomposedScale, skew;
+                    Vector4 perspective;
+                    Quaternion rotation;
+                    Vector3 translation;
+                    decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
+                    tc.Rotation = eulerAngles(rotation);
+                }
+                else if (m_GizmoOperation == ImGuizmo::SCALE)
+                {
+                    Vector3 decomposedScale, skew;
+                    Vector4 perspective;
+                    Quaternion rotation;
+                    Vector3 translation;
+                    decompose(transformMatrix, decomposedScale, rotation, translation, skew, perspective);
+                    tc.Scale = decomposedScale;
+                }
 
-            tc.Dirty = true;
+                tc.Dirty = true;
+            }
         }
     }
 

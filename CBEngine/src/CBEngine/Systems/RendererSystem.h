@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CBEngine/Core/Core.h"
+#include "CBEngine/Core/TimeStep.h"
 #include "CBEngine/Renderer/Camera/Camera.h"
 #include "CBEngine/Renderer/Resources/Shader.h"
 #include "CBEngine/Renderer/Resources/Material.h"

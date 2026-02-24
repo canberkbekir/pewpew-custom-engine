@@ -105,7 +105,7 @@ function PlayerMovement:OnCreate()
         self.cam = self.Camera
     else
         for _, child in ipairs(entity:GetChildren()) do
-            if child:HasCamera() then
+            if child:GetComponent(Camera) then
                 self.cam = child
                 break
             end

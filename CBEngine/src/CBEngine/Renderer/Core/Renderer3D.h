@@ -4,6 +4,8 @@
 #include "CBEngine/Renderer/Resources/Material.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Renderer/Resources/Texture.h"
+#include "CBEngine/Renderer/Resources/VertexArray.h"
+#include "CBEngine/Renderer/Resources/Buffer.h"
 
 namespace CB
 {
@@ -29,6 +31,11 @@ namespace CB
                                      const Ref<Texture2D>& paletteMaterialTex,
                                      const std::vector<Mat4>& transforms,
                                      const std::vector<int>& entityIDs);
+
+        // Raw VAO/IBO submit (used for rope and other procedural geometry)
+        static void SubmitVAO(const Ref<Shader>& shader, const Ref<Material>& material,
+                              const Ref<VertexArray>& vao, const Ref<IndexBuffer>& ibo,
+                              const Mat4& transform = Mat4(1.0f), int entityID = -1);
 
         // Light configuration
         static void SetDirectionalLight(const Vector3& direction, const Vector3& color, float intensity);

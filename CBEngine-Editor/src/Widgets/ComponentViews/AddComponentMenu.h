@@ -12,6 +12,9 @@
 #include "CBEngine/Components/ScriptComponent.h"
 #include "CBEngine/Components/CameraComponent.h"
 #include "CBEngine/Components/GameManagerComponent.h"
+#include "CBEngine/Components/HingeJointComponent.h"
+#include "CBEngine/Components/HingeChainComponent.h"
+#include "CBEngine/Systems/HingeChainSystem.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/AssetRegistry.h"
 
@@ -135,6 +138,36 @@ namespace CB
                         {
                             auto& collider = entity.AddComponent<ColliderComponent>();
                             ColliderComponentView::AutoFitCollider(entity, collider);
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                }
+
+                if (!hasFilter || MatchesFilter("Hinge Joint"))
+                {
+                    if (!entity.HasComponent<HingeJointComponent>())
+                    {
+                        anyComponentShown = true;
+                        if (ImGui::MenuItem("Hinge Joint"))
+                        {
+                            entity.AddComponent<HingeJointComponent>();
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                }
+
+                if (!hasFilter || MatchesFilter("Hinge Chain"))
+                {
+                    if (!entity.HasComponent<HingeChainComponent>())
+                    {
+                        anyComponentShown = true;
+                        if (ImGui::MenuItem("Hinge Chain"))
+                        {
+                            entity.AddComponent<HingeChainComponent>();
+                            // Spawn initial links immediately — on_construct fires before
+                            // Deserialize so we can't use it here; explicit call is correct.
+                            HingeChainSystem::RebuildChain(
+                                entity.GetScene(), entity);
                             ImGui::CloseCurrentPopup();
                         }
                     }

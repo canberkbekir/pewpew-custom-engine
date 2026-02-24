@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CBEngine/Math/CoreMath.h"
 #include <glm/glm.hpp>
 #include <yaml-cpp/yaml.h>
 

@@ -12,3 +12,5 @@
 #include "BlueprintInstanceComponent.h"
 #include "GameManagerComponent.h"
 #include "AudioSourceComponent.h"
+#include "HingeJointComponent.h"
+#include "HingeChainComponent.h"

@@ -12,6 +12,10 @@
 #include "CBEngine/Systems/PhysicsSystem.h"
 #include "CBEngine/Systems/DestructionSystem.h"
 #include "CBEngine/Systems/ScriptSystem.h"
+#include "CBEngine/Systems/HingeJointSystem.h"
+#include "CBEngine/Systems/HingeChainSystem.h"
+#include "CBEngine/Components/HingeJointComponent.h"
+#include "CBEngine/Components/HingeChainComponent.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Events/SceneEvent.h"
 #include "CBEngine/Input/Input.h"
@@ -55,6 +59,14 @@ namespace CB
         int GetPriority() const override { return 400; }
     };
 
+    class HingeJointSystemAdapter : public ISystem
+    {
+    public:
+        void OnUpdate(Scene* scene, Timestep ts) override { HingeJointSystem::OnUpdate(scene, ts); }
+        const char* GetName() const override { return "HingeJointSystem"; }
+        int GetPriority() const override { return 350; }
+    };
+
     // ---- System registration ----
 
     void Scene::RegisterSystem(Scope<ISystem> system)
@@ -73,12 +85,32 @@ namespace CB
             m_Systems.end());
     }
 
+    // ---- Component lifecycle signals ----
+    // Free function: retrieves Scene* from registry context, calls DestroyChainLinks.
+    // Connected once in Scene::Scene() via on_destroy<HingeChainComponent>.
+    // This is the generic hook point — future composite components follow the same pattern.
+    static void OnHingeChainComponentDestroyed(entt::registry& reg, entt::entity e)
+    {
+        Scene** scenePtr = reg.ctx().find<Scene*>();
+        if (scenePtr && *scenePtr)
+            HingeChainSystem::DestroyChainLinks(*scenePtr, e, reg);
+    }
+
     // ---- Scene lifecycle ----
 
     Scene::Scene()
     {
-        // Register the pre-physics transform system (always active)
-        RegisterSystem(CreateScope<TransformSystemAdapter>());
+        // Store this Scene* in the registry context so signal callbacks can retrieve it
+        // without coupling to a specific Scene instance.
+        m_Registry.ctx().insert_or_assign<Scene*>(this);
+
+        // Wire on_destroy signal for HingeChainComponent — cleanup runs automatically
+        // when the component is removed or the entity is destroyed.
+        m_Registry.on_destroy<HingeChainComponent>()
+            .connect<&OnHingeChainComponentDestroyed>();
+
+        // Register always-active systems (edit mode + play mode)
+        RegisterSystem(CreateScope<TransformSystemAdapter>()); // priority 100
     }
 
     Scene::~Scene()
@@ -149,6 +181,7 @@ namespace CB
         // Destroy physics bodies before removing entity from registry
         if (m_PhysicsWorld)
         {
+            HingeJointSystem::DestroyConstraint(m_PhysicsWorld.get(), EntityToDelete, m_Registry);
             PhysicsSystem::DestroyBody(m_PhysicsWorld.get(), EntityToDelete, m_Registry);
             PhysicsSystem::DestroyStaticBody(m_PhysicsWorld.get(), EntityToDelete, m_Registry);
         }
@@ -198,6 +231,7 @@ namespace CB
         // Register physics-phase systems
         RegisterSystem(CreateScope<DestructionSystemAdapter>());
         RegisterSystem(CreateScope<PhysicsSystemAdapter>());
+        RegisterSystem(CreateScope<HingeJointSystemAdapter>());
         RegisterSystem(CreateScope<TransformPostPhysicsAdapter>());
 
         m_PhysicsInitialized = true;
@@ -214,9 +248,17 @@ namespace CB
 
         // Unregister physics-phase and script systems
         UnregisterSystem("TransformPostPhysics");
+        UnregisterSystem("HingeJointSystem");
         UnregisterSystem("PhysicsSystem");
         UnregisterSystem("DestructionSystem");
         UnregisterSystem("ScriptSystem");
+
+        // Destroy all hinge joint constraints before physics world shutdown
+        {
+            auto view = m_Registry.view<HingeJointComponent>();
+            for (auto e : view)
+                HingeJointSystem::DestroyConstraint(m_PhysicsWorld.get(), e, m_Registry);
+        }
 
         PhysicsSystem::Shutdown(m_PhysicsWorld.get());
         m_PhysicsWorld.reset();
@@ -227,6 +269,16 @@ namespace CB
         // Restore scene state from pre-play snapshot
         if (!m_PrePlaySnapshot.empty())
         {
+            // Suppress the on_destroy<HingeChainComponent> signal during mass-clear.
+            // The signal calls scene->DestroyEntity on tracked link children, but the
+            // mass-clear below uses registry.destroy() directly — mixing the two on the
+            // same entity handles causes double-destroy UB.  Clearing the UUID lists
+            // makes the signal a safe no-op for entities in the toDestroy set.
+            {
+                auto chainView = m_Registry.view<HingeChainComponent>();
+                chainView.each([](HingeChainComponent& chain) { chain.LinkEntityUUIDs.clear(); });
+            }
+
             // Clear all current entities
             std::vector<entt::entity> toDestroy;
             m_Registry.view<IDComponent>().each([&](entt::entity e, IDComponent&) {
@@ -303,6 +355,7 @@ namespace CB
             // Destroy physics bodies before removing entity from registry
             if (m_PhysicsWorld)
             {
+                HingeJointSystem::DestroyConstraint(m_PhysicsWorld.get(), entity, m_Registry);
                 PhysicsSystem::DestroyBody(m_PhysicsWorld.get(), entity, m_Registry);
                 PhysicsSystem::DestroyStaticBody(m_PhysicsWorld.get(), entity, m_Registry);
             }

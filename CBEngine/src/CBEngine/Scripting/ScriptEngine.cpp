@@ -17,6 +17,7 @@
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
 #include "CBEngine/Components/AudioSourceComponent.h"
+#include "CBEngine/Components/HingeJointComponent.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/Asset.h"
 #include "CBEngine/Audio/AudioClipAsset.h"
@@ -432,6 +433,12 @@ namespace CB
 				if (!e.HasComponent<AudioSourceComponent>())
 					return sol::make_object(L, sol::nil);
 				return sol::make_object(L, AudioSourceProxy{e});
+			}
+			if (componentName == "HingeJoint" || componentName == "HingeJointComponent")
+			{
+				if (!e.HasComponent<HingeJointComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, HingeJointProxy{e});
 			}
 
 			CB_CORE_WARN("[Lua] GetComponent: unknown component type '{0}'", componentName);

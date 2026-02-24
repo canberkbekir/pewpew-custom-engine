@@ -1,4 +1,4 @@
-﻿#include "cbpch.h"
+#include "cbpch.h"
 #include "RendererSystem.h"
 
 #include "CBEngine/Components/DirectionalLightComponent.h"
@@ -7,8 +7,11 @@
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Debug/Instrumentor.h"
 #include "CBEngine/Renderer/Core/Renderer3D.h"
+#include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Utils/VoxelizerAPI.h"
 
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/constants.hpp>
 #include <unordered_map>
 
 namespace CB
@@ -151,7 +154,6 @@ namespace CB
         {
             if (batch.Transforms.size() > 1)
             {
-                // Instanced draw for groups with multiple entities
                 Renderer3D::SubmitVoxelBatch(voxelShader, defaultMaterial,
                                              batch.MeshAsset,
                                              batch.PaletteColorTexture,
@@ -161,7 +163,6 @@ namespace CB
             }
             else
             {
-                // Single entity — regular submit (avoid instancing overhead)
                 Renderer3D::Submit(voxelShader, defaultMaterial, batch.MeshAsset,
                                    batch.Transforms[0], batch.EntityIDs[0], false,
                                    batch.PaletteColorTexture, batch.PaletteMaterialTexture);
@@ -187,4 +188,5 @@ namespace CB
 
         return -normalize(zAxis);
     }
+
 }

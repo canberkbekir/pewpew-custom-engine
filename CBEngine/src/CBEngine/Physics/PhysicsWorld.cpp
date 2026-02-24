@@ -643,6 +643,51 @@ namespace CB
 		return DoOverlapQuery(this, &capsuleShape, transform, center, layerMask, ignoreEntity);
 	}
 
+	std::vector<RaycastHit> PhysicsWorld::OverlapCapsuleSegment(
+		const Vector3& p0, const Vector3& p1, float radius,
+		uint16_t layerMask, UUID ignoreEntity) const
+	{
+		if (!m_Initialized) return {};
+
+		JPH::Vec3 jSeg(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
+		float segLen = jSeg.Length();
+
+		// Degenerate segment — fall back to sphere
+		if (segLen < 1e-6f)
+			return OverlapSphere((p0 + p1) * 0.5f, radius, layerMask, ignoreEntity);
+
+		float   halfHeight = segLen * 0.5f;
+		Vector3 center((p0.x + p1.x) * 0.5f, (p0.y + p1.y) * 0.5f, (p0.z + p1.z) * 0.5f);
+
+		// CapsuleShape is Y-axis aligned; build rotation from Y to segment direction
+		JPH::Vec3 segDir = jSeg / segLen;
+		JPH::Vec3 yAxis(0.0f, 1.0f, 0.0f);
+		float     dot = yAxis.Dot(segDir);
+
+		JPH::Quat jRot;
+		if (dot > 1.0f - 1e-5f)
+		{
+			jRot = JPH::Quat::sIdentity();
+		}
+		else if (dot < -1.0f + 1e-5f)
+		{
+			// 180° around X axis: (x=1,y=0,z=0,w=0) in Jolt's (x,y,z,w) convention
+			jRot = JPH::Quat(1.0f, 0.0f, 0.0f, 0.0f);
+		}
+		else
+		{
+			JPH::Vec3 axis  = yAxis.Cross(segDir).Normalized();
+			float     angle = std::acos(std::max(-1.0f, std::min(1.0f, dot)));
+			jRot = JPH::Quat::sRotation(axis, angle);
+		}
+
+		JPH::CapsuleShape capsuleShape(std::max(halfHeight, 0.001f), std::max(radius, 0.001f));
+		JPH::RMat44 transform = JPH::RMat44::sRotationTranslation(
+			jRot, JPH::RVec3(center.x, center.y, center.z));
+
+		return DoOverlapQuery(this, &capsuleShape, transform, center, layerMask, ignoreEntity);
+	}
+
 	// Contact listener implementation
 
 	JPH::ValidateResult PhysicsWorld::OnContactValidate(

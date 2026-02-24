@@ -76,15 +76,23 @@ end
 -- ── Hit logic ──────────────────────────────────────────────────────────────────
 
 function PlayerBullet:_OnHit(other, point, normal)
-    -- Try to deal damage if the target has a Health script.
-    -- Health script is expected to expose:  function Health:TakeDamage(amount) end
     if other and other:IsValid() then
-        if Health then   -- only attempt if a Health class is loaded
+
+        -- Generic health damage
+        if Health then
             local health = other:GetComponent(Health)
             if health and health.TakeDamage then
                 health:TakeDamage(self.Damage)
             end
         end
+
+        -- Chain link hit: break the joint so the link and everything below it
+        -- detaches from the anchor and falls as a connected segment.
+        local joint = other:GetComponent(HingeJoint)
+        if joint and joint:IsActive() then
+            joint:Break()
+        end
+
     end
 
     self:_Die()

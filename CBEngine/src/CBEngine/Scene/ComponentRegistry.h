@@ -27,7 +27,8 @@ namespace CB
         ColliderComponent,
         ScriptComponent,
         GameManagerComponent,
-        AudioSourceComponent
+        AudioSourceComponent,
+        HingeJointComponent
     >;
 
     // NOTE: BlueprintInstanceComponent is NOT in SerializableComponents.

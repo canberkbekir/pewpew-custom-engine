@@ -14,6 +14,10 @@
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
 
+// Forward declaration — forces the linker to include ComponentRegistrations.obj
+// from CBEngine.lib (MSVC dead-strips objects with no referenced symbols).
+namespace CB { void LinkComponentRegistrations(); }
+
 namespace CB
 {
     Application* Application::s_Instance = nullptr;
@@ -24,6 +28,8 @@ namespace CB
 
         CB_CORE_ASSERT(!s_Instance, "Application already exists!")
         s_Instance = this;
+
+        LinkComponentRegistrations();
 
         m_Window = Window::Create();
         m_Window->SetEventCallback(CB_BIND_EVENT_FN(OnEvent));

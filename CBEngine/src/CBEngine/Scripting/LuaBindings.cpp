@@ -57,6 +57,7 @@ namespace CB
 		RegisterLuaUtils(lua);       // Phase 1: Signal, Coroutine, Tween, Pool
 		RegisterAudio(lua);          // Phase 5: Audio API
 		RegisterSceneManagement(lua);// Phase 6: Scene management
+		RegisterHingeJoint(lua);     // HingeJoint constraint API
 	}
 
 	void LuaBindings::RegisterMath(sol::state& lua)
@@ -708,6 +709,12 @@ end
 					for (auto e : view) return Entity{ e, &scene };
 					return Entity{};
 				}
+				if (componentName == "HingeJoint" || componentName == "HingeJointComponent")
+				{
+					auto view = reg.view<HingeJointComponent>();
+					for (auto e : view) return Entity{ e, &scene };
+					return Entity{};
+				}
 
 				CB_CORE_WARN("[Lua] FindFirstWithComponent: unknown component '{0}'", componentName);
 				return Entity{};
@@ -749,6 +756,8 @@ end
 					pushEntities(reg.view<AudioSourceComponent>());
 				else if (componentName == "Script" || componentName == "ScriptComponent")
 					pushEntities(reg.view<ScriptComponent>());
+				else if (componentName == "HingeJoint" || componentName == "HingeJointComponent")
+					pushEntities(reg.view<HingeJointComponent>());
 				else
 					CB_CORE_WARN("[Lua] FindAllWithComponent: unknown component '{0}'", componentName);
 
@@ -859,15 +868,6 @@ end
 
 		sol::usertype<Entity> et = entity_type;
 
-		// Has-component checks
-		et["HasRigidBody"] = [](Entity& e) -> bool { return e.HasComponent<RigidBodyComponent>(); };
-		et["HasCollider"] = [](Entity& e) -> bool { return e.HasComponent<ColliderComponent>(); };
-		et["HasMeshRenderer"] = [](Entity& e) -> bool { return e.HasComponent<MeshRendererComponent>(); };
-		et["HasVoxelRenderer"] = [](Entity& e) -> bool { return e.HasComponent<VoxelRendererComponent>(); };
-		et["HasDirectionalLight"] = [](Entity& e) -> bool { return e.HasComponent<DirectionalLightComponent>(); };
-		et["HasScript"] = [](Entity& e) -> bool { return e.HasComponent<ScriptComponent>(); };
-		et["HasCamera"] = [](Entity& e) -> bool { return e.HasComponent<CameraComponent>(); };
-		et["HasAudioSource"] = [](Entity& e) -> bool { return e.HasComponent<AudioSourceComponent>(); };
 
 		// Camera accessors
 		et["GetFOV"] = [](Entity& e) -> float {
@@ -1422,6 +1422,7 @@ end
 		makeToken("VoxelRenderer");
 		makeToken("DirectionalLight");
 		makeToken("AudioSource");
+		makeToken("HingeJoint");
 
 		// Physics bindings on Entity
 		auto entity_type = lua["Entity"];
@@ -2765,4 +2766,30 @@ end
 			};
 		}
 	}
+
+	void LuaBindings::RegisterHingeJoint(sol::state& lua)
+	{
+		// --- HingeJointProxy usertype ---
+		lua.new_usertype<HingeJointProxy>("__HingeJointProxy",
+			"IsValid",  [](HingeJointProxy& p) -> bool  { return p.IsValid(); },
+			"IsActive", [](HingeJointProxy& p) -> bool  { return p.IsActive(); },
+			"GetCurrentAngle", [](HingeJointProxy& p) -> float { return p.GetCurrentAngle(); },
+			"SetMotorVelocity", [](HingeJointProxy& p, float deg) { p.SetMotorVelocity(deg); },
+			"SetMotorEnabled",  [](HingeJointProxy& p, bool on)   { p.SetMotorEnabled(on); },
+			"Break", [](HingeJointProxy& p) { p.Break(); },
+			"Reset", [](HingeJointProxy& p) { p.Reset(); }
+		);
+
+		// --- Entity methods ---
+		auto entity_type = lua["Entity"];
+		if (!entity_type.valid())
+			return;
+
+		sol::usertype<Entity> et = entity_type;
+
+		et["GetHingeJoint"] = [](Entity& e) -> HingeJointProxy {
+			return HingeJointProxy{ e };
+		};
+	}
 }
+

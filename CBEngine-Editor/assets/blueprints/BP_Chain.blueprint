@@ -1,0 +1,37 @@
+Blueprint: Chain
+Entities:
+  - Entity: 9173040000732748729
+    TagComponent:
+      Tag: Chain
+    TransformComponent:
+      Position: [4.3774004, 1.8293089, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 0.3, 0.3]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 5
+      MaterialUUID: 0
+      ShaderUUID: 0
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
