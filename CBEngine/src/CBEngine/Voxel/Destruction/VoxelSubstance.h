@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 namespace CB
 {
@@ -44,6 +45,26 @@ namespace CB
         Structural = 1 << 6   // support removed (cascade collapse)
     };
 
+    // Hash for VoxelDamageType (needed for unordered_map key)
+    struct VoxelDamageTypeHash
+    {
+        size_t operator()(VoxelDamageType t) const noexcept
+        {
+            return std::hash<uint32_t>()(static_cast<uint32_t>(t));
+        }
+    };
+
+    // =========================================================================
+    // DamageTintConfig — per-damage-type visual tint configuration
+    // =========================================================================
+    struct DamageTintConfig
+    {
+        Vector3 Color       = Vector3(1.0f);  // target tint RGB (1,1,1 = no tint)
+        float   Intensity   = 0.0f;           // intensity gain per (effectiveDmg / maxHealth)
+        int     SpreadRadius = 0;             // grid cells to spread, 0 = center only, max 4
+        float   SpreadFalloff = 0.5f;         // intensity multiplier per cell distance
+    };
+
     // =========================================================================
     // VoxelSubstanceProperties — physical destruction properties for one substance
     // Loaded from assets/config/voxel_substances.yaml by VoxelSubstanceDatabase
@@ -73,6 +94,9 @@ namespace CB
         float BurnDuration        = 0.0f;    // seconds, 0 = never burns out
         bool  PropagatesDamage    = false;   // fire/explosion spreads to neighbors
         float DamageSpreadFactor  = 0.5f;    // damage multiplier when spreading
+
+        // --- Damage Tint (visual, per damage type) ---
+        std::unordered_map<VoxelDamageType, DamageTintConfig, VoxelDamageTypeHash> DamageTints;
     };
 
     // =========================================================================

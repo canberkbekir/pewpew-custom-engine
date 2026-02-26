@@ -1044,7 +1044,8 @@ namespace CB
     }
 
     Ref<Mesh> VoxelizerAPI::CreatePaletteMeshFromGrid(const voxelizer::VoxelGrid& grid,
-                                                      const std::vector<uint8_t>& paletteIndices)
+                                                      const std::vector<uint8_t>& paletteIndices,
+                                                      const VoxelTintMap* tintMap)
     {
         CB_PROFILE_FUNCTION();
 
@@ -1087,7 +1088,14 @@ namespace CB
                 {
                     Vertex v = s_UnitCubeVertices[faceVertStart + fv];
                     v.Position = center + Vector3(v.Position) * voxelSize;
-                    v.Color = Vector3(1.0f);
+                    Vector3 tintColor(1.0f);
+                    if (tintMap)
+                    {
+                        auto it = tintMap->find(coord);
+                        if (it != tintMap->end())
+                            tintColor = glm::mix(Vector3(1.0f), Vector3(it->second.Color), it->second.Intensity);
+                    }
+                    v.Color = tintColor;
                     v.PaletteIndex = palIdx;
                     vertices.push_back(v);
                 }
@@ -1114,12 +1122,13 @@ namespace CB
     // Standard Methods
     // ============================================================================
 
-    Ref<Mesh> VoxelizerAPI::CreateMeshFromGrid(const voxelizer::VoxelGrid& grid)
+    Ref<Mesh> VoxelizerAPI::CreateMeshFromGrid(const voxelizer::VoxelGrid& grid, const VoxelTintMap* tintMap)
     {
-        return CreateMeshFromGrid(grid, Vector3(1.0f, 1.0f, 1.0f));
+        return CreateMeshFromGrid(grid, Vector3(1.0f, 1.0f, 1.0f), tintMap);
     }
 
-    Ref<Mesh> VoxelizerAPI::CreateMeshFromGrid(const voxelizer::VoxelGrid& grid, const Vector3& color)
+    Ref<Mesh> VoxelizerAPI::CreateMeshFromGrid(const voxelizer::VoxelGrid& grid, const Vector3& color,
+                                                const VoxelTintMap* tintMap)
     {
         CB_PROFILE_FUNCTION();
 
@@ -1144,6 +1153,14 @@ namespace CB
         {
             glm::vec3 center = grid.VoxelCenterToWorld(coord);
 
+            Vector3 tintColor(1.0f);
+            if (tintMap)
+            {
+                auto tintIt = tintMap->find(coord);
+                if (tintIt != tintMap->end())
+                    tintColor = glm::mix(Vector3(1.0f), Vector3(tintIt->second.Color), tintIt->second.Intensity);
+            }
+
             // Emit only visible faces (neighbor culling)
             for (int face = 0; face < 6; ++face)
             {
@@ -1157,7 +1174,7 @@ namespace CB
                 {
                     Vertex v = s_UnitCubeVertices[faceVertStart + fv];
                     v.Position = center + Vector3(v.Position) * voxelSize;
-                    v.Color = color;
+                    v.Color = color * tintColor;
                     vertices.push_back(v);
                 }
 

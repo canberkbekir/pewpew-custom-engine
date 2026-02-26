@@ -51,6 +51,33 @@ namespace CB
         return def;
     }
 
+    static VoxelDamageType DamageTypeFromString(const std::string& s)
+    {
+        if (s == "Impact")     return VoxelDamageType::Impact;
+        if (s == "Explosion")  return VoxelDamageType::Explosion;
+        if (s == "Slice")      return VoxelDamageType::Slice;
+        if (s == "Fire")       return VoxelDamageType::Fire;
+        if (s == "Acid")       return VoxelDamageType::Acid;
+        if (s == "Pressure")   return VoxelDamageType::Pressure;
+        if (s == "Structural") return VoxelDamageType::Structural;
+        return VoxelDamageType::None;
+    }
+
+    static const char* DamageTypeToString(VoxelDamageType t)
+    {
+        switch (t)
+        {
+            case VoxelDamageType::Impact:     return "Impact";
+            case VoxelDamageType::Explosion:  return "Explosion";
+            case VoxelDamageType::Slice:      return "Slice";
+            case VoxelDamageType::Fire:       return "Fire";
+            case VoxelDamageType::Acid:       return "Acid";
+            case VoxelDamageType::Pressure:   return "Pressure";
+            case VoxelDamageType::Structural: return "Structural";
+            default:                          return "None";
+        }
+    }
+
     static VoxelSubstanceProperties ParseEntry(const YAML::Node& node)
     {
         VoxelSubstanceProperties p;
@@ -74,6 +101,28 @@ namespace CB
         p.BurnDuration        = SafeFloat(node, "burn_duration",        0.0f);
         p.PropagatesDamage    = SafeBool (node, "propagates_damage",    false);
         p.DamageSpreadFactor  = SafeFloat(node, "damage_spread_factor", 0.5f);
+
+        // Parse damage tints
+        if (node["damage_tints"] && node["damage_tints"].IsMap())
+        {
+            for (auto it = node["damage_tints"].begin(); it != node["damage_tints"].end(); ++it)
+            {
+                std::string typeName = it->first.as<std::string>();
+                VoxelDamageType dmgType = DamageTypeFromString(typeName);
+                if (dmgType == VoxelDamageType::None) continue;
+
+                const auto& tNode = it->second;
+                DamageTintConfig cfg;
+                if (tNode["color"] && tNode["color"].IsSequence() && tNode["color"].size() == 3)
+                    cfg.Color = Vector3(tNode["color"][0].as<float>(),
+                                        tNode["color"][1].as<float>(),
+                                        tNode["color"][2].as<float>());
+                cfg.Intensity    = SafeFloat(tNode, "intensity", 0.0f);
+                cfg.SpreadRadius = SafeInt(tNode, "spread_radius", 0);
+                cfg.SpreadFalloff = SafeFloat(tNode, "spread_falloff", 0.5f);
+                p.DamageTints[dmgType] = cfg;
+            }
+        }
 
         return p;
     }
@@ -151,5 +200,72 @@ namespace CB
     VoxelMaterialType VoxelSubstanceDatabase::ResolveSubstanceName(const std::string& name)
     {
         return VoxelMaterialTypeFromString(name);
+    }
+
+    VoxelSubstanceProperties& VoxelSubstanceDatabase::GetMutable(VoxelMaterialType type)
+    {
+        int idx = static_cast<int>(type);
+        if (idx < 0 || idx >= static_cast<int>(VoxelMaterialType::Count))
+            return s_Fallback;
+        return s_Properties[idx];
+    }
+
+    void VoxelSubstanceDatabase::Save(const std::string& path)
+    {
+        YAML::Emitter out;
+        out << YAML::BeginMap;
+        out << YAML::Key << "substances" << YAML::Value << YAML::BeginMap;
+
+        for (int i = 0; i < static_cast<int>(VoxelMaterialType::Count); ++i)
+        {
+            VoxelMaterialType type = static_cast<VoxelMaterialType>(i);
+            const auto& p = s_Properties[i];
+            out << YAML::Key << VoxelMaterialTypeToString(type);
+            out << YAML::Value << YAML::BeginMap;
+
+            out << YAML::Key << "mass_per_voxel"        << YAML::Value << p.MassPerVoxel;
+            out << YAML::Key << "health"                 << YAML::Value << p.Health;
+            out << YAML::Key << "hardness"               << YAML::Value << p.Hardness;
+            out << YAML::Key << "explosion_resistance"   << YAML::Value << p.ExplosionResistance;
+            out << YAML::Key << "slice_resistance"       << YAML::Value << p.SliceResistance;
+            out << YAML::Key << "tensile_strength"       << YAML::Value << p.TensileStrength;
+            out << YAML::Key << "impact_threshold"       << YAML::Value << p.ImpactThreshold;
+
+            const char* fracNames[] = { "NONE", "CHIP", "CRACK", "SHATTER", "CRUMBLE" };
+            out << YAML::Key << "fracture_behavior"      << YAML::Value << fracNames[static_cast<int>(p.Fracture)];
+            out << YAML::Key << "fracture_threshold"     << YAML::Value << p.FractureThreshold;
+            out << YAML::Key << "fragment_count"         << YAML::Value << p.FragmentCount;
+            out << YAML::Key << "fragments_have_physics" << YAML::Value << p.FragmentsHavePhysics;
+
+            out << YAML::Key << "flammable"              << YAML::Value << p.Flammable;
+            out << YAML::Key << "ignition_temperature"   << YAML::Value << p.IgnitionTemperature;
+            out << YAML::Key << "burn_duration"          << YAML::Value << p.BurnDuration;
+            out << YAML::Key << "propagates_damage"      << YAML::Value << p.PropagatesDamage;
+            out << YAML::Key << "damage_spread_factor"   << YAML::Value << p.DamageSpreadFactor;
+
+            if (!p.DamageTints.empty())
+            {
+                out << YAML::Key << "damage_tints" << YAML::Value << YAML::BeginMap;
+                for (const auto& [dmgType, cfg] : p.DamageTints)
+                {
+                    out << YAML::Key << DamageTypeToString(dmgType);
+                    out << YAML::Value << YAML::BeginMap;
+                    out << YAML::Key << "color" << YAML::Value << YAML::Flow
+                        << YAML::BeginSeq << cfg.Color.x << cfg.Color.y << cfg.Color.z << YAML::EndSeq;
+                    out << YAML::Key << "intensity"      << YAML::Value << cfg.Intensity;
+                    out << YAML::Key << "spread_radius"  << YAML::Value << cfg.SpreadRadius;
+                    out << YAML::Key << "spread_falloff" << YAML::Value << cfg.SpreadFalloff;
+                    out << YAML::EndMap;
+                }
+                out << YAML::EndMap;
+            }
+
+            out << YAML::EndMap;
+        }
+
+        out << YAML::EndMap << YAML::EndMap;
+
+        std::ofstream file(path);
+        file << out.c_str();
     }
 }

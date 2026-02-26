@@ -29,15 +29,183 @@ IncludeDir["sol2"] = "CBEngine/vendor/sol2"
 IncludeDir["OpenALSoft"] = "CBEngine/vendor/OpenAL-Soft/include"
 IncludeDir["dr_libs"] = "CBEngine/vendor/dr_libs"
 
-include "CBEngine/vendor/JoltPhysics"
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Dependencies group — these compile once and stay cached until vendor
+-- source files themselves change. Keeps incremental engine builds fast.
+-- ═══════════════════════════════════════════════════════════════════════════
+group "Dependencies"
 
--- Lua static library
+-- ── GLFW ─────────────────────────────────────────────────────────────────
+project "GLFW"
+	location "CBEngine/vendor/GLFW"
+	kind "StaticLib"
+	language "C"
+	staticruntime "on"
+	flags { "MultiProcessorCompile" }
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"CBEngine/vendor/GLFW/include/GLFW/glfw3.h",
+		"CBEngine/vendor/GLFW/include/GLFW/glfw3native.h",
+		"CBEngine/vendor/GLFW/src/glfw_config.h",
+		"CBEngine/vendor/GLFW/src/context.c",
+		"CBEngine/vendor/GLFW/src/init.c",
+		"CBEngine/vendor/GLFW/src/input.c",
+		"CBEngine/vendor/GLFW/src/monitor.c",
+		"CBEngine/vendor/GLFW/src/null_init.c",
+		"CBEngine/vendor/GLFW/src/null_joystick.c",
+		"CBEngine/vendor/GLFW/src/null_monitor.c",
+		"CBEngine/vendor/GLFW/src/null_window.c",
+		"CBEngine/vendor/GLFW/src/platform.c",
+		"CBEngine/vendor/GLFW/src/vulkan.c",
+		"CBEngine/vendor/GLFW/src/window.c",
+	}
+
+	defines { "_CRT_SECURE_NO_WARNINGS" }
+
+	filter "system:windows"
+		systemversion "latest"
+		defines { "_GLFW_WIN32" }
+		files
+		{
+			"CBEngine/vendor/GLFW/src/win32_init.c",
+			"CBEngine/vendor/GLFW/src/win32_joystick.c",
+			"CBEngine/vendor/GLFW/src/win32_module.c",
+			"CBEngine/vendor/GLFW/src/win32_monitor.c",
+			"CBEngine/vendor/GLFW/src/win32_time.c",
+			"CBEngine/vendor/GLFW/src/win32_thread.c",
+			"CBEngine/vendor/GLFW/src/win32_window.c",
+			"CBEngine/vendor/GLFW/src/wgl_context.c",
+			"CBEngine/vendor/GLFW/src/egl_context.c",
+			"CBEngine/vendor/GLFW/src/osmesa_context.c",
+		}
+
+	filter "configurations:Debug"
+		runtime "Debug"
+		symbols "on"
+	filter "configurations:Release"
+		runtime "Release"
+		optimize "on"
+	filter "configurations:Dist"
+		runtime "Release"
+		optimize "on"
+
+-- ── Glad ─────────────────────────────────────────────────────────────────
+project "Glad"
+	location "CBEngine/vendor/Glad"
+	kind "StaticLib"
+	language "C"
+	staticruntime "on"
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"CBEngine/vendor/Glad/include/glad/glad.h",
+		"CBEngine/vendor/Glad/include/KHR/khrplatform.h",
+		"CBEngine/vendor/Glad/src/glad.c",
+	}
+
+	includedirs { "CBEngine/vendor/Glad/include" }
+
+	filter "system:windows"
+		systemversion "latest"
+	filter "configurations:Debug"
+		runtime "Debug"
+		symbols "on"
+	filter "configurations:Release"
+		runtime "Release"
+		optimize "on"
+	filter "configurations:Dist"
+		runtime "Release"
+		optimize "on"
+
+-- ── ImGui ────────────────────────────────────────────────────────────────
+project "ImGui"
+	location "CBEngine/vendor/imgui"
+	kind "StaticLib"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+	flags { "MultiProcessorCompile" }
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"CBEngine/vendor/imgui/imconfig.h",
+		"CBEngine/vendor/imgui/imgui.h",
+		"CBEngine/vendor/imgui/imgui.cpp",
+		"CBEngine/vendor/imgui/imgui_draw.cpp",
+		"CBEngine/vendor/imgui/imgui_internal.h",
+		"CBEngine/vendor/imgui/imgui_tables.cpp",
+		"CBEngine/vendor/imgui/imgui_widgets.cpp",
+		"CBEngine/vendor/imgui/imstb_rectpack.h",
+		"CBEngine/vendor/imgui/imstb_textedit.h",
+		"CBEngine/vendor/imgui/imstb_truetype.h",
+	}
+
+	filter "system:windows"
+		systemversion "latest"
+		buildoptions { "/utf-8" }
+	filter "configurations:Debug"
+		runtime "Debug"
+		symbols "on"
+		files { "CBEngine/vendor/imgui/imgui_demo.cpp" }
+	filter "configurations:Release"
+		runtime "Release"
+		optimize "on"
+	filter "configurations:Dist"
+		runtime "Release"
+		optimize "on"
+
+-- ── yaml-cpp ─────────────────────────────────────────────────────────────
+project "yaml-cpp"
+	location "CBEngine/vendor/yaml-cpp"
+	kind "StaticLib"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+	flags { "MultiProcessorCompile" }
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"CBEngine/vendor/yaml-cpp/src/**.cpp",
+		"CBEngine/vendor/yaml-cpp/src/**.h",
+		"CBEngine/vendor/yaml-cpp/include/**.h",
+	}
+
+	includedirs { "CBEngine/vendor/yaml-cpp/include" }
+	defines { "YAML_CPP_STATIC_DEFINE" }
+
+	filter "system:windows"
+		systemversion "latest"
+		buildoptions { "/utf-8" }
+		disablewarnings { "4267" }
+	filter "configurations:Debug"
+		runtime "Debug"
+		symbols "on"
+	filter "configurations:Release"
+		runtime "Release"
+		optimize "on"
+	filter "configurations:Dist"
+		runtime "Release"
+		optimize "on"
+
+-- ── Lua ──────────────────────────────────────────────────────────────────
 project "Lua"
 	location "CBEngine/vendor/lua"
 	kind "StaticLib"
 	language "C"
 	staticruntime "on"
-	warnings "off"
 	flags { "MultiProcessorCompile" }
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
@@ -46,31 +214,77 @@ project "Lua"
 	files
 	{
 		"CBEngine/vendor/lua/src/*.c",
-		"CBEngine/vendor/lua/src/*.h"
+		"CBEngine/vendor/lua/src/*.h",
 	}
 
-	-- Exclude lua.c and luac.c (they contain main() functions)
 	removefiles
 	{
 		"CBEngine/vendor/lua/src/lua.c",
-		"CBEngine/vendor/lua/src/luac.c"
+		"CBEngine/vendor/lua/src/luac.c",
 	}
 
 	filter "system:windows"
 		systemversion "latest"
-
+		disablewarnings { "4244", "4702" }
 	filter "configurations:Debug"
 		runtime "Debug"
 		symbols "on"
-
 	filter "configurations:Release"
 		runtime "Release"
 		optimize "on"
-
 	filter "configurations:Dist"
 		runtime "Release"
 		optimize "on"
 
+-- ── JoltPhysics ──────────────────────────────────────────────────────────
+project "JoltPhysics"
+	location "CBEngine/vendor/JoltPhysics"
+	kind "StaticLib"
+	language "C++"
+	cppdialect "C++17"
+	staticruntime "on"
+	flags { "MultiProcessorCompile" }
+
+	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+
+	files
+	{
+		"CBEngine/vendor/JoltPhysics/Jolt/**.h",
+		"CBEngine/vendor/JoltPhysics/Jolt/**.inl",
+		"CBEngine/vendor/JoltPhysics/Jolt/**.cpp",
+	}
+
+	includedirs { "CBEngine/vendor/JoltPhysics" }
+
+	defines
+	{
+		"_CRT_SECURE_NO_WARNINGS",
+		"JPH_DISABLE_CUSTOM_ALLOCATOR",
+		"JPH_CROSS_PLATFORM_DETERMINISTIC",
+	}
+
+	filter "system:windows"
+		systemversion "latest"
+		buildoptions { "/utf-8", "/bigobj" }
+	filter "configurations:Debug"
+		runtime "Debug"
+		symbols "on"
+	filter "configurations:Release"
+		runtime "Release"
+		optimize "on"
+	filter "configurations:Dist"
+		runtime "Release"
+		optimize "on"
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- End Dependencies group
+-- ═══════════════════════════════════════════════════════════════════════════
+group ""
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- CBEngine (static library — engine core)
+-- ═══════════════════════════════════════════════════════════════════════════
 project "CBEngine"
     location "CBEngine"
 	kind "StaticLib"
@@ -91,72 +305,20 @@ project "CBEngine"
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
 
-		-- stb_image
+		-- Tiny vendors (header-only or 1-2 files) stay embedded
 		"%{prj.name}/vendor/stb_image/**.cpp",
 		"%{prj.name}/vendor/stb_image/**.h",
-
-		-- glm
 		"%{prj.name}/vendor/glm/glm/**.hpp",
 		"%{prj.name}/vendor/glm/glm/**.inl",
-
-		-- voxelizer
 		"%{prj.name}/vendor/voxelizer/**.h",
 		"%{prj.name}/vendor/voxelizer/**.cpp",
-
-		-- ImGuizmo
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.h",
 		"%{prj.name}/vendor/ImGuizmo/ImGuizmo.cpp",
-
-		-- Glad (embedded)
-		"%{prj.name}/vendor/Glad/include/glad/glad.h",
-		"%{prj.name}/vendor/Glad/include/KHR/khrplatform.h",
-		"%{prj.name}/vendor/Glad/src/glad.c",
-
-		-- ImGui (embedded)
-		"%{prj.name}/vendor/imgui/imconfig.h",
-		"%{prj.name}/vendor/imgui/imgui.h",
-		"%{prj.name}/vendor/imgui/imgui.cpp",
-		"%{prj.name}/vendor/imgui/imgui_draw.cpp",
-		"%{prj.name}/vendor/imgui/imgui_internal.h",
-		"%{prj.name}/vendor/imgui/imgui_tables.cpp",
-		"%{prj.name}/vendor/imgui/imgui_widgets.cpp",
-		"%{prj.name}/vendor/imgui/imstb_rectpack.h",
-		"%{prj.name}/vendor/imgui/imstb_textedit.h",
-		"%{prj.name}/vendor/imgui/imstb_truetype.h",
-		-- imgui_demo added per-config below (Debug only)
-
-		-- yaml-cpp
-		"%{prj.name}/vendor/yaml-cpp/src/**.cpp",
-		"%{prj.name}/vendor/yaml-cpp/src/**.h",
-		"%{prj.name}/vendor/yaml-cpp/include/**.h",
-
-		-- GLFW (embedded - common files)
-		"%{prj.name}/vendor/GLFW/include/GLFW/glfw3.h",
-		"%{prj.name}/vendor/GLFW/include/GLFW/glfw3native.h",
-		"%{prj.name}/vendor/GLFW/src/glfw_config.h",
-		"%{prj.name}/vendor/GLFW/src/context.c",
-		"%{prj.name}/vendor/GLFW/src/init.c",
-		"%{prj.name}/vendor/GLFW/src/input.c",
-		"%{prj.name}/vendor/GLFW/src/monitor.c",
-		"%{prj.name}/vendor/GLFW/src/null_init.c",
-		"%{prj.name}/vendor/GLFW/src/null_joystick.c",
-		"%{prj.name}/vendor/GLFW/src/null_monitor.c",
-		"%{prj.name}/vendor/GLFW/src/null_window.c",
-		"%{prj.name}/vendor/GLFW/src/platform.c",
-		"%{prj.name}/vendor/GLFW/src/vulkan.c",
-		"%{prj.name}/vendor/GLFW/src/window.c",
 	}
-
-	-- imgui_demo only compiled in Debug (large file, no production value)
-	filter "configurations:Debug"
-		files { "%{prj.name}/vendor/imgui/imgui_demo.cpp" }
-	filter {}
 
 	-- Exclude vendor files from precompiled header
 	filter "files:CBEngine/vendor/**"
 		flags { "NoPCH" }
-	filter "files:CBEngine/vendor/yaml-cpp/**"
-		disablewarnings { "4267" }
 	filter {}
 
 	defines
@@ -197,32 +359,20 @@ project "CBEngine"
 
 	links
 	{
+		"GLFW",
+		"Glad",
+		"ImGui",
+		"yaml-cpp",
+		"Lua",
+		"JoltPhysics",
 		"opengl32.lib",
 		"assimp-vc143-mt",
-		"JoltPhysics",
-		"Lua",
 		"OpenAL32"
 	}
-
 
     filter "system:windows"
 	    systemversion "latest"
         buildoptions { "/utf-8", "/bigobj" }
-
-		-- GLFW Windows-specific files
-		files
-		{
-			"%{prj.name}/vendor/GLFW/src/win32_init.c",
-			"%{prj.name}/vendor/GLFW/src/win32_joystick.c",
-			"%{prj.name}/vendor/GLFW/src/win32_module.c",
-			"%{prj.name}/vendor/GLFW/src/win32_monitor.c",
-			"%{prj.name}/vendor/GLFW/src/win32_time.c",
-			"%{prj.name}/vendor/GLFW/src/win32_thread.c",
-			"%{prj.name}/vendor/GLFW/src/win32_window.c",
-			"%{prj.name}/vendor/GLFW/src/wgl_context.c",
-			"%{prj.name}/vendor/GLFW/src/egl_context.c",
-			"%{prj.name}/vendor/GLFW/src/osmesa_context.c"
-		}
 
 	    defines
 	    {
@@ -245,6 +395,9 @@ project "CBEngine"
 		runtime "Release"
 		optimize "on"
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Sandbox (game executable)
+-- ═══════════════════════════════════════════════════════════════════════════
 project "Sandbox"
     location "Sandbox"
 	kind "ConsoleApp"
@@ -309,8 +462,7 @@ project "Sandbox"
 	    	"CB_PLATFORM_WINDOWS"
 	    }
 
-		-- Copy Assimp DLL to output folder after build
-		-- Copy engine Lua library to output folder
+		-- Copy DLLs and Lua library to output folder after build
 		postbuildcommands
 		{
 			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}",
@@ -334,6 +486,9 @@ project "Sandbox"
 		runtime "Release"
 		optimize "on"
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- CBEngine-Editor (editor executable)
+-- ═══════════════════════════════════════════════════════════════════════════
 project "CBEngine-Editor"
     location "CBEngine-Editor"
 	kind "ConsoleApp"
@@ -399,9 +554,7 @@ project "CBEngine-Editor"
 	    	"CB_PLATFORM_WINDOWS"
 	    }
 
-		-- Copy Assimp DLL to output folder after build
-		-- Copy OpenAL DLL to output folder after build
-		-- Copy engine Lua library to output folder
+		-- Copy DLLs and Lua library to output folder after build
 		postbuildcommands
 		{
 			"{COPYFILE} %{wks.location}CBEngine/vendor/assimp/bin/assimp-vc143-mt.dll %{cfg.targetdir}",

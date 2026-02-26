@@ -15,6 +15,7 @@
 #include "CBEngine/Systems/HingeJointSystem.h"
 #include "CBEngine/Systems/HingeChainSystem.h"
 #include "CBEngine/Systems/VoxelDestructionSystem.h"
+#include "CBEngine/Systems/VoxelSpreadSystem.h"
 #include "CBEngine/Components/HingeJointComponent.h"
 #include "CBEngine/Components/HingeChainComponent.h"
 #include "CBEngine/Components/DestructibleVoxelComponent.h"
@@ -244,6 +245,7 @@ namespace CB
 
         // Register physics-phase systems
         RegisterSystem(CreateScope<VoxelDestructionSystemAdapter>()); // priority 175
+        RegisterSystem(CreateScope<VoxelSpreadSystemAdapter>());    // priority 176
         RegisterSystem(CreateScope<DestructionSystemAdapter>());
         RegisterSystem(CreateScope<PhysicsSystemAdapter>());
         RegisterSystem(CreateScope<HingeJointSystemAdapter>());

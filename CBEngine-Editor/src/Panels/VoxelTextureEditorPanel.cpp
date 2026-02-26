@@ -991,6 +991,32 @@ namespace CB
             }
         }
         ImGui::SameLine();
+
+        // "Set All" substance dropdown — changes every palette entry to the chosen type
+        {
+            static int setAllIdx = 0;
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(80.0f);
+            ImGui::Combo("##SetAllType", &setAllIdx, materialTypeNames,
+                         static_cast<int>(VoxelMaterialType::Count));
+            ImGui::SameLine();
+            if (ImGui::Button("Set All Substance"))
+            {
+                auto newType = static_cast<VoxelMaterialType>(setAllIdx);
+                if (m_Vmesh->HasPalette)
+                {
+                    uint32_t usedCount = m_Vmesh->Palette.GetUsedCount();
+                    for (uint8_t i = 0; i < usedCount; i++)
+                        m_Vtex->SetPaletteType(i, newType);
+                }
+                m_MaterialMapDirty = true;
+                m_ColorGroupsDirty = true;
+                CB_CORE_INFO("Set all palette entries to substance: {0}",
+                             VoxelMaterialTypeToString(newType));
+            }
+        }
+
+        ImGui::SameLine();
         if (ImGui::Button("Save"))
         {
             if (m_Vtex->GetPath().empty())

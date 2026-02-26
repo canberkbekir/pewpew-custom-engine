@@ -182,7 +182,7 @@ void main()
         float palU = (v_PaletteIndex + 0.5) / 256.0;
         vec4 palColor = texture(u_PaletteColorMap, vec2(palU, 0.5));
         vec4 palMat = texture(u_PaletteMaterialMap, vec2(palU, 0.5));
-        albedo = palColor.rgb;
+        albedo = palColor.rgb * v_Color;
         metallic = palMat.r;
         roughness = palMat.g;
         emission = palMat.b;

@@ -8,6 +8,7 @@
 #include "CBEngine/Renderer/Camera/Camera.h"
 
 #include "VoxelPalette.h"
+#include "CBEngine/Voxel/Destruction/VoxelTintTypes.h"
 
 #include <Voxelizer.h>
 #include <unordered_map>
@@ -197,13 +198,15 @@ namespace CB
         /// @brief Create renderable mesh from voxel grid with default white color
         /// @param grid Voxel grid data
         /// @return Renderable Mesh, or nullptr if no filled voxels
-        static Ref<Mesh> CreateMeshFromGrid(const voxelizer::VoxelGrid& grid);
+        static Ref<Mesh> CreateMeshFromGrid(const voxelizer::VoxelGrid& grid,
+                                            const VoxelTintMap* tintMap = nullptr);
 
         /// @brief Create renderable mesh from voxel grid with uniform color
         /// @param grid Voxel grid data
         /// @param color RGB color for all voxels (0-1 range)
         /// @return Renderable Mesh, or nullptr if no filled voxels
-        static Ref<Mesh> CreateMeshFromGrid(const voxelizer::VoxelGrid& grid, const Vector3& color);
+        static Ref<Mesh> CreateMeshFromGrid(const voxelizer::VoxelGrid& grid, const Vector3& color,
+                                            const VoxelTintMap* tintMap = nullptr);
 
         // ============ UV COMPUTATION ============
 
@@ -243,7 +246,8 @@ namespace CB
         /// @param paletteIndices One palette index per filled voxel
         /// @return Renderable Mesh with PaletteIndex set per vertex, or nullptr if empty
         static Ref<Mesh> CreatePaletteMeshFromGrid(const voxelizer::VoxelGrid& grid,
-                                                   const std::vector<uint8_t>& paletteIndices);
+                                                   const std::vector<uint8_t>& paletteIndices,
+                                                   const VoxelTintMap* tintMap = nullptr);
 
         // ============ QUERY METHODS ============
 

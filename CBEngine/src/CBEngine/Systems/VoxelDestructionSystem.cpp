@@ -33,6 +33,7 @@ namespace CB
     std::vector<VoxelDamageEvent>                        VoxelDestructionSystem::s_DamageQueue;
     std::unordered_map<uint64_t, EntityDestructionState> VoxelDestructionSystem::s_EntityStates;
     std::vector<uint64_t>                                VoxelDestructionSystem::s_StructuralCheckQueue;
+    std::vector<uint64_t>                                VoxelDestructionSystem::s_TintDirtyEntities;
 
     // =========================================================================
     // LoadSubstances
@@ -73,6 +74,7 @@ namespace CB
         s_DamageQueue.clear();
         s_EntityStates.clear();
         s_StructuralCheckQueue.clear();
+        s_TintDirtyEntities.clear();
     }
 
     // =========================================================================
@@ -94,6 +96,7 @@ namespace CB
         ProcessDamageQueue(scene);
         ProcessPendingRemovals(scene);
         ProcessStructuralIntegrity(scene);
+        ProcessDirtyMeshes(scene);
     }
 
     // =========================================================================
@@ -259,6 +262,62 @@ namespace CB
             else
                 health.FractureStage = 0;
 
+            // Apply damage tint
+            auto tintCfgIt = sub.DamageTints.find(event.Type);
+            if (tintCfgIt != sub.DamageTints.end() && tintCfgIt->second.Intensity > 0.0f)
+            {
+                const auto& tintCfg = tintCfgIt->second;
+                float damageRatio = glm::clamp(effective / glm::max(health.MaxHealth, 0.01f), 0.0f, 1.0f);
+                float addedIntensity = damageRatio * tintCfg.Intensity;
+
+                // Tint center voxel
+                auto& tint = state.TintMap[event.GridCoord];
+                tint.Intensity = glm::clamp(tint.Intensity + addedIntensity, 0.0f, 1.0f);
+                tint.Color = tintCfg.Color;
+
+                // Spread to neighbors within radius
+                int r = glm::min(tintCfg.SpreadRadius, 4);
+                if (r > 0)
+                {
+                    for (int dx = -r; dx <= r; ++dx)
+                    for (int dy = -r; dy <= r; ++dy)
+                    for (int dz = -r; dz <= r; ++dz)
+                    {
+                        if (dx == 0 && dy == 0 && dz == 0) continue;
+                        glm::ivec3 nb = event.GridCoord + glm::ivec3(dx, dy, dz);
+                        if (!state.ModifiedGrid.IsValidCoord(nb) || !state.ModifiedGrid.IsFilled(nb))
+                            continue;
+                        float dist = glm::length(glm::vec3(dx, dy, dz));
+                        if (dist > float(r)) continue;
+                        float spread = addedIntensity * glm::pow(tintCfg.SpreadFalloff, dist);
+                        if (spread < 0.01f) continue;
+
+                        auto& nTint = state.TintMap[nb];
+                        nTint.Color = tintCfg.Color;
+                        nTint.Intensity = glm::clamp(nTint.Intensity + spread, 0.0f, 1.0f);
+                    }
+                }
+
+                state.MeshDirty = true;
+                s_TintDirtyEntities.push_back(event.EntityUUID);
+            }
+
+            // Ignite the voxel if substance is flammable and this is Fire/Acid
+            if ((event.Type == VoxelDamageType::Fire || event.Type == VoxelDamageType::Acid)
+                && sub.Flammable && sub.BurnDuration > 0.0f)
+            {
+                auto& burn = state.ActiveBurns[event.GridCoord];
+                if (burn.Timer <= 0.0f) // don't reset timer if already burning
+                {
+                    burn.Type = event.Type;
+                    burn.Timer = sub.BurnDuration;
+                    burn.SpreadTimer = 0.5f;
+                    burn.TickTimer = 0.2f;
+                }
+                health.Burning = true;
+                health.FireTimer = sub.BurnDuration;
+            }
+
             // Fire Lua events
             float normHealth = (health.MaxHealth > 0.0f) ? (health.CurrentHealth / health.MaxHealth) : 0.0f;
 
@@ -337,6 +396,13 @@ namespace CB
             uint64_t remaining = VoxelSplitter::RemoveVoxels(
                 state.ModifiedGrid, state.ModifiedPaletteIndices, batch);
 
+            // Cleanup tint and burn entries for removed voxels
+            for (const auto& coord : batch)
+            {
+                state.TintMap.erase(coord);
+                state.ActiveBurns.erase(coord);
+            }
+
             if (remaining == 0)
             {
                 // Fully destroyed
@@ -382,13 +448,14 @@ namespace CB
             Ref<Mesh> newMesh;
             if (!state.ModifiedPaletteIndices.empty())
                 newMesh = VoxelizerAPI::CreatePaletteMeshFromGrid(
-                    state.ModifiedGrid, state.ModifiedPaletteIndices);
+                    state.ModifiedGrid, state.ModifiedPaletteIndices, &state.TintMap);
             else
-                newMesh = VoxelizerAPI::CreateMeshFromGrid(state.ModifiedGrid);
+                newMesh = VoxelizerAPI::CreateMeshFromGrid(state.ModifiedGrid, &state.TintMap);
 
             if (newMesh)
             {
                 vr.MeshAsset = newMesh;
+                state.MeshDirty = false;
 
                 if (auto* physWorld = scene->GetPhysicsWorld())
                     physWorld->GetShapeCache().Invalidate(vr.VoxelMeshUUID);
@@ -443,6 +510,10 @@ namespace CB
         if (entity.HasComponent<DestructibleVoxelComponent>())
             origDV = entity.GetComponent<DestructibleVoxelComponent>();
 
+        // Save tint and burn data before erasing state
+        VoxelTintMap savedTintMap = std::move(state.TintMap);
+        VoxelBurnMap savedBurns = std::move(state.ActiveBurns);
+
         scene->DestroyEntity(entity);
         s_EntityStates.erase(entityUUID);
 
@@ -484,11 +555,23 @@ namespace CB
             fragVR.HasPalette             = hasPalette;
             fragVR.Visible                = true;
 
+            // Build fragment tint map by remapping source coords to fragment local space
+            VoxelTintMap fragTintMap;
+            for (uint64_t fi = 0; fi < frag.Grid.totalVoxels; ++fi)
+            {
+                if (!frag.Grid.IsFilled(fi)) continue;
+                glm::ivec3 localCoord = frag.Grid.IndexToCoord(fi);
+                glm::ivec3 sourceCoord = localCoord + frag.MinCoord;
+                auto tintIt = savedTintMap.find(sourceCoord);
+                if (tintIt != savedTintMap.end())
+                    fragTintMap[localCoord] = tintIt->second;
+            }
+
             if (!frag.PaletteIndices.empty())
                 fragVR.MeshAsset = VoxelizerAPI::CreatePaletteMeshFromGrid(
-                    frag.Grid, frag.PaletteIndices);
+                    frag.Grid, frag.PaletteIndices, &fragTintMap);
             else
-                fragVR.MeshAsset = VoxelizerAPI::CreateMeshFromGrid(frag.Grid);
+                fragVR.MeshAsset = VoxelizerAPI::CreateMeshFromGrid(frag.Grid, &fragTintMap);
 
             auto& fragRB      = fragEntity.AddComponent<RigidBodyComponent>();
             fragRB.Type       = BodyType::Dynamic;
@@ -533,6 +616,15 @@ namespace CB
             fragState.ModifiedGrid           = frag.Grid;
             fragState.ModifiedPaletteIndices = frag.PaletteIndices;
             fragState.GridInitialized        = true;
+            fragState.TintMap                = std::move(fragTintMap);
+
+            // Transfer active burns to fragment
+            for (const auto& [sourceCoord, burn] : savedBurns)
+            {
+                glm::ivec3 localCoord = sourceCoord - frag.MinCoord;
+                if (frag.Grid.IsValidCoord(localCoord) && frag.Grid.IsFilled(localCoord))
+                    fragState.ActiveBurns[localCoord] = burn;
+            }
 
             ++spawned;
         }
@@ -651,7 +743,11 @@ namespace CB
                     VoxelSplitter::RemoveVoxels(state.ModifiedGrid, state.ModifiedPaletteIndices,
                                                 cluster.Coords);
                     for (const auto& c : cluster.Coords)
+                    {
                         state.DamageMap.erase(c);
+                        state.TintMap.erase(c);
+                        state.ActiveBurns.erase(c);
+                    }
                     continue;
                 }
                 SpawnCollapsedChunk(scene, uuid, cluster, state);
@@ -689,42 +785,19 @@ namespace CB
 
         auto& vr = sourceEntity.GetComponent<VoxelRendererComponent>();
 
-        // Extract palette indices for cluster voxels BEFORE RemoveVoxels erases them
-        std::vector<uint8_t> chunkPaletteIndices;
+        // Build source filled-index map BEFORE RemoveVoxels erases data
+        std::unordered_map<uint64_t, size_t> sourceFilledMap;
         if (!state.ModifiedPaletteIndices.empty())
         {
-            // Build filled-index map for source grid (same linear order as GetFilledCoords)
-            std::unordered_map<uint64_t, size_t> sourceFilledMap;
             size_t filledIdx = 0;
             for (uint64_t i = 0; i < state.ModifiedGrid.totalVoxels; ++i)
             {
                 if (state.ModifiedGrid.IsFilled(i))
                     sourceFilledMap[i] = filledIdx++;
             }
-
-            chunkPaletteIndices.reserve(cluster.Coords.size());
-            for (const auto& c : cluster.Coords)
-            {
-                if (!state.ModifiedGrid.IsValidCoord(c) || !state.ModifiedGrid.IsFilled(c))
-                    continue;
-                uint64_t idx = state.ModifiedGrid.CoordToIndex(c);
-                auto it = sourceFilledMap.find(idx);
-                if (it != sourceFilledMap.end() && it->second < state.ModifiedPaletteIndices.size())
-                    chunkPaletteIndices.push_back(state.ModifiedPaletteIndices[it->second]);
-                else
-                    chunkPaletteIndices.push_back(0);
-            }
         }
 
-        // Remove cluster voxels from the working grid
-        VoxelSplitter::RemoveVoxels(state.ModifiedGrid, state.ModifiedPaletteIndices,
-                                    cluster.Coords);
-
-        // Also remove from damage map
-        for (const auto& c : cluster.Coords)
-            state.DamageMap.erase(c);
-
-        // Build a sub-grid for the collapsed chunk
+        // Build tempGrid for the collapsed chunk (BEFORE palette extraction and RemoveVoxels)
         voxelizer::VoxelGrid tempGrid;
         tempGrid.size = state.ModifiedGrid.size;
         tempGrid.origin = state.ModifiedGrid.origin;
@@ -739,12 +812,58 @@ namespace CB
                 tempGrid.SetFilled(c);
         }
 
+        // Build palette in LINEAR order (matching GetFilledCoords/CreatePaletteMeshFromGrid)
+        std::vector<uint8_t> chunkPaletteIndices;
+        if (!state.ModifiedPaletteIndices.empty())
+        {
+            for (uint64_t i = 0; i < tempGrid.totalVoxels; ++i)
+            {
+                if (!tempGrid.IsFilled(i)) continue;
+                // tempGrid has same size/origin as source, so same linear index
+                auto it = sourceFilledMap.find(i);
+                if (it != sourceFilledMap.end() && it->second < state.ModifiedPaletteIndices.size())
+                    chunkPaletteIndices.push_back(state.ModifiedPaletteIndices[it->second]);
+                else
+                    chunkPaletteIndices.push_back(0);
+            }
+        }
+
+        // Build chunk tint map for mesh creation
+        VoxelTintMap chunkTintMap;
+        for (const auto& c : cluster.Coords)
+        {
+            auto tintIt = state.TintMap.find(c);
+            if (tintIt != state.TintMap.end())
+                chunkTintMap[c] = tintIt->second;
+        }
+
+        // Build chunk burn map
+        VoxelBurnMap chunkBurns;
+        for (const auto& c : cluster.Coords)
+        {
+            auto burnIt = state.ActiveBurns.find(c);
+            if (burnIt != state.ActiveBurns.end())
+                chunkBurns[c] = burnIt->second;
+        }
+
+        // Remove cluster voxels from the working grid
+        VoxelSplitter::RemoveVoxels(state.ModifiedGrid, state.ModifiedPaletteIndices,
+                                    cluster.Coords);
+
+        // Also remove from damage map, tint map, and active burns
+        for (const auto& c : cluster.Coords)
+        {
+            state.DamageMap.erase(c);
+            state.TintMap.erase(c);
+            state.ActiveBurns.erase(c);
+        }
+
         // Build mesh from the temporary grid, using palette data if available
         Ref<Mesh> chunkMesh;
         if (!chunkPaletteIndices.empty())
-            chunkMesh = VoxelizerAPI::CreatePaletteMeshFromGrid(tempGrid, chunkPaletteIndices);
+            chunkMesh = VoxelizerAPI::CreatePaletteMeshFromGrid(tempGrid, chunkPaletteIndices, &chunkTintMap);
         else
-            chunkMesh = VoxelizerAPI::CreateMeshFromGrid(tempGrid);
+            chunkMesh = VoxelizerAPI::CreateMeshFromGrid(tempGrid, &chunkTintMap);
         if (!chunkMesh)
             return;
 
@@ -831,9 +950,49 @@ namespace CB
         chunkState.ModifiedGrid           = tempGrid;
         chunkState.ModifiedPaletteIndices = chunkPaletteIndices;
         chunkState.GridInitialized        = true;
+        chunkState.TintMap                = std::move(chunkTintMap);
+        chunkState.ActiveBurns            = std::move(chunkBurns);
 
         CB_CORE_TRACE("  Spawned collapse chunk: {0} voxels, mass={1:.1f}",
             cluster.VoxelCount, rb.Mass);
+    }
+
+    // =========================================================================
+    // ProcessDirtyMeshes — rebuild entities with tint-only changes (no voxel deaths)
+    // =========================================================================
+    void VoxelDestructionSystem::ProcessDirtyMeshes(Scene* scene)
+    {
+        if (s_TintDirtyEntities.empty()) return;
+
+        // Deduplicate
+        std::sort(s_TintDirtyEntities.begin(), s_TintDirtyEntities.end());
+        s_TintDirtyEntities.erase(
+            std::unique(s_TintDirtyEntities.begin(), s_TintDirtyEntities.end()),
+            s_TintDirtyEntities.end());
+
+        for (uint64_t uuid : s_TintDirtyEntities)
+        {
+            auto it = s_EntityStates.find(uuid);
+            if (it == s_EntityStates.end()) continue;
+            auto& state = it->second;
+            if (!state.MeshDirty || !state.GridInitialized) continue;
+
+            Entity entity = scene->GetEntityByUUID(UUID(uuid));
+            if (!entity || !entity.HasComponent<VoxelRendererComponent>()) continue;
+
+            auto& vr = entity.GetComponent<VoxelRendererComponent>();
+            Ref<Mesh> newMesh;
+            if (!state.ModifiedPaletteIndices.empty())
+                newMesh = VoxelizerAPI::CreatePaletteMeshFromGrid(
+                    state.ModifiedGrid, state.ModifiedPaletteIndices, &state.TintMap);
+            else
+                newMesh = VoxelizerAPI::CreateMeshFromGrid(state.ModifiedGrid, &state.TintMap);
+
+            if (newMesh) vr.MeshAsset = newMesh;
+            state.MeshDirty = false;
+        }
+
+        s_TintDirtyEntities.clear();
     }
 
     // =========================================================================

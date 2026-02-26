@@ -233,21 +233,20 @@ namespace CB
 		size_t numWords = (fragment.Grid.totalVoxels + 63) / 64;
 		fragment.Grid.data.resize(numWords, 0);
 
-		// Build source filled index map for palette lookup
-		auto sourceFilledMap = BuildFilledIndexMap(sourceGrid);
-
-		// Fill sub-grid and extract palette indices
-		fragment.PaletteIndices.reserve(componentCoords.size());
-
+		// Pass 1: Fill sub-grid (order doesn't matter)
 		for (const auto& coord : componentCoords)
-		{
-			glm::ivec3 localCoord = coord - minC;
-			fragment.Grid.SetFilled(localCoord);
+			fragment.Grid.SetFilled(coord - minC);
 
-			// Map palette index from source
-			if (!sourcePaletteIndices.empty())
+		// Pass 2: Build palette in LINEAR order (matching GetFilledCoords/CreatePaletteMeshFromGrid)
+		if (!sourcePaletteIndices.empty())
+		{
+			auto sourceFilledMap = BuildFilledIndexMap(sourceGrid);
+			for (uint64_t i = 0; i < fragment.Grid.totalVoxels; ++i)
 			{
-				uint64_t srcIdx = sourceGrid.CoordToIndex(coord);
+				if (!fragment.Grid.IsFilled(i)) continue;
+				glm::ivec3 localCoord = fragment.Grid.IndexToCoord(i);
+				glm::ivec3 sourceCoord = localCoord + minC;
+				uint64_t srcIdx = sourceGrid.CoordToIndex(sourceCoord);
 				auto it = sourceFilledMap.find(srcIdx);
 				if (it != sourceFilledMap.end() && it->second < sourcePaletteIndices.size())
 					fragment.PaletteIndices.push_back(sourcePaletteIndices[it->second]);

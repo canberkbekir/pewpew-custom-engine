@@ -97,6 +97,10 @@ function PlayerMovement:OnCreate()
     self.cam           = nil
     self.pitchNode     = nil
 
+    -- Damage type (switchable with 1/2/3 keys)
+    self._currentDamageType = DamageType.Impact
+    self._damageTypeName    = "Impact"
+
     self.rb = entity:GetComponent(RigidBody)
     if not self.rb then
         Log.Error("PlayerMovement: needs RigidBody")
@@ -246,6 +250,21 @@ function PlayerMovement:OnUpdate(dt)
         self.isGrounded = false
     end
 
+    -- ── Damage type switch (1/2/3) ─────────────────────────────────────────────
+    if Input.IsKeyJustPressed(Key.Num1) then
+        self._currentDamageType = DamageType.Impact
+        self._damageTypeName    = "Impact"
+        Log.Info("Damage type: Impact")
+    elseif Input.IsKeyJustPressed(Key.Num2) then
+        self._currentDamageType = DamageType.Fire
+        self._damageTypeName    = "Fire"
+        Log.Info("Damage type: Fire")
+    elseif Input.IsKeyJustPressed(Key.Num3) then
+        self._currentDamageType = DamageType.Explosion
+        self._damageTypeName    = "Explosion"
+        Log.Info("Damage type: Explosion")
+    end
+
     -- ── Shoot ─────────────────────────────────────────────────────────────────
     self._fireCooldown = Math.Max(0.0, self._fireCooldown - dt)
     if Input.IsKeyPressed(Key.MouseLeft) and self._fireCooldown <= 0.0 then
@@ -280,7 +299,7 @@ function PlayerMovement:Shoot()
             if hit.point then
                 if self.RaycastDamageRadius > 0 then
                     VoxelDamage.ApplySphere(self._scene, hit.point, self.RaycastDamageRadius, {
-                        type   = DamageType.Impact,
+                        type   = self._currentDamageType,
                         amount = self.RaycastDamage,
                     })
                 else
@@ -288,7 +307,7 @@ function PlayerMovement:Shoot()
                         local entityID = hitEntity:GetUUID()
                         if entityID then
                             VoxelDamage.ApplyAtWorldPos(self._scene, entityID, hit.point, {
-                                type   = DamageType.Impact,
+                                type   = self._currentDamageType,
                                 amount = self.RaycastDamage,
                                 origin = hit.point,
                                 direction = hit.normal * -1.0,

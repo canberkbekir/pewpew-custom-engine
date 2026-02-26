@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VoxelSubstance.h"
+#include "VoxelTintTypes.h"
 
 #include <Voxelizer.h>
 #include <glm/glm.hpp>
@@ -10,25 +11,24 @@
 namespace CB
 {
     // =========================================================================
-    // VoxelCoordHash — hash for glm::ivec3 used as unordered_map key
-    // =========================================================================
-    struct VoxelCoordHash
-    {
-        size_t operator()(const glm::ivec3& c) const noexcept
-        {
-            size_t h = std::hash<int>()(c.x);
-            h ^= std::hash<int>()(c.y) + 0x9e3779b9u + (h << 6) + (h >> 2);
-            h ^= std::hash<int>()(c.z) + 0x9e3779b9u + (h << 6) + (h >> 2);
-            return h;
-        }
-    };
-
-    // =========================================================================
     // VoxelDamageMap — sparse per-entity map of damaged voxel health states
     // Only voxels that have been damaged are stored; undamaged voxels are absent.
     // Keyed by grid-local integer coordinate.
     // =========================================================================
     using VoxelDamageMap = std::unordered_map<glm::ivec3, VoxelHealthState, VoxelCoordHash>;
+
+    // =========================================================================
+    // ActiveBurn — per-voxel persistent burn/dissolve state
+    // =========================================================================
+    struct ActiveBurn
+    {
+        VoxelDamageType Type = VoxelDamageType::Fire;  // Fire, Acid, etc.
+        float Timer       = 0.0f;   // time remaining to burn (seconds)
+        float SpreadTimer = 0.0f;   // cooldown until next spread attempt
+        float TickTimer   = 0.0f;   // cooldown until next tick damage
+    };
+
+    using VoxelBurnMap = std::unordered_map<glm::ivec3, ActiveBurn, VoxelCoordHash>;
 
     // =========================================================================
     // EntityDestructionState — all runtime destruction data for one entity
@@ -48,5 +48,14 @@ namespace CB
 
         // Voxels that reached 0 HP this frame, pending removal from the grid
         std::vector<glm::ivec3>     PendingRemoval;
+
+        // Tint map — per-voxel visual tint from damage effects
+        VoxelTintMap TintMap;
+
+        // Unified dirty flag: tint change OR voxel removal needs rebuild
+        bool MeshDirty = false;
+
+        // Active burns — voxels currently on fire/dissolving
+        VoxelBurnMap ActiveBurns;
     };
 }

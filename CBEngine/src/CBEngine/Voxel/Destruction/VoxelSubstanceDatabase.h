@@ -32,6 +32,12 @@ namespace CB
         // Returns VoxelMaterialType::Stone as default if not recognised.
         static VoxelMaterialType ResolveSubstanceName(const std::string& name);
 
+        // Mutable access for editor panel (returns reference to internal storage)
+        static VoxelSubstanceProperties& GetMutable(VoxelMaterialType type);
+
+        // Serialize current state back to YAML file
+        static void Save(const std::string& path);
+
     private:
         // One slot per VoxelMaterialType enum value
         static VoxelSubstanceProperties s_Properties[static_cast<int>(VoxelMaterialType::Count)];

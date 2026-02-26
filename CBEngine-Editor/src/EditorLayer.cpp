@@ -222,6 +222,7 @@ namespace CB
         m_MeshImportPanel.OnImGuiRender();
         m_VoxelTextureEditorPanel.OnImGuiRender();
         m_GameViewportPanel.OnImGuiRender();
+        m_SubstanceEditorPanel.OnImGuiRender();
 
         EndDockspace();
     }
@@ -344,6 +345,7 @@ namespace CB
                 ImGui::MenuItem("Profiler", "F3", m_ProfilerPanel.GetVisiblePtr());
                 ImGui::MenuItem("Mesh Import", nullptr, m_MeshImportPanel.GetVisiblePtr());
                 ImGui::MenuItem("Voxel Texture Editor", nullptr, m_VoxelTextureEditorPanel.GetVisiblePtr());
+                ImGui::MenuItem("Substance Editor", nullptr, m_SubstanceEditorPanel.GetVisiblePtr());
                 ImGui::EndMenu();
             }
 

@@ -87,6 +87,11 @@ namespace CB
         static void Shutdown();
 
         // -----------------------------------------------------------------
+        // Access entity states map (for VoxelSpreadSystem to read/write burn data)
+        // -----------------------------------------------------------------
+        static std::unordered_map<uint64_t, EntityDestructionState>& GetEntityStates() { return s_EntityStates; }
+
+        // -----------------------------------------------------------------
         // Called from on_destroy<DestructibleVoxelComponent> signal to
         // clean up s_EntityStates when an entity is destroyed externally.
         // -----------------------------------------------------------------
@@ -122,6 +127,11 @@ namespace CB
 
         // Entities that had voxels removed this frame — need structural check
         static std::vector<uint64_t>                                s_StructuralCheckQueue;
+
+        // Entities needing tint-only mesh rebuild
+        static std::vector<uint64_t>                                s_TintDirtyEntities;
+
+        static void ProcessDirtyMeshes(Scene* scene);
     };
 
     // =========================================================================
