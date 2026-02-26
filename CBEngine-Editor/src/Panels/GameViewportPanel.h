@@ -11,25 +11,24 @@
 
 namespace CB
 {
-    class GameViewportPanel : public Panel
-    {
-    public:
-        GameViewportPanel();
+	class GameViewportPanel : public Panel
+	{
+	public:
+		GameViewportPanel();
 
-        void OnUpdate(Timestep ts);
-        void OnImGuiRender() override;
+		void OnUpdate(Timestep ts);
+		void OnImGuiRender() override;
+	private:
+		void RenderScene();
 
-    private:
-        void RenderScene();
+		Ref<Framebuffer> m_Framebuffer;
+		Ref<Shader> m_DefaultShader;
+		Ref<Material> m_DefaultMaterial;
 
-        Ref<Framebuffer> m_Framebuffer;
-        Ref<Shader> m_DefaultShader;
-        Ref<Material> m_DefaultMaterial;
+		PerspectiveCamera m_GameCamera;
+		bool m_HasActiveCamera = false;
 
-        PerspectiveCamera m_GameCamera;
-        bool m_HasActiveCamera = false;
-
-        Vector2 m_ViewportSize = {1280.0f, 720.0f};
-        bool m_ShowStats = false;
-    };
+		Vector2 m_ViewportSize = {1280.0f, 720.0f};
+		bool m_ShowStats = false;
+	};
 }

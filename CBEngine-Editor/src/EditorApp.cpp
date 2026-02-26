@@ -14,19 +14,19 @@
 class CBEngineEditor : public CB::Application
 {
 public:
-    CBEngineEditor()
-    {
-        CB_PROFILE_FUNCTION();
-        PushLayer(new CB::EditorLayer());
-    }
+	CBEngineEditor()
+	{
+		CB_PROFILE_FUNCTION();
+		PushLayer(new CB::EditorLayer());
+	}
 
-    ~CBEngineEditor() override
-    {
-    }
+	~CBEngineEditor() override
+	{
+	}
 };
 
 CB::Application* CB::CreateApplication()
 {
-    CB_PROFILE_FUNCTION();
-    return new CBEngineEditor();
+	CB_PROFILE_FUNCTION();
+	return new CBEngineEditor();
 }

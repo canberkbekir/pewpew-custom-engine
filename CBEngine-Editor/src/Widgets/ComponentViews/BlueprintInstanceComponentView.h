@@ -17,8 +17,7 @@ namespace CB
 
 			bool opened = ComponentCard::Begin("Blueprint Instance (Internal)", false);
 
-			if (opened)
-			{
+			if (opened) {
 				auto& bic = entity.GetComponent<BlueprintInstanceComponent>();
 
 				ImGui::TextDisabled("Source Path:");

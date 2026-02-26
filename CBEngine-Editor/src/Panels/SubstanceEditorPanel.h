@@ -5,18 +5,19 @@
 
 namespace CB
 {
-    class SubstanceEditorPanel : public Panel
-    {
-    public:
-        SubstanceEditorPanel()
-            : Panel("Substance Editor", false) {} // hidden by default
+	class SubstanceEditorPanel : public Panel
+	{
+	public:
+		SubstanceEditorPanel()
+			: Panel("Substance Editor", false)
+		{
+		} // hidden by default
 
-        void OnImGuiRender() override;
+		void OnImGuiRender() override;
+	private:
+		void DrawSubstance(VoxelMaterialType type);
+		void DrawDamageTints(VoxelSubstanceProperties& props);
 
-    private:
-        void DrawSubstance(VoxelMaterialType type);
-        void DrawDamageTints(VoxelSubstanceProperties& props);
-
-        int m_SelectedSubstance = 0;
-    };
+		int m_SelectedSubstance = 0;
+	};
 }

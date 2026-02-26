@@ -13,149 +13,146 @@
 
 namespace CB
 {
-    class VoxelRendererComponentView
-    {
-    public:
-        static void Draw(Entity entity)
-        {
-            if (!entity.HasComponent<VoxelRendererComponent>())
-                return;
+	class VoxelRendererComponentView
+	{
+	public:
+		static void Draw(Entity entity)
+		{
+			if (!entity.HasComponent<VoxelRendererComponent>())
+				return;
 
-            bool removed = false;
-            bool reset = false;
-            bool regenerate = false;
+			bool removed = false;
+			bool reset = false;
+			bool regenerate = false;
 
-            std::vector<ComponentCard::MenuAction> extraActions;
-            extraActions.push_back({"Regenerate from VoxelMesh", &regenerate});
+			std::vector<ComponentCard::MenuAction> extraActions;
+			extraActions.push_back({"Regenerate from VoxelMesh", &regenerate});
 
-            bool opened = ComponentCard::Begin("Voxel Renderer", true, &removed, &reset, extraActions);
+			bool opened = ComponentCard::Begin("Voxel Renderer", true, &removed, &reset, extraActions);
 
-            if (removed)
-            {
-                entity.RemoveComponent<VoxelRendererComponent>();
-                ComponentCard::End();
-                return;
-            }
+			if (removed) {
+				entity.RemoveComponent<VoxelRendererComponent>();
+				ComponentCard::End();
+				return;
+			}
 
-            if (reset)
-            {
-                auto& vr = entity.GetComponent<VoxelRendererComponent>();
-                vr.VoxelMeshUUID = UUID();
-                vr.VoxelTextureUUID = UUID();
-                vr.MeshAsset = nullptr;
-                vr.VoxelTexture = nullptr;
-                vr.HasPalette = false;
-                vr.PaletteColorTexture = nullptr;
-                vr.PaletteMaterialTexture = nullptr;
-                vr.Visible = true;
-            }
+			if (reset) {
+				auto& vr = entity.GetComponent<VoxelRendererComponent>();
+				vr.VoxelMeshUUID = UUID();
+				vr.VoxelTextureUUID = UUID();
+				vr.MeshAsset = nullptr;
+				vr.VoxelTexture = nullptr;
+				vr.HasPalette = false;
+				vr.PaletteColorTexture = nullptr;
+				vr.PaletteMaterialTexture = nullptr;
+				vr.Visible = true;
+			}
 
-            auto& voxelRenderer = entity.GetComponent<VoxelRendererComponent>();
+			auto& voxelRenderer = entity.GetComponent<VoxelRendererComponent>();
 
-            if (regenerate && voxelRenderer.VoxelMeshUUID.IsValid() && voxelRenderer.VoxelTexture)
-            {
-                auto vmesh = AssetManager::GetAsset<VoxelMeshAsset>(voxelRenderer.VoxelMeshUUID);
-                if (vmesh)
-                {
-                    auto newVtex = VoxelTextureAsset::GenerateFromVmesh(vmesh);
-                    if (newVtex)
-                    {
-                        voxelRenderer.VoxelTexture->PaletteMapping = newVtex->PaletteMapping;
-                        voxelRenderer.VoxelTexture->VoxelOverrides.clear();
-                        voxelRenderer.VoxelTexture->GridSize = newVtex->GridSize;
-                        voxelRenderer.VoxelTexture->VoxelCount = newVtex->VoxelCount;
-                    }
-                }
-            }
+			if (regenerate && voxelRenderer.VoxelMeshUUID.IsValid() && voxelRenderer.VoxelTexture) {
+				auto vmesh = AssetManager::GetAsset<VoxelMeshAsset>(voxelRenderer.VoxelMeshUUID);
+				if (vmesh) {
+					auto newVtex = VoxelTextureAsset::GenerateFromVmesh(vmesh);
+					if (newVtex) {
+						voxelRenderer.VoxelTexture->PaletteMapping = newVtex->PaletteMapping;
+						voxelRenderer.VoxelTexture->VoxelOverrides.clear();
+						voxelRenderer.VoxelTexture->GridSize = newVtex->GridSize;
+						voxelRenderer.VoxelTexture->VoxelCount = newVtex->VoxelCount;
+					}
+				}
+			}
 
-            if (opened)
-            {
-                // Visible checkbox
-                ImGui::Checkbox("Visible", &voxelRenderer.Visible);
+			if (opened) {
+				// Visible checkbox
+				ImGui::Checkbox("Visible", &voxelRenderer.Visible);
 
-                ImGui::Spacing();
+				ImGui::Spacing();
 
-                // VoxelMesh picker (.vmesh only)
-                if (AssetPicker::DrawVoxelMesh("Voxel Mesh", voxelRenderer.VoxelMeshUUID))
-                {
-                    voxelRenderer.MeshAsset = nullptr;
-                    voxelRenderer.HasPalette = false;
-                    voxelRenderer.PaletteColorTexture = nullptr;
-                    voxelRenderer.PaletteMaterialTexture = nullptr;
-                    if (voxelRenderer.VoxelMeshUUID.IsValid())
-                        voxelRenderer.ResolveAssets();
-                }
-                if (voxelRenderer.MeshAsset)
-                {
-                    ImGui::SameLine();
-                    ImGui::TextDisabled("(%u tris)", voxelRenderer.MeshAsset->GetIndexCount() / 3);
-                }
+				// VoxelMesh picker (.vmesh only)
+				if (AssetPicker::DrawVoxelMesh("Voxel Mesh", voxelRenderer.VoxelMeshUUID)) {
+					voxelRenderer.MeshAsset = nullptr;
+					voxelRenderer.HasPalette = false;
+					voxelRenderer.PaletteColorTexture = nullptr;
+					voxelRenderer.PaletteMaterialTexture = nullptr;
+					if (voxelRenderer.VoxelMeshUUID.IsValid())
+						voxelRenderer.ResolveAssets();
+				}
+				if (voxelRenderer.MeshAsset) {
+					ImGui::SameLine();
+					ImGui::TextDisabled("(%u tris)", voxelRenderer.MeshAsset->GetIndexCount() / 3);
+				}
 
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Spacing();
+				ImGui::Spacing();
+				ImGui::Separator();
+				ImGui::Spacing();
 
-                // Voxel Texture picker (.vtex)
-                if (AssetPicker::DrawVoxelTexture("Voxel Texture", voxelRenderer.VoxelTextureUUID))
-                {
-                    if (voxelRenderer.VoxelTextureUUID.IsValid())
-                    {
-                        voxelRenderer.VoxelTexture = AssetManager::GetAsset<VoxelTextureAsset>(
-                            voxelRenderer.VoxelTextureUUID);
-                        if (voxelRenderer.VoxelMeshUUID.IsValid())
-                            voxelRenderer.ResolveAssets();
-                    }
-                    else
-                    {
-                        voxelRenderer.VoxelTexture = nullptr;
-                        if (voxelRenderer.VoxelMeshUUID.IsValid())
-                            voxelRenderer.ResolveAssets();
-                    }
-                }
+				// Voxel Texture picker (.vtex)
+				if (AssetPicker::DrawVoxelTexture("Voxel Texture", voxelRenderer.VoxelTextureUUID)) {
+					if (voxelRenderer.VoxelTextureUUID.IsValid()) {
+						voxelRenderer.VoxelTexture = AssetManager::GetAsset<VoxelTextureAsset>(
+							voxelRenderer.VoxelTextureUUID);
+						if (voxelRenderer.VoxelMeshUUID.IsValid())
+							voxelRenderer.ResolveAssets();
+					}
+					else {
+						voxelRenderer.VoxelTexture = nullptr;
+						if (voxelRenderer.VoxelMeshUUID.IsValid())
+							voxelRenderer.ResolveAssets();
+					}
+				}
 
-                // Show material type distribution if vtex is loaded
-                if (voxelRenderer.VoxelTexture)
-                {
-                    const auto& vtex = voxelRenderer.VoxelTexture;
+				// Show material type distribution if vtex is loaded
+				if (voxelRenderer.VoxelTexture) {
+					const auto& vtex = voxelRenderer.VoxelTexture;
 
-                    // Count material types from palette mapping
-                    uint32_t counts[static_cast<int>(VoxelMaterialType::Count)] = {};
-                    for (const auto& [idx, type] : vtex->PaletteMapping)
-                        counts[static_cast<int>(type)]++;
+					// Count material types from palette mapping
+					uint32_t counts[static_cast<int>(VoxelMaterialType::Count)] = {};
+					for (const auto& [idx, type] : vtex->PaletteMapping)
+						counts[static_cast<int>(type)]++;
 
-                    ImGui::TextDisabled("Palette types:");
-                    for (int i = 0; i < static_cast<int>(VoxelMaterialType::Count); i++)
-                    {
-                        if (counts[i] > 0)
-                        {
-                            auto mt = static_cast<VoxelMaterialType>(i);
-                            Vector3 col = VoxelMaterialTypeDisplayColor(mt);
-                            ImGui::ColorButton(("##mt" + std::to_string(i)).c_str(),
-                                               ImVec4(col.x, col.y, col.z, 1.0f),
-                                               ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder,
-                                               ImVec2(12, 12));
-                            ImGui::SameLine();
-                            ImGui::Text("%s: %u", VoxelMaterialTypeToString(mt), counts[i]);
-                        }
-                    }
+					ImGui::TextDisabled("Palette types:");
+					for (int i = 0; i < static_cast<int>(VoxelMaterialType::Count); i++) {
+						if (counts[i] > 0) {
+							auto mt = static_cast<VoxelMaterialType>(i);
+							Vector3 col = VoxelMaterialTypeDisplayColor(mt);
+							ImGui::ColorButton(("##mt" + std::to_string(i)).c_str(),
+							                   ImVec4(col.x, col.y, col.z, 1.0f),
+							                   ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder,
+							                   ImVec2(12, 12));
+							ImGui::SameLine();
+							ImGui::Text("%s: %u", VoxelMaterialTypeToString(mt), counts[i]);
+						}
+					}
 
-                    if (!vtex->VoxelOverrides.empty())
-                        ImGui::TextDisabled("(%zu voxel overrides)", vtex->VoxelOverrides.size());
+					if (!vtex->VoxelOverrides.empty())
+						ImGui::TextDisabled("(%zu voxel overrides)", vtex->VoxelOverrides.size());
 
-                    // PBR override indicators
-                    if (vtex->HasMetallicOverrides || vtex->HasRoughnessOverrides
-                        || vtex->HasEmissionOverrides || vtex->HasAlbedoOverrides)
-                    {
-                        ImGui::TextDisabled("PBR overrides:");
-                        if (vtex->HasMetallicOverrides) { ImGui::SameLine(); ImGui::Text("Met"); }
-                        if (vtex->HasRoughnessOverrides) { ImGui::SameLine(); ImGui::Text("Rough"); }
-                        if (vtex->HasEmissionOverrides) { ImGui::SameLine(); ImGui::Text("Emis"); }
-                        if (vtex->HasAlbedoOverrides) { ImGui::SameLine(); ImGui::Text("Albedo"); }
-                    }
-                }
-            }
+					// PBR override indicators
+					if (vtex->HasMetallicOverrides || vtex->HasRoughnessOverrides
+						|| vtex->HasEmissionOverrides || vtex->HasAlbedoOverrides) {
+						ImGui::TextDisabled("PBR overrides:");
+						if (vtex->HasMetallicOverrides) {
+							ImGui::SameLine();
+							ImGui::Text("Met");
+						}
+						if (vtex->HasRoughnessOverrides) {
+							ImGui::SameLine();
+							ImGui::Text("Rough");
+						}
+						if (vtex->HasEmissionOverrides) {
+							ImGui::SameLine();
+							ImGui::Text("Emis");
+						}
+						if (vtex->HasAlbedoOverrides) {
+							ImGui::SameLine();
+							ImGui::Text("Albedo");
+						}
+					}
+				}
+			}
 
-            ComponentCard::End();
-        }
-    };
+			ComponentCard::End();
+		}
+	};
 }
