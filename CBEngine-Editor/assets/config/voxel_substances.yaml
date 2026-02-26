@@ -4,6 +4,7 @@
 # Metal, Glass, Marble). The key MUST match VoxelMaterialTypeToString().
 #
 # Fields:
+#   mass_per_voxel         - kg per voxel (mass = VoxelCount * mass_per_voxel, size-independent)
 #   health                 - base HP before full destruction
 #   hardness               - 0-100, reduces impact damage
 #   explosion_resistance   - 0-1 damage multiplier (1 = immune)
@@ -24,6 +25,7 @@
 substances:
 
   Stone:
+    mass_per_voxel: 0.03    # 1000 voxels = 30 kg
     health: 100
     hardness: 80
     explosion_resistance: 0.70
@@ -38,6 +40,7 @@ substances:
     propagates_damage: false
 
   Wood:
+    mass_per_voxel: 0.008   # 1000 voxels = 8 kg
     health: 60
     hardness: 40
     explosion_resistance: 0.30
@@ -55,6 +58,7 @@ substances:
     damage_spread_factor: 0.80
 
   Metal:
+    mass_per_voxel: 0.08    # 1000 voxels = 80 kg
     health: 200
     hardness: 95
     explosion_resistance: 0.85
@@ -69,6 +73,7 @@ substances:
     propagates_damage: false
 
   Glass:
+    mass_per_voxel: 0.004   # 1000 voxels = 4 kg
     health: 20
     hardness: 5
     explosion_resistance: 0.05
@@ -83,6 +88,7 @@ substances:
     propagates_damage: false
 
   Marble:
+    mass_per_voxel: 0.05    # 1000 voxels = 50 kg
     health: 150
     hardness: 85
     explosion_resistance: 0.65

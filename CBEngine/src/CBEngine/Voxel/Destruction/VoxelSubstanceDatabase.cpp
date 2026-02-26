@@ -55,6 +55,7 @@ namespace CB
     {
         VoxelSubstanceProperties p;
 
+        p.MassPerVoxel        = SafeFloat(node, "mass_per_voxel",        0.02f);
         p.Health              = SafeFloat(node, "health",               100.0f);
         p.Hardness            = SafeFloat(node, "hardness",             50.0f);
         p.ExplosionResistance = SafeFloat(node, "explosion_resistance", 0.5f);

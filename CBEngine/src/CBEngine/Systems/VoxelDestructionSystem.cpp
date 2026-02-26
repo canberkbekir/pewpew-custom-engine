@@ -214,11 +214,21 @@ namespace CB
             if (!EnsureGridInitialized(scene, event.EntityUUID, state))
                 continue;
 
-            // Convert world-space hit position to grid coordinates using the grid's
-            // actual transform (origin + voxelSize), not naive rounding.
+            // Convert world-space hit position to entity-local coordinates first,
+            // then to grid coordinates. WorldToVoxel expects local-space input
+            // (relative to grid.origin), so the entity's world transform must be
+            // factored out — otherwise scaled/rotated/translated entities produce
+            // wrong grid coords (e.g. upper voxels map to bottom with small scale).
             if (event.UseWorldPos)
             {
-                event.GridCoord = state.ModifiedGrid.WorldToVoxel(event.WorldHitPos);
+                if (!entity.HasComponent<TransformComponent>())
+                    continue;
+
+                auto& transform = entity.GetComponent<TransformComponent>();
+                glm::mat4 worldInv = glm::inverse(transform.GetTransform());
+                glm::vec3 localPos = glm::vec3(worldInv * glm::vec4(event.WorldHitPos, 1.0f));
+
+                event.GridCoord = state.ModifiedGrid.WorldToVoxel(localPos);
                 if (!state.ModifiedGrid.IsValidCoord(event.GridCoord) ||
                     !state.ModifiedGrid.IsFilled(event.GridCoord))
                     continue;
@@ -384,7 +394,19 @@ namespace CB
                     physWorld->GetShapeCache().Invalidate(vr.VoxelMeshUUID);
 
                 if (entity.HasComponent<ColliderComponent>())
-                    entity.GetComponent<ColliderComponent>().ShapeDirty = true;
+                {
+                    auto& col = entity.GetComponent<ColliderComponent>();
+                    // Regenerate collision shape from the MODIFIED grid so that
+                    // the physics body matches the current voxel state. Without
+                    // this, entities whose VoxelMeshUUID is unset (collapsed chunks,
+                    // fragments) would fall back to a tiny default Box shape,
+                    // making upper voxels unreachable by raycasts/contacts.
+                    auto compoundShape = VoxelCollisionShapeGenerator::GenerateFromGrid(
+                        state.ModifiedGrid);
+                    if (compoundShape)
+                        col.RuntimeShape = compoundShape;
+                    col.ShapeDirty = true;
+                }
             }
             return;
         }
@@ -402,6 +424,7 @@ namespace CB
         float    origFriction  = 0.5f;
         float    origRestitution = 0.3f;
         BodyType origBodyType  = BodyType::Dynamic;
+        uint8_t  origLayer     = entity.GetComponent<IDComponent>().Layer;
 
         if (hadPhysics)
         {
@@ -443,6 +466,11 @@ namespace CB
 
             Entity fragEntity = scene->CreateEntity(origName + "_frag" + std::to_string(idx));
 
+            // Fragments are always Dynamic — must be on a MOVING broadphase layer.
+            // Copy the source entity's layer so user-configured layer is preserved;
+            // layer 3 (Environment/NON_MOVING) is remapped to layer 0 (Default/MOVING).
+            fragEntity.GetComponent<IDComponent>().Layer = (origLayer == 3) ? 0 : origLayer;
+
             auto& ft = fragEntity.GetComponent<TransformComponent>();
             // Use original entity's transform — mesh/collision vertices are in
             // grid-local space, same as the original entity expected.
@@ -465,10 +493,11 @@ namespace CB
             auto& fragRB      = fragEntity.AddComponent<RigidBodyComponent>();
             fragRB.Type       = BodyType::Dynamic;
             {
-                const auto& vs = frag.Grid.voxelSize;
-                float voxelVolume = vs.x * vs.y * vs.z;
-                constexpr float DENSITY = 100.0f; // kg/m^3
-                fragRB.Mass = static_cast<float>(frag.VoxelCount) * voxelVolume * DENSITY;
+                VoxelMaterialType matType = VoxelMaterialType::Stone;
+                if (!origDV.SubstanceOverride.empty())
+                    matType = VoxelSubstanceDatabase::ResolveSubstanceName(origDV.SubstanceOverride);
+                float massPerVoxel = VoxelSubstanceDatabase::Get(matType).MassPerVoxel;
+                fragRB.Mass = static_cast<float>(frag.VoxelCount) * massPerVoxel;
             }
             fragRB.Friction   = origFriction;
             fragRB.Restitution = origRestitution;
@@ -731,6 +760,7 @@ namespace CB
         // Fix 7: Copy physics properties from source entity
         float srcFriction    = 0.5f;
         float srcRestitution = 0.3f;
+        uint8_t srcLayer     = sourceEntity.GetComponent<IDComponent>().Layer;
         if (sourceEntity.HasComponent<RigidBodyComponent>())
         {
             auto& srcRB    = sourceEntity.GetComponent<RigidBodyComponent>();
@@ -741,6 +771,10 @@ namespace CB
         // Spawn the collapsed chunk entity
         Entity chunkEntity = scene->CreateEntity(
             sourceEntity.GetComponent<TagComponent>().Tag + "_collapse");
+
+        // Chunks are always Dynamic — must be on a MOVING broadphase layer.
+        // Remap layer 3 (Environment/NON_MOVING) to layer 0 (Default/MOVING).
+        chunkEntity.GetComponent<IDComponent>().Layer = (srcLayer == 3) ? 0 : srcLayer;
 
         auto& ct = chunkEntity.GetComponent<TransformComponent>();
         // Use original entity's transform — mesh/collision vertices are in
@@ -759,10 +793,15 @@ namespace CB
         auto& rb      = chunkEntity.AddComponent<RigidBodyComponent>();
         rb.Type       = BodyType::Dynamic;
         {
-            const auto& vs = state.ModifiedGrid.voxelSize;
-            float voxelVolume = vs.x * vs.y * vs.z;
-            constexpr float DENSITY = 100.0f; // kg/m^3
-            rb.Mass = static_cast<float>(cluster.VoxelCount) * voxelVolume * DENSITY;
+            VoxelMaterialType matType = VoxelMaterialType::Stone;
+            if (sourceEntity.HasComponent<DestructibleVoxelComponent>())
+            {
+                const auto& dv = sourceEntity.GetComponent<DestructibleVoxelComponent>();
+                if (!dv.SubstanceOverride.empty())
+                    matType = VoxelSubstanceDatabase::ResolveSubstanceName(dv.SubstanceOverride);
+            }
+            float massPerVoxel = VoxelSubstanceDatabase::Get(matType).MassPerVoxel;
+            rb.Mass = static_cast<float>(cluster.VoxelCount) * massPerVoxel;
         }
         rb.UseGravity  = true;
         rb.Friction    = srcFriction;
@@ -859,8 +898,17 @@ namespace CB
             glm::mat4 worldInv = glm::inverse(worldMatrix);
             glm::vec3 localOrigin = glm::vec3(worldInv * glm::vec4(origin, 1.0f));
             glm::ivec3 centerVoxel = grid->WorldToVoxel(localOrigin);
+            // Compute the search radius in grid cells. The world-space radius must
+            // be divided by the effective voxel size in world space (voxelSize * scale)
+            // so that scaled entities search enough grid cells.
             float avgVoxelSize = (grid->voxelSize.x + grid->voxelSize.y + grid->voxelSize.z) / 3.0f;
-            int r = static_cast<int>(std::ceil(radius / avgVoxelSize)) + 1;
+            float avgScale = (glm::length(glm::vec3(worldMatrix[0])) +
+                              glm::length(glm::vec3(worldMatrix[1])) +
+                              glm::length(glm::vec3(worldMatrix[2]))) / 3.0f;
+            float worldVoxelSize = avgVoxelSize * glm::max(avgScale, 0.0001f);
+            int r = static_cast<int>(std::ceil(radius / worldVoxelSize)) + 1;
+            // Cap to prevent massive iteration for very small scales
+            r = glm::min(r, 64);
 
             int w = grid->size.x;
             int h = grid->size.y;

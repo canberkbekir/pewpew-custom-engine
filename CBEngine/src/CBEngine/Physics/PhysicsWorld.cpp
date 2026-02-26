@@ -89,13 +89,14 @@ namespace CB
 			std::max(1u, std::thread::hardware_concurrency() - 1));
 
 		// Broad-phase layer mapping: 16 object layers -> 2 broadphase layers
-		// Layers 0 (Default) and 3 (Environment) map to NON_MOVING broadphase;
-		// all other layers map to MOVING broadphase.
+		// Only layer 3 (Environment) maps to NON_MOVING broadphase (truly static terrain).
+		// Layer 0 (Default) maps to MOVING so that dynamic fragments/rigid bodies on
+		// the default layer are correctly tracked and collide with the ground/player.
 		m_BroadPhaseLayerInterface = CreateScope<JPH::BroadPhaseLayerInterfaceTable>(
 			ObjectLayers::NUM_LAYERS, BroadPhaseLayers::NUM_LAYERS);
 		for (uint32_t i = 0; i < ObjectLayers::NUM_LAYERS; i++)
 		{
-			if (i == 0 || i == 3) // Default, Environment
+			if (i == 3) // Environment only — purely static terrain/world geometry
 				m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(static_cast<JPH::ObjectLayer>(i), BroadPhaseLayers::NON_MOVING);
 			else
 				m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(static_cast<JPH::ObjectLayer>(i), BroadPhaseLayers::MOVING);

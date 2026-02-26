@@ -50,6 +50,9 @@ namespace CB
     // =========================================================================
     struct VoxelSubstanceProperties
     {
+        // --- Physical ---
+        float MassPerVoxel        = 0.02f;   // kg per voxel — fragment mass = VoxelCount * MassPerVoxel
+
         // --- Structural ---
         float Health              = 100.0f;
         float Hardness            = 50.0f;   // 0-100; reduces Impact damage

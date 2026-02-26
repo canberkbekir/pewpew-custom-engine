@@ -64,17 +64,23 @@ namespace CB
 		// Apply entity scale to collider dimensions (collider values are in local space)
 		Vector3 absScale = Vector3(std::abs(worldScale.x), std::abs(worldScale.y), std::abs(worldScale.z));
 
-		// Respect pre-set RuntimeShape (e.g. fragment VoxelCompound shapes)
-		// but still apply entity scale so collision matches the rendered mesh
-		if (!collider.ShapeDirty && collider.RuntimeShape != nullptr)
+		// Respect pre-set RuntimeShape (e.g. fragment/collapsed-chunk VoxelCompound shapes).
+		// This also handles the case where VoxelDestructionSystem regenerated the shape
+		// from the modified grid and set RuntimeShape + ShapeDirty=true: we should use
+		// the pre-generated shape rather than trying to load from VoxelMeshUUID (which
+		// may not be set for chunks/fragments, causing a fallback to a tiny Box).
+		if (collider.RuntimeShape != nullptr &&
+			(!collider.ShapeDirty || collider.Shape == ColliderShape::VoxelCompound))
 		{
 			bool needsScale = std::abs(absScale.x - 1.0f) > 0.001f ||
 				std::abs(absScale.y - 1.0f) > 0.001f ||
 				std::abs(absScale.z - 1.0f) > 0.001f;
+			JPH::RefConst<JPH::Shape> result = collider.RuntimeShape;
 			if (needsScale)
-				return new JPH::ScaledShape(collider.RuntimeShape,
+				result = new JPH::ScaledShape(result,
 					JPH::Vec3(absScale.x, absScale.y, absScale.z));
-			return collider.RuntimeShape;
+			collider.ShapeDirty = false;
+			return result;
 		}
 
 		JPH::RefConst<JPH::Shape> shape;
