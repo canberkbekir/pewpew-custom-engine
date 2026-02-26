@@ -16,3 +16,6 @@
 [submodule "CBEngine/vendor/JoltPhysics"]
 	path = CBEngine/vendor/JoltPhysics
 	url = https://github.com/canberkbekir/jolt-physics-premake.git
+[submodule "CBEngine/vendor/OpenAL-Soft"]
+	path = CBEngine/vendor/OpenAL-Soft
+	url = https://github.com/canberkbekir/openal-soft-premake
