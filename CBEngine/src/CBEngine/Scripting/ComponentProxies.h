@@ -181,6 +181,7 @@ namespace CB
 			if (!IsValid()) return 0.0f;
 			auto& hj = OwnerEntity.GetComponent<HingeJointComponent>();
 			if (!hj.ConstraintCreated || !hj.RuntimeConstraint) return 0.0f;
+			if (hj.ConstraintType != JointConstraintType::Hinge) return 0.0f;
 			auto* c = static_cast<JPH::HingeConstraint*>(hj.RuntimeConstraint);
 			return glm::degrees(c->GetCurrentAngle());
 		}
@@ -190,7 +191,8 @@ namespace CB
 			if (!IsValid()) return;
 			auto& hj = OwnerEntity.GetComponent<HingeJointComponent>();
 			hj.TargetVelocity = degsPerSec;
-			if (hj.ConstraintCreated && hj.RuntimeConstraint)
+			if (hj.ConstraintCreated && hj.RuntimeConstraint
+				&& hj.ConstraintType == JointConstraintType::Hinge)
 			{
 				auto* c = static_cast<JPH::HingeConstraint*>(hj.RuntimeConstraint);
 				c->SetTargetAngularVelocity(glm::radians(degsPerSec));
@@ -202,7 +204,8 @@ namespace CB
 			if (!IsValid()) return;
 			auto& hj = OwnerEntity.GetComponent<HingeJointComponent>();
 			hj.UseMotor = on;
-			if (hj.ConstraintCreated && hj.RuntimeConstraint)
+			if (hj.ConstraintCreated && hj.RuntimeConstraint
+				&& hj.ConstraintType == JointConstraintType::Hinge)
 			{
 				auto* c = static_cast<JPH::HingeConstraint*>(hj.RuntimeConstraint);
 				c->SetMotorState(on ? JPH::EMotorState::Velocity : JPH::EMotorState::Off);

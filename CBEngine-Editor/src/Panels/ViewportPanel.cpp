@@ -28,6 +28,7 @@
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Selection/Selection.h"
 #include "CBEngine/Systems/RendererSystem.h"
+#include "CBEngine/Systems/VoxelDestructionSystem.h"
 
 namespace CB
 {
@@ -675,6 +676,7 @@ namespace CB
             if (collider.Shape == ColliderShape::VoxelCompound)
             {
                 // For voxel compound, draw each merged box from the voxel grid
+                bool drawn = false;
                 if (entity.HasComponent<VoxelRendererComponent>())
                 {
                     auto& vrc = entity.GetComponent<VoxelRendererComponent>();
@@ -686,14 +688,30 @@ namespace CB
                             ColliderDebugRenderer::DrawVoxelCompound(
                                 vmesh->GridData, worldTransform, m_CameraController.GetCamera(),
                                 collider.Offset);
+                            drawn = true;
                         }
-                        else
+                    }
+
+                    // Fallback: use destruction system's modified grid (for fragments/chunks)
+                    if (!drawn)
+                    {
+                        auto* grid = VoxelDestructionSystem::GetEntityGrid(
+                            static_cast<uint64_t>(entity.GetUUID()));
+                        if (grid && grid->CountFilled() > 0)
                         {
-                            // Fallback: draw bounding box
-                            ColliderDebugRenderer::DrawCollider(
-                                collider, worldTransform, m_CameraController.GetCamera(),
-                                Vector3(1.0f, 0.5f, 0.0f));
+                            ColliderDebugRenderer::DrawVoxelCompound(
+                                *grid, worldTransform, m_CameraController.GetCamera(),
+                                collider.Offset);
+                            drawn = true;
                         }
+                    }
+
+                    if (!drawn)
+                    {
+                        // Final fallback: draw bounding box
+                        ColliderDebugRenderer::DrawCollider(
+                            collider, worldTransform, m_CameraController.GetCamera(),
+                            Vector3(1.0f, 0.5f, 0.0f));
                     }
                 }
             }

@@ -38,6 +38,10 @@ PlayerMovement = {
         BulletBlueprint  = BlueprintRef(),   -- drag .blueprint here
         BulletPoint      = EntityRef(),      -- muzzle transform (child of gun/camera)
         FireRate         = Float(0.15, 0.01, 5.0),
+        UseRaycast       = Bool(false),       -- true = hitscan raycast, false = spawn bullet
+        RaycastDamage    = Float(25.0, 0.0, 1000.0),
+        RaycastRange     = Float(100.0, 1.0, 500.0),
+        RaycastDamageRadius = Float(0.3, 0.0, 5.0), -- 0 = single voxel, >0 = crater
 
         -- Drag the Camera entity here (used for aim direction + muzzle position).
         Camera           = EntityRef(),
@@ -244,7 +248,7 @@ function PlayerMovement:OnUpdate(dt)
 
     -- ── Shoot ─────────────────────────────────────────────────────────────────
     self._fireCooldown = Math.Max(0.0, self._fireCooldown - dt)
-    if Input.IsKeyJustPressed(Key.MouseLeft) and self._fireCooldown <= 0.0 then
+    if Input.IsKeyPressed(Key.MouseLeft) and self._fireCooldown <= 0.0 then
         self:Shoot()
         self._fireCooldown = self.FireRate
     end
@@ -253,13 +257,7 @@ end
 -- ── Shoot ─────────────────────────────────────────────────────────────────────
 
 function PlayerMovement:Shoot()
-    if not self.BulletBlueprint or not self.BulletBlueprint:IsValid() then
-        Log.Warn("PlayerMovement: no BulletBlueprint assigned")
-        return
-    end
-
-    -- Spawn position and fire direction come from BulletPoint (muzzle transform).
-    -- Falls back to camera, then player root if neither is set.
+    -- Determine origin and direction from BulletPoint, Camera, or player root
     local spawnPos, fireDir
     if self.BulletPoint and self.BulletPoint:IsValid() then
         spawnPos = self.BulletPoint:GetWorldPosition()
@@ -272,15 +270,57 @@ function PlayerMovement:Shoot()
         fireDir  = self._entity:GetForward()
     end
 
-    -- Spawn bullet and orient it along the fire direction.
-    -- PlayerBullet:OnCreate reads GetForward() for its RigidBody velocity.
-    local entities = self._scene:Instantiate(self.BulletBlueprint)
-    if #entities == 0 then
-        Log.Warn("PlayerMovement: Instantiate returned no entities")
-        return
-    end
+    if self.UseRaycast then
+        -- Hitscan mode: instant raycast damage
+        local hit = Physic.Raycast(self._scene, spawnPos, fireDir, self.RaycastRange)
+        if hit then
+            local hitEntity = hit:GetEntity(self._scene)
 
-    local bullet = entities[1]
-    bullet:SetPosition(spawnPos)
-    bullet:LookAt(spawnPos + fireDir * 100)
+            -- Voxel damage at hit point
+            if hit.point then
+                if self.RaycastDamageRadius > 0 then
+                    VoxelDamage.ApplySphere(self._scene, hit.point, self.RaycastDamageRadius, {
+                        type   = DamageType.Impact,
+                        amount = self.RaycastDamage,
+                    })
+                else
+                    if hitEntity and hitEntity:IsValid() then
+                        local entityID = hitEntity:GetUUID()
+                        if entityID then
+                            VoxelDamage.ApplyAtWorldPos(self._scene, entityID, hit.point, {
+                                type   = DamageType.Impact,
+                                amount = self.RaycastDamage,
+                                origin = hit.point,
+                                direction = hit.normal * -1.0,
+                            })
+                        end
+                    end
+                end
+            end
+
+            -- Break hinge joints if hit
+            if hitEntity and hitEntity:IsValid() then
+                local joint = hitEntity:GetComponent(HingeJoint)
+                if joint and joint:IsActive() then
+                    joint:Break()
+                end
+            end
+        end
+    else
+        -- Bullet mode: spawn projectile entity
+        if not self.BulletBlueprint or not self.BulletBlueprint:IsValid() then
+            Log.Warn("PlayerMovement: no BulletBlueprint assigned")
+            return
+        end
+
+        local entities = self._scene:Instantiate(self.BulletBlueprint)
+        if #entities == 0 then
+            Log.Warn("PlayerMovement: Instantiate returned no entities")
+            return
+        end
+
+        local bullet = entities[1]
+        bullet:SetPosition(spawnPos)
+        bullet:LookAt(spawnPos + fireDir * 100)
+    end
 end

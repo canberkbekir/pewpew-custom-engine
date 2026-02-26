@@ -47,6 +47,12 @@ namespace CB
 			const Vector3& contactPoint, const Vector3& contactNormal);
 		static void OnTriggerExit(Scene* scene, Entity entity, Entity other);
 
+		// Voxel destruction events — fired by VoxelDestructionSystem
+		static void OnVoxelDamaged(uint64_t entityUUID, int gx, int gy, int gz,
+			float normalizedHealth, float damageAmount);
+		static void OnVoxelDestroyed(uint64_t entityUUID, int gx, int gy, int gz);
+		static void OnStructuralCollapse(uint64_t entityUUID, int clusterCount, int totalVoxels);
+
 		// Call OnValidate on a script entry's class table when a field changes in the editor
 		static void CallOnValidate(ScriptEntry& entry, const std::string& changedField);
 

@@ -12,6 +12,8 @@
 #include "CBEngine/Physics/VoxelCollisionShapeGenerator.h"
 #include "CBEngine/Physics/CollisionShapeCache.h"
 #include "CBEngine/Systems/DestructionSystem.h"
+#include "CBEngine/Systems/VoxelDestructionSystem.h"
+#include "CBEngine/Components/DestructibleVoxelComponent.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
@@ -59,14 +61,23 @@ namespace CB
 		const Vector3& worldScale = Vector3(1.0f),
 		Scene* scene = nullptr, entt::entity entity = entt::null)
 	{
-		// 1.4 Fix: Respect pre-set RuntimeShape (e.g. fragment VoxelCompound shapes)
-		if (!collider.ShapeDirty && collider.RuntimeShape != nullptr)
-			return collider.RuntimeShape;
-
-		JPH::RefConst<JPH::Shape> shape;
-
 		// Apply entity scale to collider dimensions (collider values are in local space)
 		Vector3 absScale = Vector3(std::abs(worldScale.x), std::abs(worldScale.y), std::abs(worldScale.z));
+
+		// Respect pre-set RuntimeShape (e.g. fragment VoxelCompound shapes)
+		// but still apply entity scale so collision matches the rendered mesh
+		if (!collider.ShapeDirty && collider.RuntimeShape != nullptr)
+		{
+			bool needsScale = std::abs(absScale.x - 1.0f) > 0.001f ||
+				std::abs(absScale.y - 1.0f) > 0.001f ||
+				std::abs(absScale.z - 1.0f) > 0.001f;
+			if (needsScale)
+				return new JPH::ScaledShape(collider.RuntimeShape,
+					JPH::Vec3(absScale.x, absScale.y, absScale.z));
+			return collider.RuntimeShape;
+		}
+
+		JPH::RefConst<JPH::Shape> shape;
 
 		switch (collider.Shape)
 		{
@@ -259,6 +270,95 @@ namespace CB
 
 			checkDestructible(cb.EntityA, cb.EntityB);
 			checkDestructible(cb.EntityB, cb.EntityA);
+
+			// Voxel auto-impact damage — queue VoxelDamageEvent for DestructibleVoxelComponent entities
+			auto checkVoxelImpact = [&](UUID entityUUID, UUID otherUUID)
+			{
+				Entity entity = scene->GetEntityByUUID(entityUUID);
+				if (!entity || !entity.HasComponent<DestructibleVoxelComponent>())
+					return;
+
+				auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
+				if (!dvComp.Enabled || !dvComp.ReceivePhysicsImpact)
+					return;
+
+				if (!entity.HasComponent<VoxelRendererComponent>())
+					return;
+
+				Entity otherEntity = scene->GetEntityByUUID(otherUUID);
+				if (!otherEntity || !otherEntity.HasComponent<RigidBodyComponent>())
+					return;
+
+				auto& otherRB = otherEntity.GetComponent<RigidBodyComponent>();
+				if (!otherRB.BodyCreated)
+					return;
+
+				// Compute relative velocity as impact force estimate
+				JPH::Vec3 otherVel = bodyInterface.GetLinearVelocity(otherRB.RuntimeBodyID);
+				float impactSpeed = otherVel.Length();
+
+				if (impactSpeed < dvComp.PhysicsImpactThreshold)
+					return;
+
+				// Transform contact point from world space to grid-local space
+				auto& vr = entity.GetComponent<VoxelRendererComponent>();
+				if (!vr.VoxelMeshUUID.IsValid())
+					return;
+
+				auto vmesh = AssetManager::GetAsset<VoxelMeshAsset>(vr.VoxelMeshUUID);
+				if (!vmesh)
+					return;
+
+				// Get the grid (use modified copy if available)
+				uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
+				const voxelizer::VoxelGrid* grid = &vmesh->GridData;
+
+				// Transform contact point to entity local space
+				auto& transform = entity.GetComponent<TransformComponent>();
+				glm::mat4 worldInv = glm::inverse(transform.WorldMatrix);
+				glm::vec3 contactWorld(cb.ContactPoint.x, cb.ContactPoint.y, cb.ContactPoint.z);
+				glm::vec3 contactLocal = glm::vec3(worldInv * glm::vec4(contactWorld, 1.0f));
+
+				glm::ivec3 gridCoord = grid->WorldToVoxel(contactLocal);
+
+				// Clamp and verify the coord is valid and filled
+				if (!grid->IsValidCoord(gridCoord) || !grid->IsFilled(gridCoord))
+				{
+					// Try nearby voxels — contact point may be on the surface edge
+					bool found = false;
+					static const glm::ivec3 offsets[] = {
+						{0,0,0}, {1,0,0}, {-1,0,0}, {0,1,0}, {0,-1,0}, {0,0,1}, {0,0,-1}
+					};
+					for (const auto& off : offsets)
+					{
+						glm::ivec3 test = gridCoord + off;
+						if (grid->IsValidCoord(test) && grid->IsFilled(test))
+						{
+							gridCoord = test;
+							found = true;
+							break;
+						}
+					}
+					if (!found)
+						return;
+				}
+
+				// Queue damage — scale raw amount by speed and multiplier
+				float rawDamage = impactSpeed * dvComp.PhysicsImpactMultiplier;
+
+				VoxelDamageEvent dmgEvent;
+				dmgEvent.GridCoord    = gridCoord;
+				dmgEvent.EntityUUID   = uuid;
+				dmgEvent.Type         = VoxelDamageType::Impact;
+				dmgEvent.RawAmount    = rawDamage;
+				dmgEvent.WorldOrigin  = contactWorld;
+				dmgEvent.Direction    = glm::vec3(otherVel.GetX(), otherVel.GetY(), otherVel.GetZ());
+				dmgEvent.InstigatorUUID = static_cast<uint64_t>(otherUUID);
+				VoxelDestructionSystem::QueueDamage(dmgEvent);
+			};
+
+			checkVoxelImpact(cb.EntityA, cb.EntityB);
+			checkVoxelImpact(cb.EntityB, cb.EntityA);
 
 			// Script collision callbacks for both entities
 			Entity entityA = scene->GetEntityByUUID(cb.EntityA);

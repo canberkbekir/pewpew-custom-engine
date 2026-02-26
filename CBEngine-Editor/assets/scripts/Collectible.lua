@@ -4,10 +4,10 @@
 
 Collectible = {
     __fields = {
-        PointValue   = Int(1, 1, 100),
-        BobSpeed     = Float(2.0, 0, 10),
-        BobHeight    = Float(0.3, 0, 2),
-        SpinSpeed    = Float(2.0, 0, 10),
+        PointValue       = Int(1, 1, 100),
+        BobSpeed         = Float(2.0, 0, 10),
+        BobHeight        = Float(0.3, 0, 2),
+        SpinSpeed        = Float(2.0, 0, 10),
         DestroyOnCollect = Bool(true),
     }
 }
@@ -19,6 +19,14 @@ function Collectible:OnCreate()
 
     Log.Info("Collectible spawned: " .. self._entity:GetName()
         .. " (worth " .. self.PointValue .. " pts)")
+
+    local me = self
+    me.Collision.OnTriggerEnter:Connect(function(other, point, normal)
+        me:_Collect(other)
+    end)
+    me.Collision.OnCollisionBegin:Connect(function(other, point, normal)
+        me:_Collect(other)
+    end)
 end
 
 function Collectible:OnUpdate(dt)
@@ -35,13 +43,13 @@ function Collectible:OnUpdate(dt)
     self._entity:SetRotation(Vec3(rot.x, rot.y + self.SpinSpeed * dt, rot.z))
 end
 
-function Collectible:OnCollisionBegin(other, contactPoint, contactNormal)
+-- Shared collect logic — called from both OnTriggerEnter and OnCollisionBegin
+-- so the collectible works with trigger colliders AND physical colliders.
+function Collectible:_Collect(other)
     if self.collected then return end
 
-    -- Only respond to Player layer entities (or any entity with a RigidBody that is dynamic)
+    -- Only respond to Player layer entities (or any dynamic rigid body as fallback)
     if other:GetLayer() ~= Layer.Player then
-        -- Fallback: check if other has a PlayerMovement script
-        -- (in case layer isn't set, still allow collection from dynamic bodies)
         local rb = other:GetComponent(RigidBody)
         if not rb or rb:GetBodyType() ~= "dynamic" then
             return

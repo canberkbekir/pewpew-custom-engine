@@ -12,9 +12,14 @@ namespace YAML { class Emitter; class Node; }
 
 namespace CB
 {
+    enum class JointConstraintType : int { Hinge = 0, Ball = 1 };
+
     struct HingeJointComponent
     {
         static constexpr auto YAMLKey = "HingeJointComponent";
+
+        // Constraint type: Hinge = 1-axis rotation; Ball = free rotation (PointConstraint)
+        JointConstraintType ConstraintType = JointConstraintType::Hinge;
 
         // Connected body (UUID(0) = attach to world)
         UUID ConnectedBodyUUID = UUID(0);
@@ -62,6 +67,7 @@ namespace CB
 
         void Serialize(YAML::Emitter& out) const
         {
+            out << YAML::Key << "ConstraintType"    << YAML::Value << static_cast<int>(ConstraintType);
             out << YAML::Key << "ConnectedBodyUUID" << YAML::Value << static_cast<uint64_t>(ConnectedBodyUUID);
             out << YAML::Key << "Anchor"            << YAML::Value << Anchor;
             out << YAML::Key << "ConnectedAnchor"   << YAML::Value << ConnectedAnchor;
@@ -93,6 +99,12 @@ namespace CB
 
         void Deserialize(const YAML::Node& node)
         {
+            if (node["ConstraintType"])
+            {
+                int ct = node["ConstraintType"].as<int>(0);
+                ConstraintType = (ct == static_cast<int>(JointConstraintType::Ball))
+                    ? JointConstraintType::Ball : JointConstraintType::Hinge;
+            }
             if (node["ConnectedBodyUUID"])
                 ConnectedBodyUUID = UUID(node["ConnectedBodyUUID"].as<uint64_t>());
             if (node["Anchor"])          Anchor          = node["Anchor"].as<Vector3>();

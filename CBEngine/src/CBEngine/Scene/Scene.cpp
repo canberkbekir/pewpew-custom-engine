@@ -14,8 +14,10 @@
 #include "CBEngine/Systems/ScriptSystem.h"
 #include "CBEngine/Systems/HingeJointSystem.h"
 #include "CBEngine/Systems/HingeChainSystem.h"
+#include "CBEngine/Systems/VoxelDestructionSystem.h"
 #include "CBEngine/Components/HingeJointComponent.h"
 #include "CBEngine/Components/HingeChainComponent.h"
+#include "CBEngine/Components/DestructibleVoxelComponent.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Events/SceneEvent.h"
 #include "CBEngine/Input/Input.h"
@@ -96,6 +98,15 @@ namespace CB
             HingeChainSystem::DestroyChainLinks(*scenePtr, e, reg);
     }
 
+    static void OnDestructibleVoxelComponentDestroyed(entt::registry& reg, entt::entity e)
+    {
+        if (reg.valid(e) && reg.all_of<IDComponent>(e))
+        {
+            uint64_t uuid = static_cast<uint64_t>(reg.get<IDComponent>(e).ID);
+            VoxelDestructionSystem::OnEntityDestroyed(uuid);
+        }
+    }
+
     // ---- Scene lifecycle ----
 
     Scene::Scene()
@@ -108,6 +119,9 @@ namespace CB
         // when the component is removed or the entity is destroyed.
         m_Registry.on_destroy<HingeChainComponent>()
             .connect<&OnHingeChainComponentDestroyed>();
+
+        m_Registry.on_destroy<DestructibleVoxelComponent>()
+            .connect<&OnDestructibleVoxelComponentDestroyed>();
 
         // Register always-active systems (edit mode + play mode)
         RegisterSystem(CreateScope<TransformSystemAdapter>()); // priority 100
@@ -229,6 +243,7 @@ namespace CB
         RegisterSystem(std::move(scriptSystem));
 
         // Register physics-phase systems
+        RegisterSystem(CreateScope<VoxelDestructionSystemAdapter>()); // priority 175
         RegisterSystem(CreateScope<DestructionSystemAdapter>());
         RegisterSystem(CreateScope<PhysicsSystemAdapter>());
         RegisterSystem(CreateScope<HingeJointSystemAdapter>());
@@ -251,6 +266,7 @@ namespace CB
         UnregisterSystem("HingeJointSystem");
         UnregisterSystem("PhysicsSystem");
         UnregisterSystem("DestructionSystem");
+        UnregisterSystem("VoxelDestructionSystem");
         UnregisterSystem("ScriptSystem");
 
         // Destroy all hinge joint constraints before physics world shutdown
@@ -278,6 +294,10 @@ namespace CB
                 auto chainView = m_Registry.view<HingeChainComponent>();
                 chainView.each([](HingeChainComponent& chain) { chain.LinkEntityUUIDs.clear(); });
             }
+
+            // Suppress on_destroy<DestructibleVoxelComponent> during mass-clear.
+            // VoxelDestructionSystem::Shutdown() already clears all state.
+            VoxelDestructionSystem::Shutdown();
 
             // Clear all current entities
             std::vector<entt::entity> toDestroy;

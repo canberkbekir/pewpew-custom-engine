@@ -32,6 +32,8 @@ namespace CB
     CB_REGISTER_COMPONENT(AudioSourceComponent)
     CB_REGISTER_COMPONENT(HingeJointComponent)
     CB_REGISTER_COMPONENT(HingeChainComponent)
+    CB_REGISTER_COMPONENT(DestructibleVoxelComponent)
+    CB_REGISTER_COMPONENT(VoxelAnchorComponent)
 
     // Called from Application::Application() to force the linker to include
     // this object file from the static library (MSVC dead-strips objects that

@@ -13,6 +13,7 @@
 #include <Jolt/Physics/Body/Body.h>
 #include <Jolt/Physics/Body/BodyLock.h>
 #include <Jolt/Physics/Constraints/HingeConstraint.h>
+#include <Jolt/Physics/Constraints/PointConstraint.h>
 #include <Jolt/Physics/Constraints/SpringSettings.h>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -49,18 +50,25 @@ namespace CB
             if (!hj.ConstraintCreated || !hj.RuntimeConstraint)
                 continue;
 
-            auto* constraint = static_cast<JPH::HingeConstraint*>(hj.RuntimeConstraint);
-
             // Break check
             bool shouldBreak = false;
             if (hj.BreakForce > 0.0f || hj.BreakTorque > 0.0f)
             {
-                JPH::Vec3 totalLambdaPos = constraint->GetTotalLambdaPosition();
-                float linearForce = totalLambdaPos.Length() / ts.GetSeconds();
+                float linearForce = 0.0f;
+                float angularTorque = 0.0f;
 
-                float totalLambdaRot = std::abs(constraint->GetTotalLambdaRotationLimits())
-                    + std::abs(constraint->GetTotalLambdaMotor());
-                float angularTorque = totalLambdaRot / ts.GetSeconds();
+                if (hj.ConstraintType == JointConstraintType::Ball)
+                {
+                    auto* pc = static_cast<JPH::PointConstraint*>(hj.RuntimeConstraint);
+                    linearForce = pc->GetTotalLambdaPosition().Length() / ts.GetSeconds();
+                }
+                else
+                {
+                    auto* hc = static_cast<JPH::HingeConstraint*>(hj.RuntimeConstraint);
+                    linearForce   = hc->GetTotalLambdaPosition().Length() / ts.GetSeconds();
+                    angularTorque = (std::abs(hc->GetTotalLambdaRotationLimits())
+                                    + std::abs(hc->GetTotalLambdaMotor())) / ts.GetSeconds();
+                }
 
                 if ((hj.BreakForce  > 0.0f && linearForce   > hj.BreakForce)  ||
                     (hj.BreakTorque > 0.0f && angularTorque > hj.BreakTorque))
@@ -80,10 +88,11 @@ namespace CB
                 continue;
             }
 
-            // Motor velocity update
-            if (hj.UseMotor)
+            // Motor velocity update (Hinge only)
+            if (hj.UseMotor && hj.ConstraintType == JointConstraintType::Hinge)
             {
-                constraint->SetTargetAngularVelocity(glm::radians(hj.TargetVelocity));
+                auto* hc = static_cast<JPH::HingeConstraint*>(hj.RuntimeConstraint);
+                hc->SetTargetAngularVelocity(glm::radians(hj.TargetVelocity));
             }
         }
     }
@@ -157,45 +166,7 @@ namespace CB
             }
         }
 
-        // -- Fill Jolt constraint settings (WorldSpace) --
-        JPH::HingeConstraintSettings settings;
-        settings.mSpace       = JPH::EConstraintSpace::WorldSpace;
-        settings.mPoint1      = JPH::RVec3(worldAnchor1.x, worldAnchor1.y, worldAnchor1.z);
-        settings.mPoint2      = JPH::RVec3(worldAnchor2.x, worldAnchor2.y, worldAnchor2.z);
-        settings.mHingeAxis1  = ToJolt(worldAxis);
-        settings.mHingeAxis2  = ToJolt(worldAxis);
-        settings.mNormalAxis1 = ToJolt(worldNormal);
-        settings.mNormalAxis2 = ToJolt(worldNormal);
-
-        // Limits
-        if (hj.UseLimits)
-        {
-            settings.mLimitsMin = glm::radians(glm::clamp(hj.LimitsMin, -180.0f, 0.0f));
-            settings.mLimitsMax = glm::radians(glm::clamp(hj.LimitsMax,  0.0f, 180.0f));
-        }
-        else
-        {
-            settings.mLimitsMin = -glm::pi<float>();
-            settings.mLimitsMax =  glm::pi<float>();
-        }
-
-        // Spring (soft limits)
-        if (hj.UseSpring)
-        {
-            settings.mLimitsSpringSettings.mMode      = JPH::ESpringMode::FrequencyAndDamping;
-            settings.mLimitsSpringSettings.mFrequency = hj.SpringFrequency;
-            settings.mLimitsSpringSettings.mDamping   = hj.SpringDamping;
-        }
-
-        // Motor
-        if (hj.UseMotor)
-        {
-            settings.mMotorSettings = JPH::MotorSettings(2.0f, 1.0f, FLT_MAX, hj.MotorForce);
-        }
-
-        settings.mMaxFrictionTorque = hj.MaxFrictionTorque;
-
-        // -- Acquire body references --
+        // -- Build constraint settings (WorldSpace) --
         JPH::PhysicsSystem& physSystem = world->GetPhysicsSystem();
         // Use the no-lock interface to avoid Jolt's same-priority lock assert.
         // InitConstraint is called from HingeJointSystem::OnUpdate (priority 350),
@@ -203,6 +174,56 @@ namespace CB
         // so no simulation locks are held and no-lock access is safe.
         const JPH::BodyLockInterface& lockInterface = physSystem.GetBodyLockInterfaceNoLock();
 
+        JPH::RVec3 jPoint1(worldAnchor1.x, worldAnchor1.y, worldAnchor1.z);
+        JPH::RVec3 jPoint2(worldAnchor2.x, worldAnchor2.y, worldAnchor2.z);
+
+        JPH::HingeConstraintSettings hingeSettings;
+        JPH::PointConstraintSettings pointSettings;
+        JPH::TwoBodyConstraintSettings* settingsPtr = nullptr;
+
+        if (hj.ConstraintType == JointConstraintType::Ball)
+        {
+            pointSettings.mSpace  = JPH::EConstraintSpace::WorldSpace;
+            pointSettings.mPoint1 = jPoint1;
+            pointSettings.mPoint2 = jPoint2;
+            settingsPtr = &pointSettings;
+        }
+        else
+        {
+            hingeSettings.mSpace       = JPH::EConstraintSpace::WorldSpace;
+            hingeSettings.mPoint1      = jPoint1;
+            hingeSettings.mPoint2      = jPoint2;
+            hingeSettings.mHingeAxis1  = ToJolt(worldAxis);
+            hingeSettings.mHingeAxis2  = ToJolt(worldAxis);
+            hingeSettings.mNormalAxis1 = ToJolt(worldNormal);
+            hingeSettings.mNormalAxis2 = ToJolt(worldNormal);
+
+            if (hj.UseLimits)
+            {
+                hingeSettings.mLimitsMin = glm::radians(glm::clamp(hj.LimitsMin, -180.0f, 0.0f));
+                hingeSettings.mLimitsMax = glm::radians(glm::clamp(hj.LimitsMax,  0.0f, 180.0f));
+            }
+            else
+            {
+                hingeSettings.mLimitsMin = -glm::pi<float>();
+                hingeSettings.mLimitsMax =  glm::pi<float>();
+            }
+
+            if (hj.UseSpring)
+            {
+                hingeSettings.mLimitsSpringSettings.mMode      = JPH::ESpringMode::FrequencyAndDamping;
+                hingeSettings.mLimitsSpringSettings.mFrequency = hj.SpringFrequency;
+                hingeSettings.mLimitsSpringSettings.mDamping   = hj.SpringDamping;
+            }
+
+            if (hj.UseMotor)
+                hingeSettings.mMotorSettings = JPH::MotorSettings(2.0f, 1.0f, FLT_MAX, hj.MotorForce);
+
+            hingeSettings.mMaxFrictionTorque = hj.MaxFrictionTorque;
+            settingsPtr = &hingeSettings;
+        }
+
+        // -- Acquire body references and create constraint --
         JPH::TwoBodyConstraint* constraint = nullptr;
 
         if (connectedEntity && connectedEntity.HasComponent<RigidBodyComponent>())
@@ -220,15 +241,11 @@ namespace CB
                 return;
             }
 
-            JPH::Body& body1 = lock1.GetBody();
-            JPH::Body& body2 = lock2.GetBody();
-
-            constraint = static_cast<JPH::TwoBodyConstraint*>(settings.Create(body1, body2));
+            constraint = static_cast<JPH::TwoBodyConstraint*>(
+                settingsPtr->Create(lock1.GetBody(), lock2.GetBody()));
         }
         else
         {
-            // Attach to world (sFixedToWorld) — single body, no ordering issue,
-            // but use the same no-lock interface for consistency.
             JPH::BodyLockWrite lock1(lockInterface, rb.RuntimeBodyID);
             if (!lock1.Succeeded())
             {
@@ -236,9 +253,8 @@ namespace CB
                 return;
             }
 
-            JPH::Body& body1 = lock1.GetBody();
             constraint = static_cast<JPH::TwoBodyConstraint*>(
-                settings.Create(body1, JPH::Body::sFixedToWorld));
+                settingsPtr->Create(lock1.GetBody(), JPH::Body::sFixedToWorld));
         }
 
         if (!constraint)
@@ -247,12 +263,12 @@ namespace CB
             return;
         }
 
-        // Motor state
-        if (hj.UseMotor)
+        // Motor initial state (Hinge only)
+        if (hj.UseMotor && hj.ConstraintType == JointConstraintType::Hinge)
         {
-            auto* hingeConstraint = static_cast<JPH::HingeConstraint*>(constraint);
-            hingeConstraint->SetMotorState(JPH::EMotorState::Velocity);
-            hingeConstraint->SetTargetAngularVelocity(glm::radians(hj.TargetVelocity));
+            auto* hc = static_cast<JPH::HingeConstraint*>(constraint);
+            hc->SetMotorState(JPH::EMotorState::Velocity);
+            hc->SetTargetAngularVelocity(glm::radians(hj.TargetVelocity));
         }
 
         // AddRef so we own a reference (physics system adds its own ref via AddConstraint)

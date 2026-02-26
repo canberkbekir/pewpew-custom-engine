@@ -24,5 +24,6 @@ namespace CB
 		static void RegisterAudio(sol::state& lua);      // Phase 5: Audio API
 		static void RegisterSceneManagement(sol::state& lua); // Phase 6: Scene management
 		static void RegisterHingeJoint(sol::state& lua); // HingeJoint constraint API
+		static void RegisterVoxelDestruction(sol::state& lua); // VoxelQuery + VoxelDamage + DamageType
 	};
 }

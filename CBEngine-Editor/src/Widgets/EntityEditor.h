@@ -25,6 +25,8 @@
 #include "ComponentViews/BlueprintInstanceComponentView.h"
 #include "ComponentViews/HingeJointComponentView.h"
 #include "ComponentViews/HingeChainComponentView.h"
+#include "ComponentViews/DestructibleVoxelComponentView.h"
+#include "ComponentViews/VoxelAnchorComponentView.h"
 #include "ComponentViews/AddComponentMenu.h"
 
 #include <fstream>
@@ -131,6 +133,8 @@ namespace CB
             GameManagerComponentView::Draw(entity);
             HingeJointComponentView::Draw(entity);
             HingeChainComponentView::Draw(entity);
+            DestructibleVoxelComponentView::Draw(entity);
+            VoxelAnchorComponentView::Draw(entity);
             BlueprintInstanceComponentView::Draw(entity);
 
             ImGui::Separator();

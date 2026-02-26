@@ -1,6 +1,6 @@
 Blueprint: Bullet
 Entities:
-  - Entity: 15649565200962769049
+  - Entity: 5612762163077309465
     TagComponent:
       Tag: Bullet
     TransformComponent:
@@ -39,3 +39,7 @@ Entities:
       Scripts:
         - ScriptPath: scripts\PlayerBullet.lua
           ClassName: PlayerBullet
+          Fields:
+            - Name: Damage
+              Type: float
+              Value: 50

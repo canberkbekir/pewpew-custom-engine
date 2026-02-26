@@ -152,6 +152,7 @@ namespace CB
                 linkEntity.AddComponent<HingeJointComponent>();
 
             auto& hj = linkEntity.GetComponent<HingeJointComponent>();
+            hj.ConstraintType = chain.UseBallJoint ? JointConstraintType::Ball : JointConstraintType::Hinge;
             hj.Anchor    = -dir * (chain.LinkSpacing * 0.5f);
             hj.Axis      = chain.HingeAxis;
             hj.AutoConfigureConnectedAnchor = true;

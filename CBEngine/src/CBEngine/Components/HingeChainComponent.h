@@ -44,6 +44,11 @@ namespace CB
         // false → first link's hinge attaches to the chain root entity's rigid body
         bool AnchorFirstToWorld = true;
 
+        // ---- Joint type ----
+        // Ball = PointConstraint (free rotation in all axes, more realistic chain physics)
+        // Hinge = 1-axis rotation (stiffer, use when you need a specific swing plane or motor)
+        bool UseBallJoint = false;
+
         // ---- Hinge settings (applied to every link joint) ----
         Vector3 HingeAxis = Vector3(1.0f, 0.0f, 0.0f); // rotation axis in root/link local space
 
@@ -88,6 +93,7 @@ namespace CB
             out << YAML::Key << "LinearDamping"  << YAML::Value << LinearDamping;
             out << YAML::Key << "AngularDamping" << YAML::Value << AngularDamping;
             out << YAML::Key << "AnchorFirstToWorld" << YAML::Value << AnchorFirstToWorld;
+            out << YAML::Key << "UseBallJoint"   << YAML::Value << UseBallJoint;
             out << YAML::Key << "HingeAxis"      << YAML::Value << HingeAxis;
             out << YAML::Key << "UseLimits"      << YAML::Value << UseLimits;
             out << YAML::Key << "LimitsMin"      << YAML::Value << LimitsMin;
@@ -138,6 +144,7 @@ namespace CB
             if (node["LinearDamping"])  LinearDamping  = node["LinearDamping"].as<float>();
             if (node["AngularDamping"]) AngularDamping = node["AngularDamping"].as<float>();
             if (node["AnchorFirstToWorld"]) AnchorFirstToWorld = node["AnchorFirstToWorld"].as<bool>();
+            if (node["UseBallJoint"])   UseBallJoint   = node["UseBallJoint"].as<bool>();
             if (node["HingeAxis"])      HingeAxis      = node["HingeAxis"].as<Vector3>();
             if (node["UseLimits"])      UseLimits      = node["UseLimits"].as<bool>();
             if (node["LimitsMin"])      LimitsMin      = node["LimitsMin"].as<float>();

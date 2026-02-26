@@ -117,10 +117,15 @@ namespace CB
 				(box.Min.y + box.Max.y + 1) * 0.5f * grid.voxelSize.y,
 				(box.Min.z + box.Max.z + 1) * 0.5f * grid.voxelSize.z);
 
+			// Use a convex radius that fits within the smallest half-extent
+			// (Jolt's default 0.05 can exceed small voxel boxes, making them degenerate)
+			float minHalf = std::min({halfExtents.x, halfExtents.y, halfExtents.z});
+			float convexRadius = std::min(minHalf * 0.5f, JPH::cDefaultConvexRadius);
+
 			compoundSettings.AddShape(
 				JPH::Vec3(center.x, center.y, center.z),
 				JPH::Quat::sIdentity(),
-				new JPH::BoxShape(JPH::Vec3(halfExtents.x, halfExtents.y, halfExtents.z)));
+				new JPH::BoxShape(JPH::Vec3(halfExtents.x, halfExtents.y, halfExtents.z), convexRadius));
 		}
 
 		auto result = compoundSettings.Create();

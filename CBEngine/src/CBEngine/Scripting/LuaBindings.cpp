@@ -36,6 +36,9 @@
 #include "CBEngine/Scripting/ScriptEngine.h"
 #include "CBEngine/Core/Application.h"
 #include "CBEngine/Renderer/Resources/Material.h"
+#include "CBEngine/Systems/VoxelDestructionSystem.h"
+#include "CBEngine/Voxel/Destruction/VoxelSubstance.h"
+#include "CBEngine/Components/DestructibleVoxelComponent.h"
 
 #include <Jolt/Physics/Body/BodyInterface.h>
 
@@ -58,6 +61,7 @@ namespace CB
 		RegisterAudio(lua);          // Phase 5: Audio API
 		RegisterSceneManagement(lua);// Phase 6: Scene management
 		RegisterHingeJoint(lua);     // HingeJoint constraint API
+		RegisterVoxelDestruction(lua); // VoxelQuery + VoxelDamage + DamageType
 	}
 
 	void LuaBindings::RegisterMath(sol::state& lua)
@@ -2789,6 +2793,236 @@ end
 
 		et["GetHingeJoint"] = [](Entity& e) -> HingeJointProxy {
 			return HingeJointProxy{ e };
+		};
+	}
+
+	// =========================================================================
+	// RegisterVoxelDestruction — VoxelQuery, VoxelDamage, DamageType
+	//
+	// Lua usage:
+	//   local hits = VoxelQuery.Sphere(scene, origin, radius)
+	//   for _, hit in ipairs(hits) do
+	//       VoxelDamage.Apply(scene, hit.EntityID, hit.GridCoord, {
+	//           type = DamageType.Explosion, amount = 80.0, origin = origin })
+	//   end
+	//   VoxelDamage.GetHealth(scene, entityID, gridCoord)  -- 0.0-1.0
+	// =========================================================================
+	void LuaBindings::RegisterVoxelDestruction(sol::state& lua)
+	{
+		// -----------------------------------------------------------------
+		// DamageType constants
+		// -----------------------------------------------------------------
+		auto dt = lua.create_named_table("DamageType");
+		dt["Impact"]     = static_cast<uint32_t>(VoxelDamageType::Impact);
+		dt["Explosion"]  = static_cast<uint32_t>(VoxelDamageType::Explosion);
+		dt["Slice"]      = static_cast<uint32_t>(VoxelDamageType::Slice);
+		dt["Fire"]       = static_cast<uint32_t>(VoxelDamageType::Fire);
+		dt["Acid"]       = static_cast<uint32_t>(VoxelDamageType::Acid);
+		dt["Pressure"]   = static_cast<uint32_t>(VoxelDamageType::Pressure);
+		dt["Structural"] = static_cast<uint32_t>(VoxelDamageType::Structural);
+
+		// -----------------------------------------------------------------
+		// VoxelQuery — spatial queries returning hit tables
+		// -----------------------------------------------------------------
+		auto vq = lua.create_named_table("VoxelQuery");
+
+		// VoxelQuery.Sphere(scene, origin, radius) → array of hit tables
+		vq["Sphere"] = [](Scene* scene, const Vector3& origin, float radius, sol::this_state L) -> sol::table
+		{
+			sol::state_view lua(L);
+			sol::table results = lua.create_table();
+
+			auto hits = VoxelDestructionSystem::QuerySphere(scene,
+				glm::vec3(origin.x, origin.y, origin.z), radius);
+
+			int idx = 1;
+			for (const auto& hit : hits)
+			{
+				sol::table entry = lua.create_table();
+				entry["EntityID"]  = hit.EntityUUID;
+				entry["WorldPos"]  = Vector3(hit.WorldPos.x, hit.WorldPos.y, hit.WorldPos.z);
+				entry["GridCoord"] = lua.create_table_with(
+					"x", hit.GridCoord.x,
+					"y", hit.GridCoord.y,
+					"z", hit.GridCoord.z
+				);
+				entry["SubstanceName"]    = hit.SubstanceName;
+				entry["NormalizedHealth"] = hit.NormalizedHealth;
+				results[idx++] = entry;
+			}
+
+			return results;
+		};
+
+		// VoxelQuery.Box(scene, center, halfExtents) → array of hit tables
+		vq["Box"] = [](Scene* scene, const Vector3& center, const Vector3& halfExtents, sol::this_state L) -> sol::table
+		{
+			sol::state_view lua(L);
+			sol::table results = lua.create_table();
+
+			auto hits = VoxelDestructionSystem::QueryBox(scene,
+				glm::vec3(center.x, center.y, center.z),
+				glm::vec3(halfExtents.x, halfExtents.y, halfExtents.z));
+
+			int idx = 1;
+			for (const auto& hit : hits)
+			{
+				sol::table entry = lua.create_table();
+				entry["EntityID"]  = hit.EntityUUID;
+				entry["WorldPos"]  = Vector3(hit.WorldPos.x, hit.WorldPos.y, hit.WorldPos.z);
+				entry["GridCoord"] = lua.create_table_with(
+					"x", hit.GridCoord.x,
+					"y", hit.GridCoord.y,
+					"z", hit.GridCoord.z
+				);
+				entry["SubstanceName"]    = hit.SubstanceName;
+				entry["NormalizedHealth"] = hit.NormalizedHealth;
+				results[idx++] = entry;
+			}
+
+			return results;
+		};
+
+		// -----------------------------------------------------------------
+		// VoxelDamage — damage application + state reads
+		// -----------------------------------------------------------------
+		auto vd = lua.create_named_table("VoxelDamage");
+
+		// Helper: extract glm::ivec3 from a Lua table { x, y, z }
+		auto parseGridCoord = [](sol::table t) -> glm::ivec3
+		{
+			int x = t["x"].valid() ? t["x"].get<int>() : 0;
+			int y = t["y"].valid() ? t["y"].get<int>() : 0;
+			int z = t["z"].valid() ? t["z"].get<int>() : 0;
+			return glm::ivec3(x, y, z);
+		};
+
+		// VoxelDamage.Apply(scene, entityID, gridCoord, { type, amount, origin, direction })
+		vd["Apply"] = [parseGridCoord](Scene* scene, uint64_t entityID, sol::table gridCoord, sol::table opts)
+		{
+			if (!scene)
+			{
+				CB_CORE_WARN("[Lua] VoxelDamage.Apply: scene is nil");
+				return;
+			}
+
+			VoxelDamageEvent event;
+			event.EntityUUID = entityID;
+			event.GridCoord  = parseGridCoord(gridCoord);
+
+			sol::optional<uint32_t> typeOpt = opts["type"];
+			event.Type = typeOpt ? static_cast<VoxelDamageType>(*typeOpt) : VoxelDamageType::Impact;
+
+			sol::optional<float> amountOpt = opts["amount"];
+			event.RawAmount = amountOpt ? *amountOpt : 0.0f;
+
+			sol::optional<Vector3> origin = opts["origin"];
+			if (origin)
+				event.WorldOrigin = glm::vec3(origin->x, origin->y, origin->z);
+
+			sol::optional<Vector3> dir = opts["direction"];
+			if (dir)
+				event.Direction = glm::vec3(dir->x, dir->y, dir->z);
+
+			sol::optional<uint64_t> instigator = opts["instigator"];
+			if (instigator)
+				event.InstigatorUUID = *instigator;
+
+			VoxelDestructionSystem::QueueDamage(event);
+		};
+
+		// VoxelDamage.ApplyAtWorldPos(scene, entityID, worldPos, { type, amount, ... })
+		// Convenience: converts a world position to the nearest grid coord automatically
+		vd["ApplyAtWorldPos"] = [](Scene* scene, uint64_t entityID, const Vector3& worldPos, sol::table opts)
+		{
+			if (!scene)
+			{
+				CB_CORE_WARN("[Lua] VoxelDamage.ApplyAtWorldPos: scene is nil");
+				return;
+			}
+
+			VoxelDamageEvent event;
+			event.EntityUUID  = entityID;
+			event.UseWorldPos = true;
+			event.WorldHitPos = glm::vec3(worldPos.x, worldPos.y, worldPos.z);
+
+			sol::optional<uint32_t> typeOpt = opts["type"];
+			event.Type = typeOpt ? static_cast<VoxelDamageType>(*typeOpt) : VoxelDamageType::Impact;
+
+			sol::optional<float> amountOpt = opts["amount"];
+			event.RawAmount = amountOpt ? *amountOpt : 0.0f;
+
+			sol::optional<Vector3> origin = opts["origin"];
+			if (origin)
+				event.WorldOrigin = glm::vec3(origin->x, origin->y, origin->z);
+
+			sol::optional<Vector3> dir = opts["direction"];
+			if (dir)
+				event.Direction = glm::vec3(dir->x, dir->y, dir->z);
+
+			VoxelDestructionSystem::QueueDamage(event);
+		};
+
+		// VoxelDamage.ApplySphere(scene, worldPos, radius, { type, amount, falloff })
+		// Convenience: queries all voxels in sphere and applies damage to each
+		vd["ApplySphere"] = [](Scene* scene, const Vector3& worldPos, float radius, sol::table opts)
+		{
+			if (!scene || radius <= 0.0f) return;
+
+			auto hits = VoxelDestructionSystem::QuerySphere(scene,
+				glm::vec3(worldPos.x, worldPos.y, worldPos.z), radius);
+
+			sol::optional<uint32_t> typeOpt = opts["type"];
+			VoxelDamageType type = typeOpt ? static_cast<VoxelDamageType>(*typeOpt) : VoxelDamageType::Impact;
+
+			sol::optional<float> amountOpt = opts["amount"];
+			float baseAmount = amountOpt ? *amountOpt : 0.0f;
+
+			sol::optional<bool> falloffOpt = opts["falloff"];
+			bool useFalloff = falloffOpt ? *falloffOpt : true;
+
+			for (const auto& hit : hits)
+			{
+				float amount = baseAmount;
+				if (useFalloff)
+				{
+					float dist = glm::distance(glm::vec3(worldPos.x, worldPos.y, worldPos.z), hit.WorldPos);
+					float t = 1.0f - (dist / radius);
+					amount *= t * t; // quadratic falloff
+				}
+
+				VoxelDamageEvent event;
+				event.EntityUUID  = hit.EntityUUID;
+				event.GridCoord   = hit.GridCoord;
+				event.Type        = type;
+				event.RawAmount   = amount;
+				event.WorldOrigin = glm::vec3(worldPos.x, worldPos.y, worldPos.z);
+				VoxelDestructionSystem::QueueDamage(event);
+			}
+		};
+
+		// VoxelDamage.GetHealth(scene, entityID, gridCoord) → float 0.0-1.0
+		vd["GetHealth"] = [parseGridCoord](Scene* /*scene*/, uint64_t entityID, sol::table gridCoord) -> float
+		{
+			return VoxelDestructionSystem::GetNormalizedHealth(entityID, parseGridCoord(gridCoord));
+		};
+
+		// Simplified overload: just returns a float (1.0 = undamaged)
+		vd["GetHealthValue"] = [](uint64_t entityID, int x, int y, int z) -> float
+		{
+			return VoxelDestructionSystem::GetNormalizedHealth(entityID, glm::ivec3(x, y, z));
+		};
+
+		// VoxelDamage.IsDestroyed(scene, entityID, gridCoord) → bool
+		vd["IsDestroyed"] = [parseGridCoord](Scene* /*scene*/, uint64_t entityID, sol::table gridCoord) -> bool
+		{
+			return VoxelDestructionSystem::IsVoxelDestroyed(entityID, parseGridCoord(gridCoord));
+		};
+
+		// VoxelDamage.GetSubstance(scene, entityID, gridCoord) → string
+		vd["GetSubstance"] = [parseGridCoord](Scene* scene, uint64_t entityID, sol::table gridCoord) -> std::string
+		{
+			return VoxelDestructionSystem::GetSubstanceName(entityID, parseGridCoord(gridCoord), scene);
 		};
 	}
 }

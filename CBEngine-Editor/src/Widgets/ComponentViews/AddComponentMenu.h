@@ -14,6 +14,8 @@
 #include "CBEngine/Components/GameManagerComponent.h"
 #include "CBEngine/Components/HingeJointComponent.h"
 #include "CBEngine/Components/HingeChainComponent.h"
+#include "CBEngine/Components/DestructibleVoxelComponent.h"
+#include "CBEngine/Components/VoxelAnchorComponent.h"
 #include "CBEngine/Systems/HingeChainSystem.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/AssetRegistry.h"
@@ -168,6 +170,32 @@ namespace CB
                             // Deserialize so we can't use it here; explicit call is correct.
                             HingeChainSystem::RebuildChain(
                                 entity.GetScene(), entity);
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                }
+
+                if (!hasFilter || MatchesFilter("Destructible Voxel"))
+                {
+                    if (!entity.HasComponent<DestructibleVoxelComponent>())
+                    {
+                        anyComponentShown = true;
+                        if (ImGui::MenuItem("Destructible Voxel"))
+                        {
+                            entity.AddComponent<DestructibleVoxelComponent>();
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                }
+
+                if (!hasFilter || MatchesFilter("Voxel Anchor"))
+                {
+                    if (!entity.HasComponent<VoxelAnchorComponent>())
+                    {
+                        anyComponentShown = true;
+                        if (ImGui::MenuItem("Voxel Anchor"))
+                        {
+                            entity.AddComponent<VoxelAnchorComponent>();
                             ImGui::CloseCurrentPopup();
                         }
                     }

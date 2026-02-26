@@ -43,6 +43,33 @@ namespace CB
 	// Per-entity: vector of script instances (indexed same as ScriptComponent::Scripts)
 	static std::unordered_map<uint64_t, std::vector<sol::table>> s_ScriptInstances;
 
+	// Per-entity collision event delegates
+	struct LuaEvent
+	{
+		std::vector<sol::protected_function> Listeners;
+		void Clear() { Listeners.clear(); }
+		bool Empty() const { return Listeners.empty(); }
+	};
+
+	struct EntityCollisionEvents
+	{
+		LuaEvent OnCollisionBegin;
+		LuaEvent OnCollisionEnd;
+		LuaEvent OnTriggerEnter;
+		LuaEvent OnTriggerExit;
+	};
+
+	static std::unordered_map<uint64_t, EntityCollisionEvents> s_CollisionEvents;
+
+	struct EntityVoxelEvents
+	{
+		LuaEvent OnVoxelDamaged;    // (gridX, gridY, gridZ, normalizedHealth, damageAmount)
+		LuaEvent OnVoxelDestroyed;  // (gridX, gridY, gridZ)
+		LuaEvent OnStructuralCollapse; // (clusterCount, totalVoxels)
+	};
+
+	static std::unordered_map<uint64_t, EntityVoxelEvents> s_VoxelEvents;
+
 	// -------------------------------------------------------------------------
 	// Forward declaration — ResolveScriptPath is defined after static data below.
 	// -------------------------------------------------------------------------
@@ -225,6 +252,8 @@ namespace CB
 	void ScriptEngine::Shutdown()
 	{
 		s_ScriptInstances.clear();
+		s_CollisionEvents.clear();
+		s_VoxelEvents.clear();
 		s_ClassTables.clear();
 		s_KnownClassNames.clear();
 		s_GameManagerScripts.clear();
@@ -863,6 +892,19 @@ namespace CB
 
 		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
 
+		// Clear any stale collision subscriptions from a previous instantiation
+		auto& evts = s_CollisionEvents[uuid];
+		evts.OnCollisionBegin.Clear();
+		evts.OnCollisionEnd.Clear();
+		evts.OnTriggerEnter.Clear();
+		evts.OnTriggerExit.Clear();
+
+		// Clear voxel event subscriptions
+		auto& voxEvts = s_VoxelEvents[uuid];
+		voxEvts.OnVoxelDamaged.Clear();
+		voxEvts.OnVoxelDestroyed.Clear();
+		voxEvts.OnStructuralCollapse.Clear();
+
 		auto& instances = s_ScriptInstances[uuid];
 		instances.clear();
 
@@ -981,77 +1023,53 @@ namespace CB
 		}
 
 		s_ScriptInstances.erase(it);
+		s_CollisionEvents.erase(uuid);
+		s_VoxelEvents.erase(uuid);
 
 		for (auto& entry : scriptComp.Scripts)
 			entry.ScriptLoaded = false;
 	}
 
 	// =========================================================================
-	// OnCollision / OnCollisionEnd — call on all instances
+	// OnCollision / OnCollisionEnd — fire per-entity LuaEvent delegates
 	// =========================================================================
 	void ScriptEngine::OnCollision(Scene* scene, Entity entity, Entity other,
 		const Vector3& contactPoint, const Vector3& contactNormal)
 	{
-		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
-			return;
+		if (!s_LuaState) return;
 
 		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
-		auto it = s_ScriptInstances.find(uuid);
-		if (it == s_ScriptInstances.end())
+		auto it = s_CollisionEvents.find(uuid);
+		if (it == s_CollisionEvents.end() || it->second.OnCollisionBegin.Empty())
 			return;
 
-		auto& scriptComp = entity.GetComponent<ScriptComponent>();
-
-		for (size_t i = 0; i < it->second.size(); i++)
+		for (auto& fn : it->second.OnCollisionBegin.Listeners)
 		{
-			sol::table& self = it->second[i];
-			if (!self.valid()) continue;
-
-			sol::object onCollisionObj = self["OnCollisionBegin"];
-			if (onCollisionObj.is<sol::protected_function>())
+			auto result = fn(other, contactPoint, contactNormal);
+			if (!result.valid())
 			{
-				sol::protected_function onCollisionBegin = onCollisionObj;
-				auto result = onCollisionBegin(self, other, contactPoint, contactNormal);
-				if (!result.valid())
-				{
-					sol::error err = result;
-					const String& path = (i < scriptComp.Scripts.size())
-						? scriptComp.Scripts[i].ScriptPath : "unknown";
-					CB_CORE_ERROR("Lua OnCollisionBegin error ({0}): {1}", path, err.what());
-				}
+				sol::error err = result;
+				CB_CORE_ERROR("Lua Collision.OnCollisionBegin error (entity {0}): {1}", uuid, err.what());
 			}
 		}
 	}
 
 	void ScriptEngine::OnCollisionEnd(Scene* scene, Entity entity, Entity other)
 	{
-		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
-			return;
+		if (!s_LuaState) return;
 
 		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
-		auto it = s_ScriptInstances.find(uuid);
-		if (it == s_ScriptInstances.end())
+		auto it = s_CollisionEvents.find(uuid);
+		if (it == s_CollisionEvents.end() || it->second.OnCollisionEnd.Empty())
 			return;
 
-		auto& scriptComp = entity.GetComponent<ScriptComponent>();
-
-		for (size_t i = 0; i < it->second.size(); i++)
+		for (auto& fn : it->second.OnCollisionEnd.Listeners)
 		{
-			sol::table& self = it->second[i];
-			if (!self.valid()) continue;
-
-			sol::object onCollisionEndObj = self["OnCollisionEnd"];
-			if (onCollisionEndObj.is<sol::protected_function>())
+			auto result = fn(other);
+			if (!result.valid())
 			{
-				sol::protected_function onCollisionEnd = onCollisionEndObj;
-				auto result = onCollisionEnd(self, other);
-				if (!result.valid())
-				{
-					sol::error err = result;
-					const String& path = (i < scriptComp.Scripts.size())
-						? scriptComp.Scripts[i].ScriptPath : "unknown";
-					CB_CORE_ERROR("Lua OnCollisionEnd error ({0}): {1}", path, err.what());
-				}
+				sol::error err = result;
+				CB_CORE_ERROR("Lua Collision.OnCollisionEnd error (entity {0}): {1}", uuid, err.what());
 			}
 		}
 	}
@@ -1093,71 +1111,106 @@ namespace CB
 	}
 
 	// =========================================================================
-	// OnTriggerEnter / OnTriggerExit — call on all instances
+	// OnTriggerEnter / OnTriggerExit — fire per-entity LuaEvent delegates
 	// =========================================================================
 	void ScriptEngine::OnTriggerEnter(Scene* scene, Entity entity, Entity other,
 		const Vector3& contactPoint, const Vector3& contactNormal)
 	{
-		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
-			return;
+		if (!s_LuaState) return;
 
 		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
-		auto it = s_ScriptInstances.find(uuid);
-		if (it == s_ScriptInstances.end())
+		auto it = s_CollisionEvents.find(uuid);
+		if (it == s_CollisionEvents.end() || it->second.OnTriggerEnter.Empty())
 			return;
 
-		auto& scriptComp = entity.GetComponent<ScriptComponent>();
-
-		for (size_t i = 0; i < it->second.size(); i++)
+		for (auto& fn : it->second.OnTriggerEnter.Listeners)
 		{
-			sol::table& self = it->second[i];
-			if (!self.valid()) continue;
-
-			sol::object onTriggerEnterObj = self["OnTriggerEnter"];
-			if (onTriggerEnterObj.is<sol::protected_function>())
+			auto result = fn(other, contactPoint, contactNormal);
+			if (!result.valid())
 			{
-				sol::protected_function onTriggerEnter = onTriggerEnterObj;
-				auto result = onTriggerEnter(self, other, contactPoint, contactNormal);
-				if (!result.valid())
-				{
-					sol::error err = result;
-					const String& path = (i < scriptComp.Scripts.size())
-						? scriptComp.Scripts[i].ScriptPath : "unknown";
-					CB_CORE_ERROR("Lua OnTriggerEnter error ({0}): {1}", path, err.what());
-				}
+				sol::error err = result;
+				CB_CORE_ERROR("Lua Collision.OnTriggerEnter error (entity {0}): {1}", uuid, err.what());
 			}
 		}
 	}
 
 	void ScriptEngine::OnTriggerExit(Scene* scene, Entity entity, Entity other)
 	{
-		if (!s_LuaState || !entity.HasComponent<ScriptComponent>())
-			return;
+		if (!s_LuaState) return;
 
 		uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
-		auto it = s_ScriptInstances.find(uuid);
-		if (it == s_ScriptInstances.end())
+		auto it = s_CollisionEvents.find(uuid);
+		if (it == s_CollisionEvents.end() || it->second.OnTriggerExit.Empty())
 			return;
 
-		auto& scriptComp = entity.GetComponent<ScriptComponent>();
-
-		for (size_t i = 0; i < it->second.size(); i++)
+		for (auto& fn : it->second.OnTriggerExit.Listeners)
 		{
-			sol::table& self = it->second[i];
-			if (!self.valid()) continue;
-
-			sol::object onTriggerExitObj = self["OnTriggerExit"];
-			if (onTriggerExitObj.is<sol::protected_function>())
+			auto result = fn(other);
+			if (!result.valid())
 			{
-				sol::protected_function onTriggerExit = onTriggerExitObj;
-				auto result = onTriggerExit(self, other);
-				if (!result.valid())
-				{
-					sol::error err = result;
-					const String& path = (i < scriptComp.Scripts.size())
-						? scriptComp.Scripts[i].ScriptPath : "unknown";
-					CB_CORE_ERROR("Lua OnTriggerExit error ({0}): {1}", path, err.what());
-				}
+				sol::error err = result;
+				CB_CORE_ERROR("Lua Collision.OnTriggerExit error (entity {0}): {1}", uuid, err.what());
+			}
+		}
+	}
+
+	// =========================================================================
+	// Voxel destruction events — fire per-entity LuaEvent delegates
+	// =========================================================================
+	void ScriptEngine::OnVoxelDamaged(uint64_t entityUUID, int gx, int gy, int gz,
+		float normalizedHealth, float damageAmount)
+	{
+		if (!s_LuaState) return;
+
+		auto it = s_VoxelEvents.find(entityUUID);
+		if (it == s_VoxelEvents.end() || it->second.OnVoxelDamaged.Empty())
+			return;
+
+		for (auto& fn : it->second.OnVoxelDamaged.Listeners)
+		{
+			auto result = fn(gx, gy, gz, normalizedHealth, damageAmount);
+			if (!result.valid())
+			{
+				sol::error err = result;
+				CB_CORE_ERROR("Lua VoxelEvents.OnVoxelDamaged error (entity {0}): {1}", entityUUID, err.what());
+			}
+		}
+	}
+
+	void ScriptEngine::OnVoxelDestroyed(uint64_t entityUUID, int gx, int gy, int gz)
+	{
+		if (!s_LuaState) return;
+
+		auto it = s_VoxelEvents.find(entityUUID);
+		if (it == s_VoxelEvents.end() || it->second.OnVoxelDestroyed.Empty())
+			return;
+
+		for (auto& fn : it->second.OnVoxelDestroyed.Listeners)
+		{
+			auto result = fn(gx, gy, gz);
+			if (!result.valid())
+			{
+				sol::error err = result;
+				CB_CORE_ERROR("Lua VoxelEvents.OnVoxelDestroyed error (entity {0}): {1}", entityUUID, err.what());
+			}
+		}
+	}
+
+	void ScriptEngine::OnStructuralCollapse(uint64_t entityUUID, int clusterCount, int totalVoxels)
+	{
+		if (!s_LuaState) return;
+
+		auto it = s_VoxelEvents.find(entityUUID);
+		if (it == s_VoxelEvents.end() || it->second.OnStructuralCollapse.Empty())
+			return;
+
+		for (auto& fn : it->second.OnStructuralCollapse.Listeners)
+		{
+			auto result = fn(clusterCount, totalVoxels);
+			if (!result.valid())
+			{
+				sol::error err = result;
+				CB_CORE_ERROR("Lua VoxelEvents.OnStructuralCollapse error (entity {0}): {1}", entityUUID, err.what());
 			}
 		}
 	}
@@ -1245,6 +1298,15 @@ function Bullet:OnCreate()
         rb:SetUseGravity(false)
         rb:SetLinearVelocity(self._direction * self.Speed)
     end
+    local me = self
+    me.Collision.OnCollisionBegin:Connect(function(other, point, normal)
+        me:OnHit(other, point, normal)
+        me._scene:DestroyEntity(me._entity)
+    end)
+    me.Collision.OnTriggerEnter:Connect(function(other, point, normal)
+        me:OnHit(other, point, normal)
+        me._scene:DestroyEntity(me._entity)
+    end)
 end
 
 function Bullet:OnUpdate(dt)
@@ -1252,16 +1314,6 @@ function Bullet:OnUpdate(dt)
     if self._lifeRemaining <= 0 then
         self._scene:DestroyEntity(self._entity)
     end
-end
-
-function Bullet:OnCollision(other, point, normal)
-    self:OnHit(other, point, normal)
-    self._scene:DestroyEntity(self._entity)
-end
-
-function Bullet:OnTriggerEnter(other, point, normal)
-    self:OnHit(other, point, normal)
-    self._scene:DestroyEntity(self._entity)
 end
 
 function Bullet:OnHit(other, point, normal) end
@@ -1645,8 +1697,7 @@ function Bullet:GetDamage() return self.Damage end
 					if (pair.first.get_type() != sol::type::string)
 						continue;
 					std::string key = pair.first.as<std::string>();
-					if (key == "OnCreate" || key == "OnUpdate" || key == "OnDestroy" ||
-						key == "OnCollisionBegin" || key == "OnCollisionEnd")
+					if (key == "OnCreate" || key == "OnUpdate" || key == "OnDestroy")
 					{
 						self[key] = pair.second;
 					}
@@ -1655,6 +1706,54 @@ function Bullet:GetDamage() return self.Damage end
 
 			self["_entity"] = entity;
 			self["_scene"] = scene;
+
+			// Inject Collision event object — each slot has a :Connect(fn) method
+			// bound to this entity's per-entity LuaEvent delegate.
+			{
+				uint64_t evtUUID = static_cast<uint64_t>(entity.GetUUID());
+
+				auto makeSlot = [&](LuaEvent EntityCollisionEvents::* member) -> sol::table
+				{
+					sol::table slot = s_LuaState->create_table();
+					slot["Connect"] = [evtUUID, member](sol::table /*self*/, sol::protected_function fn)
+					{
+						auto it = s_CollisionEvents.find(evtUUID);
+						if (it != s_CollisionEvents.end())
+							(it->second.*member).Listeners.push_back(std::move(fn));
+					};
+					return slot;
+				};
+
+				sol::table collisionObj = s_LuaState->create_table();
+				collisionObj["OnCollisionBegin"] = makeSlot(&EntityCollisionEvents::OnCollisionBegin);
+				collisionObj["OnCollisionEnd"]   = makeSlot(&EntityCollisionEvents::OnCollisionEnd);
+				collisionObj["OnTriggerEnter"]   = makeSlot(&EntityCollisionEvents::OnTriggerEnter);
+				collisionObj["OnTriggerExit"]    = makeSlot(&EntityCollisionEvents::OnTriggerExit);
+				self["Collision"] = collisionObj;
+			}
+
+			// Inject VoxelEvents object — same pattern as Collision
+			{
+				uint64_t voxUUID = static_cast<uint64_t>(entity.GetUUID());
+
+				auto makeVoxelSlot = [&](LuaEvent EntityVoxelEvents::* member) -> sol::table
+				{
+					sol::table slot = s_LuaState->create_table();
+					slot["Connect"] = [voxUUID, member](sol::table /*self*/, sol::protected_function fn)
+					{
+						auto it = s_VoxelEvents.find(voxUUID);
+						if (it != s_VoxelEvents.end())
+							(it->second.*member).Listeners.push_back(std::move(fn));
+					};
+					return slot;
+				};
+
+				sol::table voxelObj = s_LuaState->create_table();
+				voxelObj["OnVoxelDamaged"]      = makeVoxelSlot(&EntityVoxelEvents::OnVoxelDamaged);
+				voxelObj["OnVoxelDestroyed"]    = makeVoxelSlot(&EntityVoxelEvents::OnVoxelDestroyed);
+				voxelObj["OnStructuralCollapse"] = makeVoxelSlot(&EntityVoxelEvents::OnStructuralCollapse);
+				self["VoxelEvents"] = voxelObj;
+			}
 
 			// self:GetScript(ClassTable) — cross-script access on same entity
 			uint64_t entityUUID = static_cast<uint64_t>(entity.GetUUID());

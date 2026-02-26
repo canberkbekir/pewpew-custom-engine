@@ -5,15 +5,16 @@ namespace CB
 {
 	std::unordered_map<uint64_t, size_t> VoxelSplitter::BuildFilledIndexMap(const voxelizer::VoxelGrid& grid)
 	{
+		// MUST iterate in linear index order (same as GetFilledCoords) so that
+		// filledIdx matches the palette index positions used by
+		// CreatePaletteMeshFromGrid. Linear index = x*sizeY*sizeZ + y*sizeZ + z.
 		std::unordered_map<uint64_t, size_t> map;
 		size_t filledIdx = 0;
-		for (int z = 0; z < grid.size.z; z++)
-			for (int y = 0; y < grid.size.y; y++)
-				for (int x = 0; x < grid.size.x; x++)
-				{
-					if (grid.IsFilled(x, y, z))
-						map[grid.CoordToIndex(x, y, z)] = filledIdx++;
-				}
+		for (uint64_t i = 0; i < grid.totalVoxels; ++i)
+		{
+			if (grid.IsFilled(i))
+				map[i] = filledIdx++;
+		}
 		return map;
 	}
 

@@ -174,38 +174,51 @@ namespace CB
 
             ImGui::Spacing();
 
-            // ---- Hinge Settings ----
-            ImGui::TextUnformatted("Hinge Settings");
+            // ---- Joint Type ----
+            ImGui::TextUnformatted("Joint Type");
             ImGui::Separator();
 
-            ImGui::DragFloat3("Hinge Axis##HC", &chain.HingeAxis.x, 0.01f);
-            if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
+            if (ImGui::Checkbox("Use Ball Joint##HC", &chain.UseBallJoint)) shouldRebuild = true;
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Ball joint allows free 3D rotation (realistic chain).\nHinge restricts to one axis (use for motors or single-plane swing).");
 
-            if (ImGui::Checkbox("Use Limits##HC", &chain.UseLimits)) shouldRebuild = true;
-            if (chain.UseLimits)
-            {
-                ImGui::DragFloat("Min (deg)##HC", &chain.LimitsMin, 1.0f, -180.0f, 0.0f);
-                if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
-                ImGui::DragFloat("Max (deg)##HC", &chain.LimitsMax, 1.0f, 0.0f, 180.0f);
-                if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
-                ImGui::DragFloat("Bounciness##HC", &chain.Bounciness, 0.01f, 0.0f, 1.0f);
-            }
+            ImGui::Spacing();
 
-            if (ImGui::Checkbox("Use Spring##HC", &chain.UseSpring)) shouldRebuild = true;
-            if (chain.UseSpring)
+            // ---- Hinge Settings (hidden for ball joint) ----
+            if (!chain.UseBallJoint)
             {
-                ImGui::DragFloat("Frequency (Hz)##HC", &chain.SpringFrequency, 0.1f, 0.0f, 100.0f);
-                if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
-                ImGui::DragFloat("Damping##HC", &chain.SpringDamping, 0.01f, 0.0f, 10.0f);
-                if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
-            }
+                ImGui::TextUnformatted("Hinge Settings");
+                ImGui::Separator();
 
-            if (ImGui::Checkbox("Use Motor##HC", &chain.UseMotor)) shouldRebuild = true;
-            if (chain.UseMotor)
-            {
-                ImGui::DragFloat("Target Velocity (deg/s)##HC", &chain.TargetVelocity, 1.0f);
-                ImGui::DragFloat("Motor Force (Nm)##HC", &chain.MotorForce, 10.0f, 0.0f, 1e8f);
+                ImGui::DragFloat3("Hinge Axis##HC", &chain.HingeAxis.x, 0.01f);
                 if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
+
+                if (ImGui::Checkbox("Use Limits##HC", &chain.UseLimits)) shouldRebuild = true;
+                if (chain.UseLimits)
+                {
+                    ImGui::DragFloat("Min (deg)##HC", &chain.LimitsMin, 1.0f, -180.0f, 0.0f);
+                    if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
+                    ImGui::DragFloat("Max (deg)##HC", &chain.LimitsMax, 1.0f, 0.0f, 180.0f);
+                    if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
+                    ImGui::DragFloat("Bounciness##HC", &chain.Bounciness, 0.01f, 0.0f, 1.0f);
+                }
+
+                if (ImGui::Checkbox("Use Spring##HC", &chain.UseSpring)) shouldRebuild = true;
+                if (chain.UseSpring)
+                {
+                    ImGui::DragFloat("Frequency (Hz)##HC", &chain.SpringFrequency, 0.1f, 0.0f, 100.0f);
+                    if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
+                    ImGui::DragFloat("Damping##HC", &chain.SpringDamping, 0.01f, 0.0f, 10.0f);
+                    if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
+                }
+
+                if (ImGui::Checkbox("Use Motor##HC", &chain.UseMotor)) shouldRebuild = true;
+                if (chain.UseMotor)
+                {
+                    ImGui::DragFloat("Target Velocity (deg/s)##HC", &chain.TargetVelocity, 1.0f);
+                    ImGui::DragFloat("Motor Force (Nm)##HC", &chain.MotorForce, 10.0f, 0.0f, 1e8f);
+                    if (ImGui::IsItemDeactivatedAfterEdit()) shouldRebuild = true;
+                }
             }
 
             ImGui::Spacing();

@@ -13,6 +13,7 @@
 PlayerBullet = {
     __fields = {
         Damage        = Float(10.0,  0.0, 1000.0),
+        DamageRadius  = Float(0.3,   0.0, 5.0),    -- voxel damage radius (0 = single voxel)
         Speed         = Float(50.0,  1.0, 500.0),
         Lifetime      = Float(4.0,   0.1, 30.0),
         UseGravity    = Bool(false),               -- false = hitscan-style flat arc
@@ -40,6 +41,18 @@ function PlayerBullet:OnCreate()
     self._rb:SetLinearVelocity(dir * self.Speed)
     self._rb:SetUseGravity(self.UseGravity)
     self._rb:SetAngularDamping(100.0)  -- no spinning
+
+    local me = self
+    me.Collision.OnCollisionBegin:Connect(function(other, point, normal)
+        if me._dead then return end
+        if me._safeTimer > 0 then return end
+        me:_OnHit(other, point, normal)
+    end)
+    me.Collision.OnTriggerEnter:Connect(function(other, point, normal)
+        if me._dead then return end
+        if me._safeTimer > 0 then return end
+        me:_OnHit(other, point, normal)
+    end)
 end
 
 function PlayerBullet:OnUpdate(dt)
@@ -57,22 +70,6 @@ function PlayerBullet:OnUpdate(dt)
     end
 end
 
--- ── Collision ──────────────────────────────────────────────────────────────────
-
-function PlayerBullet:OnCollisionBegin(other, point, normal)
-    if self._dead then return end
-    if self._safeTimer > 0 then return end   -- still inside spawn-safe window
-
-    self:_OnHit(other, point, normal)
-end
-
-function PlayerBullet:OnTriggerEnter(other, point, normal)
-    if self._dead then return end
-    if self._safeTimer > 0 then return end
-
-    self:_OnHit(other, point, normal)
-end
-
 -- ── Hit logic ──────────────────────────────────────────────────────────────────
 
 function PlayerBullet:_OnHit(other, point, normal)
@@ -83,6 +80,28 @@ function PlayerBullet:_OnHit(other, point, normal)
             local health = other:GetComponent(Health)
             if health and health.TakeDamage then
                 health:TakeDamage(self.Damage)
+            end
+        end
+
+        -- Voxel damage: apply impact at the collision point
+        if point then
+            if self.DamageRadius > 0 then
+                -- Area damage: damages all voxels in radius with distance falloff
+                VoxelDamage.ApplySphere(self._scene, point, self.DamageRadius, {
+                    type   = DamageType.Impact,
+                    amount = self.Damage,
+                })
+            else
+                -- Single voxel damage
+                local entityID = other:GetUUID()
+                if entityID then
+                    VoxelDamage.ApplyAtWorldPos(self._scene, entityID, point, {
+                        type   = DamageType.Impact,
+                        amount = self.Damage,
+                        origin = point,
+                        direction = normal * -1.0,
+                    })
+                end
             end
         end
 

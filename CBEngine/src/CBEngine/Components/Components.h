@@ -14,3 +14,5 @@
 #include "AudioSourceComponent.h"
 #include "HingeJointComponent.h"
 #include "HingeChainComponent.h"
+#include "DestructibleVoxelComponent.h"
+#include "VoxelAnchorComponent.h"

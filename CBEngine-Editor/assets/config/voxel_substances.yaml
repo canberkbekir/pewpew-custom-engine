@@ -1,0 +1,97 @@
+# Voxel Substance Definitions
+# ============================================================
+# Each entry maps to a VoxelMaterialType enum value (Stone, Wood,
+# Metal, Glass, Marble). The key MUST match VoxelMaterialTypeToString().
+#
+# Fields:
+#   health                 - base HP before full destruction
+#   hardness               - 0-100, reduces impact damage
+#   explosion_resistance   - 0-1 damage multiplier (1 = immune)
+#   slice_resistance       - 0-1 (0 = cuts like butter)
+#   tensile_strength       - load capacity for structural checks
+#   impact_threshold       - min impact force (N) to register any damage
+#   fracture_behavior      - NONE | CHIP | CRACK | SHATTER | CRUMBLE
+#   fracture_threshold     - 0-1, health fraction where visual cracking starts
+#   fragment_count         - debris pieces on full destruction
+#   fragments_have_physics - should debris get Jolt RigidBody simulation
+#   flammable              - can this substance catch fire
+#   ignition_temperature   - heat required to ignite (if flammable)
+#   burn_duration          - seconds before burning out
+#   propagates_damage      - does fire/explosion spread to neighbors
+#   damage_spread_factor   - damage multiplier when spreading to neighbors
+# ============================================================
+
+substances:
+
+  Stone:
+    health: 100
+    hardness: 80
+    explosion_resistance: 0.70
+    slice_resistance: 0.95
+    tensile_strength: 120
+    impact_threshold: 15.0
+    fracture_behavior: CHIP
+    fracture_threshold: 0.30
+    fragment_count: 8
+    fragments_have_physics: true
+    flammable: false
+    propagates_damage: false
+
+  Wood:
+    health: 60
+    hardness: 40
+    explosion_resistance: 0.30
+    slice_resistance: 0.20
+    tensile_strength: 50
+    impact_threshold: 5.0
+    fracture_behavior: CRACK
+    fracture_threshold: 0.50
+    fragment_count: 5
+    fragments_have_physics: true
+    flammable: true
+    ignition_temperature: 300.0
+    burn_duration: 10.0
+    propagates_damage: true
+    damage_spread_factor: 0.80
+
+  Metal:
+    health: 200
+    hardness: 95
+    explosion_resistance: 0.85
+    slice_resistance: 0.99
+    tensile_strength: 300
+    impact_threshold: 50.0
+    fracture_behavior: CHIP
+    fracture_threshold: 0.15
+    fragment_count: 4
+    fragments_have_physics: true
+    flammable: false
+    propagates_damage: false
+
+  Glass:
+    health: 20
+    hardness: 5
+    explosion_resistance: 0.05
+    slice_resistance: 0.05
+    tensile_strength: 15
+    impact_threshold: 2.0
+    fracture_behavior: SHATTER
+    fracture_threshold: 0.90
+    fragment_count: 20
+    fragments_have_physics: true
+    flammable: false
+    propagates_damage: false
+
+  Marble:
+    health: 150
+    hardness: 85
+    explosion_resistance: 0.65
+    slice_resistance: 0.90
+    tensile_strength: 180
+    impact_threshold: 25.0
+    fracture_behavior: CHIP
+    fracture_threshold: 0.25
+    fragment_count: 10
+    fragments_have_physics: true
+    flammable: false
+    propagates_damage: false
