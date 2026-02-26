@@ -4,5 +4,5 @@
 
 namespace CB
 {
-    using String = std::string;
+	using String = std::string;
 }

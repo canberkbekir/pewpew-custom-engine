@@ -14,24 +14,21 @@ namespace CB
 	{
 #ifdef CB_PLATFORM_WINDOWS
 		HMODULE hModule = LoadLibraryA(dllPath.string().c_str());
-		if (!hModule)
-		{
+		if (!hModule) {
 			CB_CORE_ERROR("Failed to load plugin DLL: {0} (error: {1})", dllPath.string(), GetLastError());
 			return false;
 		}
 
 		using CreatePluginFn = IPlugin* (*)();
 		auto createPlugin = reinterpret_cast<CreatePluginFn>(GetProcAddress(hModule, "CreatePlugin"));
-		if (!createPlugin)
-		{
+		if (!createPlugin) {
 			CB_CORE_ERROR("Plugin DLL missing CreatePlugin export: {0}", dllPath.string());
 			FreeLibrary(hModule);
 			return false;
 		}
 
 		IPlugin* plugin = createPlugin();
-		if (!plugin)
-		{
+		if (!plugin) {
 			CB_CORE_ERROR("CreatePlugin returned nullptr: {0}", dllPath.string());
 			FreeLibrary(hModule);
 			return false;

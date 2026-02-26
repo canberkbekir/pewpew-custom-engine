@@ -8,102 +8,101 @@
 
 namespace CB
 {
-    class Material : public Asset
-    {
-    public:
-        Material();
-        ~Material() override = default;
+	class Material : public Asset
+	{
+	public:
+		Material();
+		~Material() override = default;
 
-        // Asset interface
-        bool Reload() override;
-        static AssetType GetStaticType() { return AssetType::Material; }
+		// Asset interface
+		bool Reload() override;
+		static AssetType GetStaticType() { return AssetType::Material; }
 
-        // Factory methods
-        static Ref<Material> Create();
-        static Ref<Material> Load(const String& filePath);
+		// Factory methods
+		static Ref<Material> Create();
+		static Ref<Material> Load(const String& filePath);
 
-        // Serialization
-        bool Save(const String& filePath) const;
+		// Serialization
+		bool Save(const String& filePath) const;
 
-        // Texture setters (direct)
-        void SetAlbedoMap(const Ref<Texture2D>& texture) { m_AlbedoMap = texture; }
-        void SetNormalMap(const Ref<Texture2D>& texture) { m_NormalMap = texture; }
-        void SetMetallicMap(const Ref<Texture2D>& texture) { m_MetallicMap = texture; }
-        void SetRoughnessMap(const Ref<Texture2D>& texture) { m_RoughnessMap = texture; }
+		// Texture setters (direct)
+		void SetAlbedoMap(const Ref<Texture2D>& texture) { m_AlbedoMap = texture; }
+		void SetNormalMap(const Ref<Texture2D>& texture) { m_NormalMap = texture; }
+		void SetMetallicMap(const Ref<Texture2D>& texture) { m_MetallicMap = texture; }
+		void SetRoughnessMap(const Ref<Texture2D>& texture) { m_RoughnessMap = texture; }
 
-        // Texture setters with path (for Save() support)
-        void SetAlbedoMap(const Ref<Texture2D>& texture, const String& path)
-        {
-            m_AlbedoMap = texture;
-            m_AlbedoMapPath = path;
-        }
+		// Texture setters with path (for Save() support)
+		void SetAlbedoMap(const Ref<Texture2D>& texture,const String& path)
+		{
+			m_AlbedoMap = texture;
+			m_AlbedoMapPath = path;
+		}
 
-        void SetNormalMap(const Ref<Texture2D>& texture, const String& path)
-        {
-            m_NormalMap = texture;
-            m_NormalMapPath = path;
-        }
+		void SetNormalMap(const Ref<Texture2D>& texture,const String& path)
+		{
+			m_NormalMap = texture;
+			m_NormalMapPath = path;
+		}
 
-        void SetMetallicMap(const Ref<Texture2D>& texture, const String& path)
-        {
-            m_MetallicMap = texture;
-            m_MetallicMapPath = path;
-        }
+		void SetMetallicMap(const Ref<Texture2D>& texture,const String& path)
+		{
+			m_MetallicMap = texture;
+			m_MetallicMapPath = path;
+		}
 
-        void SetRoughnessMap(const Ref<Texture2D>& texture, const String& path)
-        {
-            m_RoughnessMap = texture;
-            m_RoughnessMapPath = path;
-        }
+		void SetRoughnessMap(const Ref<Texture2D>& texture,const String& path)
+		{
+			m_RoughnessMap = texture;
+			m_RoughnessMapPath = path;
+		}
 
-        // Scalar property setters
-        void SetAlbedo(const Vector3& color) { m_Albedo = color; }
-        void SetMetallic(float value) { m_Metallic = value; }
-        void SetRoughness(float value) { m_Roughness = value; }
-        void SetSmoothShading(float value) { m_SmoothShading = value; }
+		// Scalar property setters
+		void SetAlbedo(const Vector3& color) { m_Albedo = color; }
+		void SetMetallic(float value) { m_Metallic = value; }
+		void SetRoughness(float value) { m_Roughness = value; }
+		void SetSmoothShading(float value) { m_SmoothShading = value; }
 
-        // Getters
-        const Ref<Texture2D>& GetAlbedoMap() const { return m_AlbedoMap; }
-        const Ref<Texture2D>& GetNormalMap() const { return m_NormalMap; }
-        const Ref<Texture2D>& GetMetallicMap() const { return m_MetallicMap; }
-        const Ref<Texture2D>& GetRoughnessMap() const { return m_RoughnessMap; }
+		// Getters
+		const Ref<Texture2D>& GetAlbedoMap() const { return m_AlbedoMap; }
+		const Ref<Texture2D>& GetNormalMap() const { return m_NormalMap; }
+		const Ref<Texture2D>& GetMetallicMap() const { return m_MetallicMap; }
+		const Ref<Texture2D>& GetRoughnessMap() const { return m_RoughnessMap; }
 
-        const Vector3& GetAlbedo() const { return m_Albedo; }
-        float GetMetallic() const { return m_Metallic; }
-        float GetRoughness() const { return m_Roughness; }
-        float GetSmoothShading() const { return m_SmoothShading; }
+		const Vector3& GetAlbedo() const { return m_Albedo; }
+		float GetMetallic() const { return m_Metallic; }
+		float GetRoughness() const { return m_Roughness; }
+		float GetSmoothShading() const { return m_SmoothShading; }
 
-        bool HasAlbedoMap() const { return m_AlbedoMap != nullptr; }
-        bool HasNormalMap() const { return m_NormalMap != nullptr; }
-        bool HasMetallicMap() const { return m_MetallicMap != nullptr; }
-        bool HasRoughnessMap() const { return m_RoughnessMap != nullptr; }
+		bool HasAlbedoMap() const { return m_AlbedoMap != nullptr; }
+		bool HasNormalMap() const { return m_NormalMap != nullptr; }
+		bool HasMetallicMap() const { return m_MetallicMap != nullptr; }
+		bool HasRoughnessMap() const { return m_RoughnessMap != nullptr; }
 
-        // Bind all textures and upload uniforms to shader
-        void Bind(const Ref<Shader>& shader) const;
+		// Bind all textures and upload uniforms to shader
+		void Bind(const Ref<Shader>& shader) const;
+	private:
+		bool LoadFromFile(const String& filePath);
 
-    private:
-        bool LoadFromFile(const String& filePath);
+		// Textures
+		Ref<Texture2D> m_AlbedoMap;
+		Ref<Texture2D> m_NormalMap;
+		Ref<Texture2D> m_MetallicMap;
+		Ref<Texture2D> m_RoughnessMap;
 
-        // Textures
-        Ref<Texture2D> m_AlbedoMap;
-        Ref<Texture2D> m_NormalMap;
-        Ref<Texture2D> m_MetallicMap;
-        Ref<Texture2D> m_RoughnessMap;
+		// Texture paths (for serialization and reload)
+		String m_AlbedoMapPath;
+		String m_NormalMapPath;
+		String m_MetallicMapPath;
+		String m_RoughnessMapPath;
 
-        // Texture paths (for serialization and reload)
-        String m_AlbedoMapPath;
-        String m_NormalMapPath;
-        String m_MetallicMapPath;
-        String m_RoughnessMapPath;
+		// Scalar fallbacks
+		Vector3 m_Albedo = {1.0f, 1.0f, 1.0f};
+		float m_Metallic = 0.0f;
+		float m_Roughness = 0.5f;
+		float m_SmoothShading = 1.0f;
 
-        // Scalar fallbacks
-        Vector3 m_Albedo = {1.0f, 1.0f, 1.0f};
-        float m_Metallic = 0.0f;
-        float m_Roughness = 0.5f;
-        float m_SmoothShading = 1.0f;
-
-        // For reload
-        String m_FilePath;
-        bool m_IsFromFile = false;
-    };
+		// For reload
+		String m_FilePath;
+		bool m_IsFromFile = false;
+	};
 }

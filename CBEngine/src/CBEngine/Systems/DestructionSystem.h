@@ -21,10 +21,9 @@ namespace CB
 	{
 	public:
 		static void RequestDestruction(const DestructionRequest& request);
-		static void OnUpdate(Scene* scene, Timestep ts);
-
+		static void OnUpdate(Scene* scene,Timestep ts);
 	private:
-		static void ProcessRequest(Scene* scene, const DestructionRequest& request);
+		static void ProcessRequest(Scene* scene,const DestructionRequest& request);
 		static std::vector<DestructionRequest> s_PendingRequests;
 	};
 }

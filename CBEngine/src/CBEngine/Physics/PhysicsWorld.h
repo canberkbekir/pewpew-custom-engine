@@ -74,7 +74,7 @@ namespace CB
 		static void ShutdownJoltGlobals();
 
 		PhysicsWorld();
-		~PhysicsWorld();
+		~PhysicsWorld() override;
 
 		void Init();
 		void Shutdown();
@@ -97,61 +97,61 @@ namespace CB
 		void SetTriggerExitCallback(CollisionCallbackFn fn) { m_TriggerExitCallback = std::move(fn); }
 
 		// Map Jolt BodyID -> Entity UUID for collision callback lookup
-		void RegisterBodyEntity(JPH::BodyID bodyID, UUID entityUUID);
+		void RegisterBodyEntity(JPH::BodyID bodyID,UUID entityUUID);
 		void UnregisterBody(JPH::BodyID bodyID);
 		UUID GetEntityFromBody(JPH::BodyID bodyID) const;
 		JPH::BodyID GetBodyFromEntity(UUID entityUUID) const;
 
 		// Raycasting
-		bool Raycast(const Vector3& origin, const Vector3& direction, float maxDistance,
-			RaycastHit& outHit, uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
-		std::vector<RaycastHit> RaycastAll(const Vector3& origin, const Vector3& direction,
-			float maxDistance, uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
+		bool Raycast(const Vector3& origin,const Vector3& direction,float maxDistance,
+		             RaycastHit& outHit,uint16_t layerMask = PhysicsLayers::AllLayers,
+		             UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> RaycastAll(const Vector3& origin,const Vector3& direction,
+		                                   float maxDistance,uint16_t layerMask = PhysicsLayers::AllLayers,
+		                                   UUID ignoreEntity = UUID()) const;
 
 		// Overlap queries — return all entities whose physics shape overlaps the test volume
-		std::vector<RaycastHit> OverlapSphere(const Vector3& center, float radius,
-			uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
-		std::vector<RaycastHit> OverlapBox(const Vector3& center, const Vector3& halfExtents,
-			uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> OverlapSphere(const Vector3& center,float radius,
+		                                      uint16_t layerMask = PhysicsLayers::AllLayers,
+		                                      UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> OverlapBox(const Vector3& center,const Vector3& halfExtents,
+		                                   uint16_t layerMask = PhysicsLayers::AllLayers,
+		                                   UUID ignoreEntity = UUID()) const;
 
 		// Sweep casts — cast a shape along a ray, return first hit
-		bool SphereCast(const Vector3& origin, const Vector3& dir, float radius, float maxDist,
-			RaycastHit& outHit, uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
-		bool BoxCast(const Vector3& origin, const Vector3& dir, const Vector3& halfExtents, float maxDist,
-			RaycastHit& outHit, uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
+		bool SphereCast(const Vector3& origin,const Vector3& dir,float radius,float maxDist,
+		                RaycastHit& outHit,uint16_t layerMask = PhysicsLayers::AllLayers,
+		                UUID ignoreEntity = UUID()) const;
+		bool BoxCast(const Vector3& origin,const Vector3& dir,const Vector3& halfExtents,float maxDist,
+		             RaycastHit& outHit,uint16_t layerMask = PhysicsLayers::AllLayers,
+		             UUID ignoreEntity = UUID()) const;
 
-		std::vector<RaycastHit> SphereCastAll(const Vector3& origin, const Vector3& dir, float radius,
-			float maxDist, uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
-		std::vector<RaycastHit> BoxCastAll(const Vector3& origin, const Vector3& dir, const Vector3& halfExtents,
-			float maxDist, uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> SphereCastAll(const Vector3& origin,const Vector3& dir,float radius,
+		                                      float maxDist,uint16_t layerMask = PhysicsLayers::AllLayers,
+		                                      UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> BoxCastAll(const Vector3& origin,const Vector3& dir,const Vector3& halfExtents,
+		                                   float maxDist,uint16_t layerMask = PhysicsLayers::AllLayers,
+		                                   UUID ignoreEntity = UUID()) const;
 
 		// Overlap capsule (Y-axis aligned)
-		std::vector<RaycastHit> OverlapCapsule(const Vector3& center, float radius, float halfHeight,
-			uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> OverlapCapsule(const Vector3& center,float radius,float halfHeight,
+		                                       uint16_t layerMask = PhysicsLayers::AllLayers,
+		                                       UUID ignoreEntity = UUID()) const;
 
 		// Overlap capsule oriented along the segment p0→p1 with the given radius
-		std::vector<RaycastHit> OverlapCapsuleSegment(const Vector3& p0, const Vector3& p1, float radius,
-			uint16_t layerMask = PhysicsLayers::AllLayers,
-			UUID ignoreEntity = UUID()) const;
+		std::vector<RaycastHit> OverlapCapsuleSegment(const Vector3& p0,const Vector3& p1,float radius,
+		                                              uint16_t layerMask = PhysicsLayers::AllLayers,
+		                                              UUID ignoreEntity = UUID()) const;
 
 		// JPH::ContactListener interface
-		JPH::ValidateResult OnContactValidate(const JPH::Body& inBody1, const JPH::Body& inBody2,
-			JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult) override;
-		void OnContactAdded(const JPH::Body& inBody1, const JPH::Body& inBody2,
-			const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings) override;
+		JPH::ValidateResult OnContactValidate(const JPH::Body& inBody1,const JPH::Body& inBody2,
+		                                      JPH::RVec3Arg inBaseOffset,
+		                                      const JPH::CollideShapeResult& inCollisionResult) override;
+		void OnContactAdded(const JPH::Body& inBody1,const JPH::Body& inBody2,
+		                    const JPH::ContactManifold& inManifold,JPH::ContactSettings& ioSettings) override;
 		void OnContactRemoved(const JPH::SubShapeIDPair& inSubShapePair) override;
 
 		static constexpr float FIXED_TIMESTEP = 1.0f / 60.0f;
-
 	private:
 		JPH::PhysicsSystem m_PhysicsSystem;
 		Scope<JPH::TempAllocatorImpl> m_TempAllocator;

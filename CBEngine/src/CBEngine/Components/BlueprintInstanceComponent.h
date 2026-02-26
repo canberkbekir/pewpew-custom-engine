@@ -25,7 +25,7 @@ namespace CB
 
 		void Serialize(YAML::Emitter& out) const
 		{
-			out << YAML::Key << "BlueprintAssetUUID" << YAML::Value << static_cast<uint64_t>(BlueprintAssetUUID);
+			out << YAML::Key << "BlueprintAssetUUID" << YAML::Value << BlueprintAssetUUID;
 			out << YAML::Key << "BlueprintPath" << YAML::Value << BlueprintPath;
 			out << YAML::Key << "OriginalYAML" << YAML::Value << OriginalYAML;
 		}

@@ -23,58 +23,61 @@
 
 namespace CB
 {
-    // SFINAE: does T have a ResolveAssets() method?
-    template<typename T, typename = void>
-    struct ComponentHasResolveAssets : std::false_type {};
+	// SFINAE: does T have a ResolveAssets() method?
+	template <typename T, typename = void>
+	struct ComponentHasResolveAssets : std::false_type
+	{
+	};
 
-    template<typename T>
-    struct ComponentHasResolveAssets<T, std::void_t<decltype(std::declval<T&>().ResolveAssets())>>
-        : std::true_type {};
+	template <typename T>
+	struct ComponentHasResolveAssets<T, std::void_t<decltype(std::declval<T&>().ResolveAssets())>>
+	: std::true_type
+	{
+	};
 
-    // -----------------------------------------------------------------------
-    // ComponentAutoRegister<T>
-    // Instantiating one of these (via the macro below) registers T into
-    // RuntimeComponentRegistry at static-init time, before main() runs.
-    // -----------------------------------------------------------------------
-    template<typename T>
-    struct ComponentAutoRegister
-    {
-        ComponentAutoRegister()
-        {
-            RuntimeComponentRegistry::Register(
-                std::string(T::YAMLKey),
+	// -----------------------------------------------------------------------
+	// ComponentAutoRegister<T>
+	// Instantiating one of these (via the macro below) registers T into
+	// RuntimeComponentRegistry at static-init time, before main() runs.
+	// -----------------------------------------------------------------------
+	template <typename T>
+	struct ComponentAutoRegister
+	{
+		ComponentAutoRegister()
+		{
+			RuntimeComponentRegistry::Register(
+				std::string(T::YAMLKey),
 
-                // --- Serialize ---
-                [](YAML::Emitter& out, entt::registry& reg, entt::entity e)
-                {
-                    if (!reg.all_of<T>(e))
-                        return;
-                    out << YAML::Key << T::YAMLKey << YAML::BeginMap;
-                    reg.get<T>(e).Serialize(out);
-                    out << YAML::EndMap;
-                },
+				// --- Serialize ---
+				[](YAML::Emitter& out,entt::registry& reg,entt::entity e)
+				{
+					if (!reg.all_of<T>(e))
+						return;
+					out << YAML::Key << T::YAMLKey << YAML::BeginMap;
+					reg.get<T>(e).Serialize(out);
+					out << YAML::EndMap;
+				},
 
-                // --- Deserialize ---
-                // Uses existing component if already present (Tag/Transform are
-                // pre-added by CreateEntityWithUUID), otherwise emplaces a new one.
-                [](const YAML::Node& node, entt::registry& reg, entt::entity e)
-                {
-                    T& comp = reg.all_of<T>(e) ? reg.get<T>(e) : reg.emplace<T>(e);
-                    comp.Deserialize(node);
-                },
+				// --- Deserialize ---
+				// Uses existing component if already present (Tag/Transform are
+				// pre-added by CreateEntityWithUUID), otherwise emplaces a new one.
+				[](const YAML::Node& node,entt::registry& reg,entt::entity e)
+				{
+					T& comp = reg.all_of<T>(e) ? reg.get<T>(e) : reg.emplace<T>(e);
+					comp.Deserialize(node);
+				},
 
-                // --- ResolveAssets (only wired up if T has the method) ---
-                [](entt::registry& reg, entt::entity e)
-                {
-                    if constexpr (ComponentHasResolveAssets<T>::value)
-                    {
-                        if (reg.all_of<T>(e))
-                            reg.get<T>(e).ResolveAssets();
-                    }
-                }
-            );
-        }
-    };
+				// --- ResolveAssets (only wired up if T has the method) ---
+				[](entt::registry& reg,entt::entity e)
+				{
+					if constexpr (ComponentHasResolveAssets<T>::value) {
+						if (reg.all_of<T>(e))
+							reg.get<T>(e).ResolveAssets();
+					}
+				}
+			);
+		}
+	};
 
 } // namespace CB
 

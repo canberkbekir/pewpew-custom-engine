@@ -9,8 +9,8 @@
 #include <array>
 
 // Forward-declare OpenAL types
-typedef unsigned int ALuint;
-typedef int ALint;
+using ALuint = unsigned int;
+using ALint = int;
 
 namespace CB
 {
@@ -28,7 +28,7 @@ namespace CB
 		static void Shutdown();
 
 		// Call each frame with the primary camera's world transform for 3D spatialization.
-		static void Update(const Vector3& listenerPos, const Vector3& forward, const Vector3& up);
+		static void Update(const Vector3& listenerPos,const Vector3& forward,const Vector3& up);
 
 		// Decode & upload raw audio file to an OpenAL buffer (cached per resolved path).
 		// Returns 0 if loading fails.
@@ -37,19 +37,18 @@ namespace CB
 		// Play a clip using its baked settings.
 		// volumeOverride < 0  → use clip's Volume field.
 		// Returns a source handle (non-zero on success) for subsequent control calls.
-		static uint32_t Play(const AudioHandle& handle, float volumeOverride = -1.0f);
-		static uint32_t PlayAt(const AudioHandle& handle, const Vector3& pos, float volumeOverride = -1.0f);
+		static uint32_t Play(const AudioHandle& handle,float volumeOverride = -1.0f);
+		static uint32_t PlayAt(const AudioHandle& handle,const Vector3& pos,float volumeOverride = -1.0f);
 
 		static void Stop(uint32_t sourceHandle);
 		static void StopAll();
 		static void Pause(uint32_t sourceHandle);
 		static void Resume(uint32_t sourceHandle);
-		static void SetVolume(uint32_t sourceHandle, float volume);
+		static void SetVolume(uint32_t sourceHandle,float volume);
 		static void SetMasterVolume(float volume);
 		static bool IsPlaying(uint32_t sourceHandle);
 
 		static bool IsInitialized() { return s_Initialized; }
-
 	private:
 		static bool s_Initialized;
 		static float s_MasterVolume;

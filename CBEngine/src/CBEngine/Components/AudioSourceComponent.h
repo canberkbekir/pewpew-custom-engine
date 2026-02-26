@@ -7,10 +7,10 @@ namespace CB
 {
 	struct AudioSourceComponent
 	{
-		UUID ClipHandle = UUID(0);   // AssetManager UUID for AudioClipAsset
+		UUID ClipHandle = UUID(0); // AssetManager UUID for AudioClipAsset
 		bool PlayOnCreate = true;
 		bool Loop = false;
-		float Volume = 1.0f;         // Override (-1 = use clip's default)
+		float Volume = 1.0f; // Override (-1 = use clip's default)
 		float Pitch = 1.0f;
 		bool Is3D = true;
 
@@ -24,7 +24,7 @@ namespace CB
 
 		void Serialize(YAML::Emitter& out) const
 		{
-			out << YAML::Key << "ClipHandle" << YAML::Value << static_cast<uint64_t>(ClipHandle);
+			out << YAML::Key << "ClipHandle" << YAML::Value << ClipHandle;
 			out << YAML::Key << "PlayOnCreate" << YAML::Value << PlayOnCreate;
 			out << YAML::Key << "Loop" << YAML::Value << Loop;
 			out << YAML::Key << "Volume" << YAML::Value << Volume;

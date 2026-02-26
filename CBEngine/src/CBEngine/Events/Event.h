@@ -4,40 +4,40 @@
 
 namespace CB
 {
-    enum EventType
-    {
-        None = 0,
-        WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved,
-        AppTick, AppUpdate, AppRender,
-        KeyPressed, KeyReleased, KeyTyped,
-        MouseButtonPressed, MouseButtonReleased, MouseButtonDown, MouseButtonUp, MouseMoved, MouseScrolled,
-        FileDrop,
-        AssetImported, AssetDeleted, AssetRenamed, AssetMoved, AssetReloaded,
-        DragDropBegin, DragDropEnd, DragDropDeliver,
-        SceneLoaded, SceneUnloaded, SceneSaved,
-        EntityCreated, EntityDestroyed, ComponentAdded, ComponentRemoved,
-        PlayModeEnter, PlayModeExit,
-        CollisionBegin, CollisionEnd,
+	enum EventType
+	{
+		None = 0,
+		WindowClose,WindowResize,WindowFocus,WindowLostFocus,WindowMoved,
+		AppTick,AppUpdate,AppRender,
+		KeyPressed,KeyReleased,KeyTyped,
+		MouseButtonPressed,MouseButtonReleased,MouseButtonDown,MouseButtonUp,MouseMoved,MouseScrolled,
+		FileDrop,
+		AssetImported,AssetDeleted,AssetRenamed,AssetMoved,AssetReloaded,
+		DragDropBegin,DragDropEnd,DragDropDeliver,
+		SceneLoaded,SceneUnloaded,SceneSaved,
+		EntityCreated,EntityDestroyed,ComponentAdded,ComponentRemoved,
+		PlayModeEnter,PlayModeExit,
+		CollisionBegin,CollisionEnd,
 
-        // Starting point for runtime-registered custom events
-        Custom = 1000
-    };
+		// Starting point for runtime-registered custom events
+		Custom = 1000
+	};
 
-    enum EventCategory
-    {
-        EventCategoryNone = 0,
-        EventCategoryApplication = BIT(0),
-        EventCategoryInput = BIT(1),
-        EventCategoryKeyboard = BIT(2),
-        EventCategoryMouse = BIT(3),
-        EventCategoryMouseButton = BIT(4),
-        EventCategoryAsset = BIT(5),
-        EventCategoryDragDrop = BIT(6),
-        EventCategoryScene = BIT(7),
-        EventCategoryEntity = BIT(8),
-        EventCategoryEditor = BIT(9),
-        EventCategoryPhysics = BIT(10)
-    };
+	enum EventCategory
+	{
+		EventCategoryNone = 0,
+		EventCategoryApplication = BIT(0),
+		EventCategoryInput = BIT(1),
+		EventCategoryKeyboard = BIT(2),
+		EventCategoryMouse = BIT(3),
+		EventCategoryMouseButton = BIT(4),
+		EventCategoryAsset = BIT(5),
+		EventCategoryDragDrop = BIT(6),
+		EventCategoryScene = BIT(7),
+		EventCategoryEntity = BIT(8),
+		EventCategoryEditor = BIT(9),
+		EventCategoryPhysics = BIT(10)
+	};
 
 #define EVENT_CLASS_TYPE(type) static EventType GetStaticType() { return EventType::type; }\
 								virtual EventType GetEventType() const override { return GetStaticType(); }\
@@ -46,57 +46,48 @@ namespace CB
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; }
 
 
-    // Allocate a unique EventType ID for custom events
-    inline EventType RegisterCustomEventType(const char* /*name*/)
-    {
-        static int s_NextCustomEventType = static_cast<int>(EventType::Custom);
-        return static_cast<EventType>(s_NextCustomEventType++);
-    }
+	// Allocate a unique EventType ID for custom events
+	inline EventType RegisterCustomEventType(const char* /*name*/)
+	{
+		static int s_NextCustomEventType = Custom;
+		return static_cast<EventType>(s_NextCustomEventType++);
+	}
 
-    class Event
-    {
-    public:
-        virtual ~Event() = default;
-        bool Handled = false;
-        virtual EventType GetEventType() const = 0;
-        virtual const char* GetName() const = 0;
-        virtual int GetCategoryFlags() const = 0;
-        virtual std::string ToString() const { return GetName(); }
+	class Event
+	{
+	public:
+		virtual ~Event() = default;
+		bool Handled = false;
+		virtual EventType GetEventType() const = 0;
+		virtual const char* GetName() const = 0;
+		virtual int GetCategoryFlags() const = 0;
+		virtual std::string ToString() const { return GetName(); }
 
-        bool IsInCategory(EventCategory category)
-        {
-            return GetCategoryFlags() & category;
-        }
-    };
+		bool IsInCategory(EventCategory category) { return GetCategoryFlags() & category; }
+	};
 
-    class EventDispatcher
-    {
-        template <typename T>
-        using EventFn = std::function<bool(T&)>;
+	class EventDispatcher
+	{
+		template <typename T>
+		using EventFn = std::function<bool(T&)>;
+	public:
+		EventDispatcher(Event& event)
+			: m_Event(event)
+		{
+		}
 
-    public:
-        EventDispatcher(Event& event)
-            : m_Event(event)
-        {
-        }
+		template <typename T, typename F>
+		bool Dispatch(const F& func)
+		{
+			if (m_Event.GetEventType() == T::GetStaticType()) {
+				m_Event.Handled |= func(static_cast<T&>(m_Event));
+				return true;
+			}
+			return false;
+		}
+	private:
+		Event& m_Event;
+	};
 
-        template <typename T, typename F>
-        bool Dispatch(const F& func)
-        {
-            if (m_Event.GetEventType() == T::GetStaticType())
-            {
-                m_Event.Handled |= func(static_cast<T&>(m_Event));
-                return true;
-            }
-            return false;
-        }
-
-    private:
-        Event& m_Event;
-    };
-
-    inline std::ostream& operator<<(std::ostream& os, const Event& e)
-    {
-        return os << e.ToString();
-    }
+	inline std::ostream& operator<<(std::ostream& os,const Event& e) { return os << e.ToString(); }
 }

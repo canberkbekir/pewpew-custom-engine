@@ -3,7 +3,7 @@
 
 namespace CB
 {
-    namespace Math = glm;
+	namespace Math = glm;
 }
 
 namespace PMath = CB::Math;

@@ -11,7 +11,10 @@
 #include "CBEngine/Math/CoreMath.h"
 
 // Forward declare sol types to avoid including sol.hpp in the header
-namespace sol { class state; }
+namespace sol
+{
+	class state;
+}
 
 namespace CB
 {
@@ -34,27 +37,27 @@ namespace CB
 		static void BeginFrame(Timestep ts);
 
 		// Script lifecycle per entity (loops all script entries)
-		static void OnEntityCreate(Scene* scene, Entity entity);
-		static void OnEntityUpdate(Scene* scene, Entity entity, Timestep ts);
-		static void OnEntityLateUpdate(Scene* scene, Entity entity, Timestep ts);
+		static void OnEntityCreate(Scene* scene,Entity entity);
+		static void OnEntityUpdate(Scene* scene,Entity entity,Timestep ts);
+		static void OnEntityLateUpdate(Scene* scene,Entity entity,Timestep ts);
 		// Called at a fixed timestep in sync with the physics step rate
-		static void OnEntityFixedUpdate(Scene* scene, Entity entity, Timestep fixedTs);
-		static void OnEntityDestroy(Scene* scene, Entity entity);
-		static void OnCollision(Scene* scene, Entity entity, Entity other,
-			const Vector3& contactPoint, const Vector3& contactNormal);
-		static void OnCollisionEnd(Scene* scene, Entity entity, Entity other);
-		static void OnTriggerEnter(Scene* scene, Entity entity, Entity other,
-			const Vector3& contactPoint, const Vector3& contactNormal);
-		static void OnTriggerExit(Scene* scene, Entity entity, Entity other);
+		static void OnEntityFixedUpdate(Scene* scene,Entity entity,Timestep fixedTs);
+		static void OnEntityDestroy(Scene* scene,Entity entity);
+		static void OnCollision(Scene* scene,Entity entity,Entity other,
+		                        const Vector3& contactPoint,const Vector3& contactNormal);
+		static void OnCollisionEnd(Scene* scene,Entity entity,Entity other);
+		static void OnTriggerEnter(Scene* scene,Entity entity,Entity other,
+		                           const Vector3& contactPoint,const Vector3& contactNormal);
+		static void OnTriggerExit(Scene* scene,Entity entity,Entity other);
 
 		// Voxel destruction events — fired by VoxelDestructionSystem
-		static void OnVoxelDamaged(uint64_t entityUUID, int gx, int gy, int gz,
-			float normalizedHealth, float damageAmount);
-		static void OnVoxelDestroyed(uint64_t entityUUID, int gx, int gy, int gz);
-		static void OnStructuralCollapse(uint64_t entityUUID, int clusterCount, int totalVoxels);
+		static void OnVoxelDamaged(uint64_t entityUUID,int gx,int gy,int gz,
+		                           float normalizedHealth,float damageAmount);
+		static void OnVoxelDestroyed(uint64_t entityUUID,int gx,int gy,int gz);
+		static void OnStructuralCollapse(uint64_t entityUUID,int clusterCount,int totalVoxels);
 
 		// Call OnValidate on a script entry's class table when a field changes in the editor
-		static void CallOnValidate(ScriptEntry& entry, const std::string& changedField);
+		static void CallOnValidate(ScriptEntry& entry,const std::string& changedField);
 
 		// Check if an entity has any loaded script instances
 		static bool HasScriptInstance(UUID entityUUID);
@@ -75,7 +78,6 @@ namespace CB
 		static bool IsGameManagerScript(const std::string& scriptPath);
 		static std::vector<std::string> GetGameManagerScripts();
 		static void ScanForGameManagerScripts();
-
 	private:
 		static void RegisterBindings();
 		static void RegisterScriptBindings(); // Registers GetScript, GetGameManager on Entity/Scene

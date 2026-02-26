@@ -15,10 +15,7 @@ namespace CB
 	public:
 		CollisionShapeCache() = default;
 
-		bool Has(UUID id) const
-		{
-			return m_Cache.find(id) != m_Cache.end();
-		}
+		bool Has(UUID id) const { return m_Cache.find(id) != m_Cache.end(); }
 
 		JPH::RefConst<JPH::Shape> Get(UUID id) const
 		{
@@ -28,21 +25,11 @@ namespace CB
 			return nullptr;
 		}
 
-		void Store(UUID id, JPH::RefConst<JPH::Shape> shape)
-		{
-			m_Cache[id] = std::move(shape);
-		}
+		void Store(UUID id,JPH::RefConst<JPH::Shape> shape) { m_Cache[id] = std::move(shape); }
 
-		void Invalidate(UUID id)
-		{
-			m_Cache.erase(id);
-		}
+		void Invalidate(UUID id) { m_Cache.erase(id); }
 
-		void Clear()
-		{
-			m_Cache.clear();
-		}
-
+		void Clear() { m_Cache.clear(); }
 	private:
 		std::unordered_map<UUID, JPH::RefConst<JPH::Shape>> m_Cache;
 	};

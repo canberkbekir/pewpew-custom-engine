@@ -31,10 +31,10 @@
 // --- Windows (lean to avoid dragging in rarely-used APIs) ---
 #ifdef CB_PLATFORM_WINDOWS
 #ifndef WIN32_LEAN_AND_MEAN
-    #define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #endif
 #ifndef NOMINMAX
-    #define NOMINMAX
+#define NOMINMAX
 #endif
 #include <Windows.h>
 #endif

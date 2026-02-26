@@ -5,35 +5,34 @@
 
 namespace CB
 {
-    class Layer
-    {
-    public:
-        Layer(const String& name = "Layer");
-        virtual ~Layer() = default;
+	class Layer
+	{
+	public:
+		Layer(const String& name = "Layer");
+		virtual ~Layer() = default;
 
-        virtual void OnAttach()
-        {
-        }
+		virtual void OnAttach()
+		{
+		}
 
-        virtual void OnDetach()
-        {
-        }
+		virtual void OnDetach()
+		{
+		}
 
-        virtual void OnUpdate(Timestep ts)
-        {
-        }
+		virtual void OnUpdate(Timestep ts)
+		{
+		}
 
-        virtual void OnImGuiRender()
-        {
-        }
+		virtual void OnImGuiRender()
+		{
+		}
 
-        virtual void OnEvent(Event& event)
-        {
-        }
+		virtual void OnEvent(Event& event)
+		{
+		}
 
-        const String& GetName() const { return m_DebugName; }
-
-    protected:
-        String m_DebugName;
-    };
+		const String& GetName() const { return m_DebugName; }
+	protected:
+		String m_DebugName;
+	};
 }

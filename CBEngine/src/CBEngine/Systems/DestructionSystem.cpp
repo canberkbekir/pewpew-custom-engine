@@ -23,7 +23,7 @@ namespace CB
 		s_PendingRequests.push_back(request);
 	}
 
-	void DestructionSystem::OnUpdate(Scene* scene, Timestep ts)
+	void DestructionSystem::OnUpdate(Scene* scene,Timestep ts)
 	{
 		if (s_PendingRequests.empty())
 			return;
@@ -32,40 +32,33 @@ namespace CB
 		auto requests = std::move(s_PendingRequests);
 		s_PendingRequests.clear();
 
-		for (const auto& request : requests)
-		{
-			ProcessRequest(scene, request);
-		}
+		for (const auto& request : requests) { ProcessRequest(scene, request); }
 	}
 
-	void DestructionSystem::ProcessRequest(Scene* scene, const DestructionRequest& request)
+	void DestructionSystem::ProcessRequest(Scene* scene,const DestructionRequest& request)
 	{
 		Entity targetEntity = scene->GetEntityByUUID(request.TargetEntity);
-		if (!targetEntity)
-		{
-			CB_CORE_WARN("DestructionSystem: Target entity {0} not found", (uint64_t)request.TargetEntity);
+		if (!targetEntity) {
+			CB_CORE_WARN("DestructionSystem: Target entity {0} not found", static_cast<uint64_t>(request.TargetEntity));
 			return;
 		}
 
-		if (!targetEntity.HasComponent<VoxelRendererComponent>())
-		{
+		if (!targetEntity.HasComponent<VoxelRendererComponent>()) {
 			CB_CORE_WARN("DestructionSystem: Target entity {0} has no VoxelRendererComponent",
-				(uint64_t)request.TargetEntity);
+			             static_cast<uint64_t>(request.TargetEntity));
 			return;
 		}
 
 		auto& voxelRenderer = targetEntity.GetComponent<VoxelRendererComponent>();
 
 		// Load the VoxelMeshAsset to get the grid
-		if (!voxelRenderer.VoxelMeshUUID.IsValid())
-		{
+		if (!voxelRenderer.VoxelMeshUUID.IsValid()) {
 			CB_CORE_WARN("DestructionSystem: Target entity has no valid VoxelMeshUUID");
 			return;
 		}
 
 		auto vmeshAsset = AssetManager::GetAsset<VoxelMeshAsset>(voxelRenderer.VoxelMeshUUID);
-		if (!vmeshAsset)
-		{
+		if (!vmeshAsset) {
 			CB_CORE_WARN("DestructionSystem: Failed to load VoxelMeshAsset");
 			return;
 		}
@@ -82,10 +75,9 @@ namespace CB
 		uint64_t remainingVoxels = VoxelSplitter::RemoveSphere(
 			grid, paletteIndices, localImpact, request.DamageRadius);
 
-		if (remainingVoxels == 0)
-		{
+		if (remainingVoxels == 0) {
 			// Entity fully destroyed
-			CB_CORE_INFO("DestructionSystem: Entity {0} fully destroyed", (uint64_t)request.TargetEntity);
+			CB_CORE_INFO("DestructionSystem: Entity {0} fully destroyed", static_cast<uint64_t>(request.TargetEntity));
 			scene->DestroyEntity(targetEntity);
 			return;
 		}
@@ -94,13 +86,11 @@ namespace CB
 		auto fragments = VoxelSplitter::FindConnectedComponents(grid, paletteIndices);
 
 		CB_CORE_INFO("DestructionSystem: Entity {0} split into {1} fragments",
-			(uint64_t)request.TargetEntity, fragments.size());
+		             static_cast<uint64_t>(request.TargetEntity), fragments.size());
 
-		if (fragments.size() <= 1)
-		{
+		if (fragments.size() <= 1) {
 			// Single component - just update the existing entity's mesh and collision shape
-			if (!fragments.empty())
-			{
+			if (!fragments.empty()) {
 				// Regenerate mesh from updated grid
 				Ref<Mesh> newMesh;
 				if (!paletteIndices.empty())
@@ -108,15 +98,13 @@ namespace CB
 				else
 					newMesh = VoxelizerAPI::CreateMeshFromGrid(grid);
 
-				if (newMesh)
-				{
+				if (newMesh) {
 					voxelRenderer.MeshAsset = newMesh;
 
 					// Invalidate collision cache and mark collider dirty
 					if (auto* physWorld = scene->GetPhysicsWorld())
 						physWorld->GetShapeCache().Invalidate(voxelRenderer.VoxelMeshUUID);
-					if (targetEntity.HasComponent<ColliderComponent>())
-					{
+					if (targetEntity.HasComponent<ColliderComponent>()) {
 						auto& collider = targetEntity.GetComponent<ColliderComponent>();
 						collider.ShapeDirty = true;
 					}
@@ -136,12 +124,11 @@ namespace CB
 		Vector3 linearVelocity(0.0f);
 		Vector3 angularVelocity(0.0f);
 		bool hadPhysics = targetEntity.HasComponent<RigidBodyComponent>();
-		BodyType origBodyType = BodyType::Dynamic;
+		auto origBodyType = BodyType::Dynamic;
 		float origFriction = 0.5f;
 		float origRestitution = 0.3f;
 
-		if (hadPhysics)
-		{
+		if (hadPhysics) {
 			auto& rb = targetEntity.GetComponent<RigidBodyComponent>();
 			origBodyType = rb.Type;
 			origFriction = rb.Friction;
@@ -160,8 +147,7 @@ namespace CB
 		scene->DestroyEntity(targetEntity);
 
 		// Spawn new entities for each fragment
-		for (size_t i = 0; i < fragments.size(); i++)
-		{
+		for (size_t i = 0; i < fragments.size(); i++) {
 			auto& frag = fragments[i];
 			if (frag.VoxelCount == 0)
 				continue;
@@ -204,14 +190,13 @@ namespace CB
 			// so VoxelCompound shape generation will need to handle this case.
 			// For fragments, we generate the shape directly here.
 			auto compoundShape = VoxelCollisionShapeGenerator::GenerateFromGrid(frag.Grid);
-			if (compoundShape)
-			{
+			if (compoundShape) {
 				fragCollider.RuntimeShape = compoundShape;
 				fragCollider.ShapeDirty = false;
 			}
 
 			CB_CORE_TRACE("  Fragment {0}: {1} voxels, mass={2:.1f}",
-				i, frag.VoxelCount, fragRB.Mass);
+			              i, frag.VoxelCount, fragRB.Mass);
 		}
 	}
 }

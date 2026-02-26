@@ -18,8 +18,7 @@ namespace CB
 			return result;
 
 		std::string line;
-		while (std::getline(file, line))
-		{
+		while (std::getline(file, line)) {
 			// Strip carriage returns
 			if (!line.empty() && line.back() == '\r')
 				line.pop_back();
@@ -32,13 +31,14 @@ namespace CB
 			if (eq == std::string::npos)
 				continue;
 
-			std::string key   = line.substr(0, eq);
+			std::string key = line.substr(0, eq);
 			std::string value = line.substr(eq + 1);
 
 			// Trim whitespace
-			auto trim = [](std::string& s) {
+			auto trim = [](std::string& s)
+			{
 				size_t start = s.find_first_not_of(" \t");
-				size_t end   = s.find_last_not_of(" \t");
+				size_t end = s.find_last_not_of(" \t");
 				s = (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
 			};
 			trim(key);
@@ -56,8 +56,7 @@ namespace CB
 	Ref<AudioClipAsset> AudioClipAsset::Load(const std::filesystem::path& path)
 	{
 		auto asset = CreateRef<AudioClipAsset>();
-		if (!asset->LoadFromFile(path))
-		{
+		if (!asset->LoadFromFile(path)) {
 			CB_CORE_ERROR("AudioClipAsset: failed to load '{0}'", path.string());
 			return nullptr;
 		}
@@ -71,34 +70,31 @@ namespace CB
 
 		auto ini = ParseIni(path);
 
-		auto get = [&](const std::string& key, const std::string& def) -> std::string {
+		auto get = [&](const std::string& key,const std::string& def) -> std::string
+		{
 			auto it = ini.find(key);
 			return (it != ini.end()) ? it->second : def;
 		};
 
-		SourcePath   = get("source",       "");
-		Volume       = std::stof(get("volume",       "1.0"));
-		Pitch        = std::stof(get("pitch",        "1.0"));
-		Loop         = (get("loop", "false") == "true");
+		SourcePath = get("source", "");
+		Volume = std::stof(get("volume", "1.0"));
+		Pitch = std::stof(get("pitch", "1.0"));
+		Loop = (get("loop", "false") == "true");
 		SpatialBlend = std::stof(get("spatialBlend", "1.0"));
-		MinDistance  = std::stof(get("minDistance",  "1.0"));
-		MaxDistance  = std::stof(get("maxDistance",  "50.0"));
-		Rolloff      = get("rolloff", "linear");
-		Priority     = std::stoi(get("priority", "128"));
+		MinDistance = std::stof(get("minDistance", "1.0"));
+		MaxDistance = std::stof(get("maxDistance", "50.0"));
+		Rolloff = get("rolloff", "linear");
+		Priority = std::stoi(get("priority", "128"));
 
 		return true;
 	}
 
-	bool AudioClipAsset::Reload()
-	{
-		return LoadFromFile(m_Path);
-	}
+	bool AudioClipAsset::Reload() { return LoadFromFile(m_Path); }
 
 	bool AudioClipAsset::Save(const std::filesystem::path& path) const
 	{
 		std::ofstream file(path);
-		if (!file.is_open())
-		{
+		if (!file.is_open()) {
 			CB_CORE_ERROR("AudioClipAsset: cannot save to '{0}'", path.string());
 			return false;
 		}

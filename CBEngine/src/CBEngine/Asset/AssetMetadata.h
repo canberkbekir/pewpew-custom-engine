@@ -8,17 +8,14 @@
 
 namespace CB
 {
-    struct AssetMetadata
-    {
-        UUID Handle;
-        AssetType Type = AssetType::None;
-        std::filesystem::path FilePath; // Relative to assets root
+	struct AssetMetadata
+	{
+		UUID Handle;
+		AssetType Type = AssetType::None;
+		std::filesystem::path FilePath; // Relative to assets root
 
-        std::vector<UUID> Dependencies;
+		std::vector<UUID> Dependencies;
 
-        bool IsValid() const
-        {
-            return Handle.IsValid() && Type != AssetType::None;
-        }
-    };
+		bool IsValid() const { return Handle.IsValid() && Type != AssetType::None; }
+	};
 }

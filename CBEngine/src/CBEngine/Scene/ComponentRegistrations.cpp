@@ -19,24 +19,26 @@
 
 namespace CB
 {
-    CB_REGISTER_COMPONENT(TagComponent)
-    CB_REGISTER_COMPONENT(TransformComponent)
-    CB_REGISTER_COMPONENT(MeshRendererComponent)
-    CB_REGISTER_COMPONENT(VoxelRendererComponent)
-    CB_REGISTER_COMPONENT(DirectionalLightComponent)
-    CB_REGISTER_COMPONENT(CameraComponent)
-    CB_REGISTER_COMPONENT(RigidBodyComponent)
-    CB_REGISTER_COMPONENT(ColliderComponent)
-    CB_REGISTER_COMPONENT(ScriptComponent)
-    CB_REGISTER_COMPONENT(GameManagerComponent)
-    CB_REGISTER_COMPONENT(AudioSourceComponent)
-    CB_REGISTER_COMPONENT(HingeJointComponent)
-    CB_REGISTER_COMPONENT(HingeChainComponent)
-    CB_REGISTER_COMPONENT(DestructibleVoxelComponent)
-    CB_REGISTER_COMPONENT(VoxelAnchorComponent)
+	CB_REGISTER_COMPONENT(TagComponent)
+	CB_REGISTER_COMPONENT(TransformComponent)
+	CB_REGISTER_COMPONENT(MeshRendererComponent)
+	CB_REGISTER_COMPONENT(VoxelRendererComponent)
+	CB_REGISTER_COMPONENT(DirectionalLightComponent)
+	CB_REGISTER_COMPONENT(CameraComponent)
+	CB_REGISTER_COMPONENT(RigidBodyComponent)
+	CB_REGISTER_COMPONENT(ColliderComponent)
+	CB_REGISTER_COMPONENT(ScriptComponent)
+	CB_REGISTER_COMPONENT(GameManagerComponent)
+	CB_REGISTER_COMPONENT(AudioSourceComponent)
+	CB_REGISTER_COMPONENT(HingeJointComponent)
+	CB_REGISTER_COMPONENT(HingeChainComponent)
+	CB_REGISTER_COMPONENT(DestructibleVoxelComponent)
+	CB_REGISTER_COMPONENT(VoxelAnchorComponent)
 
-    // Called from Application::Application() to force the linker to include
-    // this object file from the static library (MSVC dead-strips objects that
-    // export no referenced symbols, which would leave the registry empty).
-    void LinkComponentRegistrations() {}
+	// Called from Application::Application() to force the linker to include
+	// this object file from the static library (MSVC dead-strips objects that
+	// export no referenced symbols, which would leave the registry empty).
+	void LinkComponentRegistrations()
+	{
+	}
 }

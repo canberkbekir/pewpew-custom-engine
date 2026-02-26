@@ -17,7 +17,7 @@
 
 namespace CB
 {
-	static void JoltTraceImpl(const char* inFMT, ...)
+	static void JoltTraceImpl(const char* inFMT,...)
 	{
 		va_list list;
 		va_start(list, inFMT);
@@ -28,7 +28,7 @@ namespace CB
 	}
 
 #ifdef JPH_ENABLE_ASSERTS
-	static bool JoltAssertFailed(const char* inExpression, const char* inMessage, const char* inFile, uint32_t inLine)
+	static bool JoltAssertFailed(const char* inExpression,const char* inMessage,const char* inFile,uint32_t inLine)
 	{
 		CB_CORE_ERROR("[Jolt Assert] {0}:{1}: ({2}) {3}", inFile, inLine, inExpression, inMessage ? inMessage : "");
 		return true; // trigger breakpoint
@@ -94,19 +94,21 @@ namespace CB
 		// the default layer are correctly tracked and collide with the ground/player.
 		m_BroadPhaseLayerInterface = CreateScope<JPH::BroadPhaseLayerInterfaceTable>(
 			ObjectLayers::NUM_LAYERS, BroadPhaseLayers::NUM_LAYERS);
-		for (uint32_t i = 0; i < ObjectLayers::NUM_LAYERS; i++)
-		{
+		for (uint32_t i = 0; i < ObjectLayers::NUM_LAYERS; i++) {
 			if (i == 3) // Environment only — purely static terrain/world geometry
-				m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(static_cast<JPH::ObjectLayer>(i), BroadPhaseLayers::NON_MOVING);
+				m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(static_cast<JPH::ObjectLayer>(i),
+				                                                       BroadPhaseLayers::NON_MOVING);
 			else
-				m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(static_cast<JPH::ObjectLayer>(i), BroadPhaseLayers::MOVING);
+				m_BroadPhaseLayerInterface->MapObjectToBroadPhaseLayer(static_cast<JPH::ObjectLayer>(i),
+				                                                       BroadPhaseLayers::MOVING);
 		}
 
 		// Object layer pair filter — enable all-vs-all collisions by default
 		m_ObjectLayerPairFilter = CreateScope<JPH::ObjectLayerPairFilterTable>(ObjectLayers::NUM_LAYERS);
 		for (uint32_t i = 0; i < ObjectLayers::NUM_LAYERS; i++)
 			for (uint32_t j = i; j < ObjectLayers::NUM_LAYERS; j++)
-				m_ObjectLayerPairFilter->EnableCollision(static_cast<JPH::ObjectLayer>(i), static_cast<JPH::ObjectLayer>(j));
+				m_ObjectLayerPairFilter->EnableCollision(static_cast<JPH::ObjectLayer>(i),
+				                                         static_cast<JPH::ObjectLayer>(j));
 
 		// Broad-phase vs object layer filter
 		m_ObjectVsBroadPhaseLayerFilter = CreateScope<JPH::ObjectVsBroadPhaseLayerFilterTable>(
@@ -114,13 +116,13 @@ namespace CB
 			*m_ObjectLayerPairFilter, ObjectLayers::NUM_LAYERS);
 
 		// Initialize physics system
-		const uint32_t maxBodies = 65536;
-		const uint32_t numBodyMutexes = 0; // auto
-		const uint32_t maxBodyPairs = 65536;
-		const uint32_t maxContactConstraints = 10240;
+		constexpr uint32_t maxBodies = 65536;
+		constexpr uint32_t numBodyMutexes = 0; // auto
+		constexpr uint32_t maxBodyPairs = 65536;
+		constexpr uint32_t maxContactConstraints = 10240;
 
 		m_PhysicsSystem.Init(maxBodies, numBodyMutexes, maxBodyPairs, maxContactConstraints,
-			*m_BroadPhaseLayerInterface, *m_ObjectVsBroadPhaseLayerFilter, *m_ObjectLayerPairFilter);
+		                     *m_BroadPhaseLayerInterface, *m_ObjectVsBroadPhaseLayerFilter, *m_ObjectLayerPairFilter);
 
 		m_PhysicsSystem.SetContactListener(this);
 		m_PhysicsSystem.SetGravity(JPH::Vec3(0.0f, -9.81f, 0.0f));
@@ -160,8 +162,7 @@ namespace CB
 		m_Accumulator += ts.GetSeconds();
 
 		int steps = 0;
-		while (m_Accumulator >= FIXED_TIMESTEP && steps < MAX_STEPS_PER_FRAME)
-		{
+		while (m_Accumulator >= FIXED_TIMESTEP && steps < MAX_STEPS_PER_FRAME) {
 			m_PhysicsSystem.Update(FIXED_TIMESTEP, 1, m_TempAllocator.get(), m_JobSystem.get());
 			m_Accumulator -= FIXED_TIMESTEP;
 			steps++;
@@ -186,12 +187,9 @@ namespace CB
 		return Vector3(g.GetX(), g.GetY(), g.GetZ());
 	}
 
-	JPH::BodyInterface& PhysicsWorld::GetBodyInterface()
-	{
-		return m_PhysicsSystem.GetBodyInterface();
-	}
+	JPH::BodyInterface& PhysicsWorld::GetBodyInterface() { return m_PhysicsSystem.GetBodyInterface(); }
 
-	void PhysicsWorld::RegisterBodyEntity(JPH::BodyID bodyID, UUID entityUUID)
+	void PhysicsWorld::RegisterBodyEntity(JPH::BodyID bodyID,UUID entityUUID)
 	{
 		m_BodyToEntityMap[bodyID.GetIndexAndSequenceNumber()] = entityUUID;
 	}
@@ -211,8 +209,7 @@ namespace CB
 
 	JPH::BodyID PhysicsWorld::GetBodyFromEntity(UUID entityUUID) const
 	{
-		for (auto& [key, uuid] : m_BodyToEntityMap)
-		{
+		for (auto& [key, uuid] : m_BodyToEntityMap) {
 			if (uuid == entityUUID)
 				return JPH::BodyID(key);
 		}
@@ -223,19 +220,17 @@ namespace CB
 	class LayerMaskObjectLayerFilter : public JPH::ObjectLayerFilter
 	{
 	public:
-		LayerMaskObjectLayerFilter(uint16_t mask) : m_Mask(mask) {}
-
-		bool ShouldCollide(JPH::ObjectLayer inLayer) const override
+		LayerMaskObjectLayerFilter(uint16_t mask) : m_Mask(mask)
 		{
-			return (m_Mask & (1 << inLayer)) != 0;
 		}
 
+		bool ShouldCollide(JPH::ObjectLayer inLayer) const override { return (m_Mask & (1 << inLayer)) != 0; }
 	private:
 		uint16_t m_Mask;
 	};
 
-	bool PhysicsWorld::Raycast(const Vector3& origin, const Vector3& direction, float maxDistance,
-		RaycastHit& outHit, uint16_t layerMask, UUID ignoreEntity) const
+	bool PhysicsWorld::Raycast(const Vector3& origin,const Vector3& direction,float maxDistance,
+	                           RaycastHit& outHit,uint16_t layerMask,UUID ignoreEntity) const
 	{
 		if (!m_Initialized)
 			return false;
@@ -257,16 +252,12 @@ namespace CB
 		const auto& narrowPhase = m_PhysicsSystem.GetNarrowPhaseQuery();
 
 		bool hit;
-		if (ignoreEntity.IsValid())
-		{
+		if (ignoreEntity.IsValid()) {
 			JPH::BodyID ignoreBody = GetBodyFromEntity(ignoreEntity);
 			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
 			hit = narrowPhase.CastRay(ray, result, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
 		}
-		else
-		{
-			hit = narrowPhase.CastRay(ray, result, JPH::BroadPhaseLayerFilter{}, layerFilter);
-		}
+		else { hit = narrowPhase.CastRay(ray, result, JPH::BroadPhaseLayerFilter{}, layerFilter); }
 
 		if (!hit)
 			return false;
@@ -276,16 +267,15 @@ namespace CB
 
 		JPH::RVec3 hitPoint = ray.GetPointOnRay(result.mFraction);
 		outHit.Point = Vector3(
-			static_cast<float>(hitPoint.GetX()),
-			static_cast<float>(hitPoint.GetY()),
-			static_cast<float>(hitPoint.GetZ()));
+			hitPoint.GetX(),
+			hitPoint.GetY(),
+			hitPoint.GetZ());
 
 		outHit.EntityUUID = GetEntityFromBody(result.mBodyID);
 
 		// Get surface normal
 		JPH::BodyLockRead bodyLock(m_PhysicsSystem.GetBodyLockInterface(), result.mBodyID);
-		if (bodyLock.Succeeded())
-		{
+		if (bodyLock.Succeeded()) {
 			const JPH::Body& body = bodyLock.GetBody();
 			JPH::Vec3 normal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
 			outHit.Normal = Vector3(normal.GetX(), normal.GetY(), normal.GetZ());
@@ -294,8 +284,8 @@ namespace CB
 		return true;
 	}
 
-	std::vector<RaycastHit> PhysicsWorld::RaycastAll(const Vector3& origin, const Vector3& direction,
-		float maxDistance, uint16_t layerMask, UUID ignoreEntity) const
+	std::vector<RaycastHit> PhysicsWorld::RaycastAll(const Vector3& origin,const Vector3& direction,
+	                                                 float maxDistance,uint16_t layerMask,UUID ignoreEntity) const
 	{
 		std::vector<RaycastHit> hits;
 
@@ -318,37 +308,31 @@ namespace CB
 
 		const auto& narrowPhase = m_PhysicsSystem.GetNarrowPhaseQuery();
 		JPH::RayCastSettings settings;
-		if (ignoreEntity.IsValid())
-		{
+		if (ignoreEntity.IsValid()) {
 			JPH::BodyID ignoreBody = GetBodyFromEntity(ignoreEntity);
 			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
 			narrowPhase.CastRay(ray, settings, collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
 		}
-		else
-		{
-			narrowPhase.CastRay(ray, settings, collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
-		}
+		else { narrowPhase.CastRay(ray, settings, collector, JPH::BroadPhaseLayerFilter{}, layerFilter); }
 
 		collector.Sort();
 
 		hits.reserve(collector.mHits.size());
-		for (const auto& result : collector.mHits)
-		{
+		for (const auto& result : collector.mHits) {
 			RaycastHit hit;
 			hit.Fraction = result.mFraction;
 			hit.Distance = result.mFraction * maxDistance;
 
 			JPH::RVec3 hitPoint = ray.GetPointOnRay(result.mFraction);
 			hit.Point = Vector3(
-				static_cast<float>(hitPoint.GetX()),
-				static_cast<float>(hitPoint.GetY()),
-				static_cast<float>(hitPoint.GetZ()));
+				hitPoint.GetX(),
+				hitPoint.GetY(),
+				hitPoint.GetZ());
 
 			hit.EntityUUID = GetEntityFromBody(result.mBodyID);
 
 			JPH::BodyLockRead bodyLock(m_PhysicsSystem.GetBodyLockInterface(), result.mBodyID);
-			if (bodyLock.Succeeded())
-			{
+			if (bodyLock.Succeeded()) {
 				const JPH::Body& body = bodyLock.GetBody();
 				JPH::Vec3 normal = body.GetWorldSpaceSurfaceNormal(result.mSubShapeID2, hitPoint);
 				hit.Normal = Vector3(normal.GetX(), normal.GetY(), normal.GetZ());
@@ -382,33 +366,30 @@ namespace CB
 
 		const auto& narrowPhase = world->GetPhysicsSystem().GetNarrowPhaseQuery();
 
-		if (ignoreEntity.IsValid())
-		{
+		if (ignoreEntity.IsValid()) {
 			JPH::BodyID ignoreBody = world->GetBodyFromEntity(ignoreEntity);
 			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
 			narrowPhase.CollideShape(testShape, JPH::Vec3::sReplicate(1.0f),
-				transform, settings, JPH::RVec3::sZero(),
-				collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+			                         transform, settings, JPH::RVec3::sZero(),
+			                         collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
 		}
-		else
-		{
+		else {
 			narrowPhase.CollideShape(testShape, JPH::Vec3::sReplicate(1.0f),
-				transform, settings, JPH::RVec3::sZero(),
-				collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
+			                         transform, settings, JPH::RVec3::sZero(),
+			                         collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
 		}
 
 		hits.reserve(collector.mHits.size());
-		for (const auto& result : collector.mHits)
-		{
+		for (const auto& result : collector.mHits) {
 			RaycastHit hit;
 			hit.EntityUUID = world->GetEntityFromBody(result.mBodyID2);
 			if (!hit.EntityUUID.IsValid())
 				continue;
 
 			hit.Point = Vector3(
-				static_cast<float>(result.mContactPointOn2.GetX()),
-				static_cast<float>(result.mContactPointOn2.GetY()),
-				static_cast<float>(result.mContactPointOn2.GetZ()));
+				result.mContactPointOn2.GetX(),
+				result.mContactPointOn2.GetY(),
+				result.mContactPointOn2.GetZ());
 			hit.Normal = Vector3(
 				result.mPenetrationAxis.GetX(),
 				result.mPenetrationAxis.GetY(),
@@ -421,8 +402,8 @@ namespace CB
 		return hits;
 	}
 
-	std::vector<RaycastHit> PhysicsWorld::OverlapSphere(const Vector3& center, float radius,
-		uint16_t layerMask, UUID ignoreEntity) const
+	std::vector<RaycastHit> PhysicsWorld::OverlapSphere(const Vector3& center,float radius,
+	                                                    uint16_t layerMask,UUID ignoreEntity) const
 	{
 		if (!m_Initialized) return {};
 
@@ -431,12 +412,12 @@ namespace CB
 		return DoOverlapQuery(this, &sphereShape, transform, center, layerMask, ignoreEntity);
 	}
 
-	std::vector<RaycastHit> PhysicsWorld::OverlapBox(const Vector3& center, const Vector3& halfExtents,
-		uint16_t layerMask, UUID ignoreEntity) const
+	std::vector<RaycastHit> PhysicsWorld::OverlapBox(const Vector3& center,const Vector3& halfExtents,
+	                                                 uint16_t layerMask,UUID ignoreEntity) const
 	{
 		if (!m_Initialized) return {};
 
-		Vector3 safeHalf = Vector3(
+		auto safeHalf = Vector3(
 			std::max(halfExtents.x, 0.001f),
 			std::max(halfExtents.y, 0.001f),
 			std::max(halfExtents.z, 0.001f));
@@ -451,7 +432,7 @@ namespace CB
 
 	// Shared helper: build a RaycastHit from a ShapeCastResult
 	static RaycastHit MakeSweepHit(const PhysicsWorld* world,
-		const JPH::RShapeCast& shapeCast, const JPH::ShapeCastResult& result, float maxDist)
+	                               const JPH::RShapeCast& shapeCast,const JPH::ShapeCastResult& result,float maxDist)
 	{
 		RaycastHit hit;
 		hit.Fraction = result.mFraction;
@@ -460,11 +441,11 @@ namespace CB
 
 		// Hit center-of-mass position = start + direction * fraction
 		JPH::RVec3 hitPos = JPH::RVec3(shapeCast.mCenterOfMassStart.GetTranslation())
-			+ JPH::RVec3(shapeCast.mDirection) * result.mFraction;
+		+ JPH::RVec3(shapeCast.mDirection) * result.mFraction;
 		hit.Point = Vector3(
-			static_cast<float>(hitPos.GetX()),
-			static_cast<float>(hitPos.GetY()),
-			static_cast<float>(hitPos.GetZ()));
+			hitPos.GetX(),
+			hitPos.GetY(),
+			hitPos.GetZ());
 
 		// Penetration axis points from body 2 to body 1; negate for surface normal
 		hit.Normal = Vector3(
@@ -478,8 +459,8 @@ namespace CB
 	static std::vector<JPH::ShapeCastResult> DoCastShape(
 		const PhysicsWorld* world,
 		const JPH::Shape* shape,
-		const Vector3& origin, const JPH::Vec3& normDir, float maxDist,
-		uint16_t layerMask, UUID ignoreEntity)
+		const Vector3& origin,const JPH::Vec3& normDir,float maxDist,
+		uint16_t layerMask,UUID ignoreEntity)
 	{
 		JPH::RMat44 startTransform = JPH::RMat44::sTranslation(JPH::RVec3(origin.x, origin.y, origin.z));
 		JPH::RShapeCast shapeCast = JPH::RShapeCast::sFromWorldTransform(
@@ -490,25 +471,23 @@ namespace CB
 		LayerMaskObjectLayerFilter layerFilter(layerMask);
 
 		const auto& narrowPhase = world->GetPhysicsSystem().GetNarrowPhaseQuery();
-		if (ignoreEntity.IsValid())
-		{
+		if (ignoreEntity.IsValid()) {
 			JPH::BodyID ignoreBody = world->GetBodyFromEntity(ignoreEntity);
 			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
 			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
-				collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+			                      collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
 		}
-		else
-		{
+		else {
 			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
-				collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
+			                      collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
 		}
 
 		collector.Sort();
-		return { collector.mHits.begin(), collector.mHits.end() };
+		return {collector.mHits.begin(), collector.mHits.end()};
 	}
 
-	bool PhysicsWorld::SphereCast(const Vector3& origin, const Vector3& dir, float radius, float maxDist,
-		RaycastHit& outHit, uint16_t layerMask, UUID ignoreEntity) const
+	bool PhysicsWorld::SphereCast(const Vector3& origin,const Vector3& dir,float radius,float maxDist,
+	                              RaycastHit& outHit,uint16_t layerMask,UUID ignoreEntity) const
 	{
 		if (!m_Initialized) return false;
 		JPH::Vec3 jDir(dir.x, dir.y, dir.z);
@@ -526,17 +505,15 @@ namespace CB
 		LayerMaskObjectLayerFilter layerFilter(layerMask);
 
 		const auto& narrowPhase = m_PhysicsSystem.GetNarrowPhaseQuery();
-		if (ignoreEntity.IsValid())
-		{
+		if (ignoreEntity.IsValid()) {
 			JPH::BodyID ignoreBody = GetBodyFromEntity(ignoreEntity);
 			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
 			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
-				collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+			                      collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
 		}
-		else
-		{
+		else {
 			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
-				collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
+			                      collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
 		}
 
 		if (!collector.HadHit()) return false;
@@ -544,8 +521,8 @@ namespace CB
 		return true;
 	}
 
-	bool PhysicsWorld::BoxCast(const Vector3& origin, const Vector3& dir, const Vector3& halfExtents, float maxDist,
-		RaycastHit& outHit, uint16_t layerMask, UUID ignoreEntity) const
+	bool PhysicsWorld::BoxCast(const Vector3& origin,const Vector3& dir,const Vector3& halfExtents,float maxDist,
+	                           RaycastHit& outHit,uint16_t layerMask,UUID ignoreEntity) const
 	{
 		if (!m_Initialized) return false;
 		JPH::Vec3 jDir(dir.x, dir.y, dir.z);
@@ -553,7 +530,7 @@ namespace CB
 		if (dirLen < 0.0001f) return false;
 		jDir /= dirLen;
 
-		Vector3 safeHalf = Vector3(
+		auto safeHalf = Vector3(
 			std::max(halfExtents.x, 0.001f),
 			std::max(halfExtents.y, 0.001f),
 			std::max(halfExtents.z, 0.001f));
@@ -567,17 +544,15 @@ namespace CB
 		LayerMaskObjectLayerFilter layerFilter(layerMask);
 
 		const auto& narrowPhase = m_PhysicsSystem.GetNarrowPhaseQuery();
-		if (ignoreEntity.IsValid())
-		{
+		if (ignoreEntity.IsValid()) {
 			JPH::BodyID ignoreBody = GetBodyFromEntity(ignoreEntity);
 			JPH::IgnoreSingleBodyFilter bodyFilter(ignoreBody);
 			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
-				collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
+			                      collector, JPH::BroadPhaseLayerFilter{}, layerFilter, bodyFilter);
 		}
-		else
-		{
+		else {
 			narrowPhase.CastShape(shapeCast, settings, JPH::RVec3::sZero(),
-				collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
+			                      collector, JPH::BroadPhaseLayerFilter{}, layerFilter);
 		}
 
 		if (!collector.HadHit()) return false;
@@ -585,8 +560,8 @@ namespace CB
 		return true;
 	}
 
-	std::vector<RaycastHit> PhysicsWorld::SphereCastAll(const Vector3& origin, const Vector3& dir, float radius,
-		float maxDist, uint16_t layerMask, UUID ignoreEntity) const
+	std::vector<RaycastHit> PhysicsWorld::SphereCastAll(const Vector3& origin,const Vector3& dir,float radius,
+	                                                    float maxDist,uint16_t layerMask,UUID ignoreEntity) const
 	{
 		if (!m_Initialized) return {};
 		JPH::Vec3 jDir(dir.x, dir.y, dir.z);
@@ -607,8 +582,9 @@ namespace CB
 		return hits;
 	}
 
-	std::vector<RaycastHit> PhysicsWorld::BoxCastAll(const Vector3& origin, const Vector3& dir, const Vector3& halfExtents,
-		float maxDist, uint16_t layerMask, UUID ignoreEntity) const
+	std::vector<RaycastHit> PhysicsWorld::BoxCastAll(const Vector3& origin,const Vector3& dir,
+	                                                 const Vector3& halfExtents,
+	                                                 float maxDist,uint16_t layerMask,UUID ignoreEntity) const
 	{
 		if (!m_Initialized) return {};
 		JPH::Vec3 jDir(dir.x, dir.y, dir.z);
@@ -616,7 +592,7 @@ namespace CB
 		if (dirLen < 0.0001f) return {};
 		jDir /= dirLen;
 
-		Vector3 safeHalf = Vector3(
+		auto safeHalf = Vector3(
 			std::max(halfExtents.x, 0.001f),
 			std::max(halfExtents.y, 0.001f),
 			std::max(halfExtents.z, 0.001f));
@@ -633,8 +609,8 @@ namespace CB
 		return hits;
 	}
 
-	std::vector<RaycastHit> PhysicsWorld::OverlapCapsule(const Vector3& center, float radius, float halfHeight,
-		uint16_t layerMask, UUID ignoreEntity) const
+	std::vector<RaycastHit> PhysicsWorld::OverlapCapsule(const Vector3& center,float radius,float halfHeight,
+	                                                     uint16_t layerMask,UUID ignoreEntity) const
 	{
 		if (!m_Initialized) return {};
 
@@ -645,8 +621,8 @@ namespace CB
 	}
 
 	std::vector<RaycastHit> PhysicsWorld::OverlapCapsuleSegment(
-		const Vector3& p0, const Vector3& p1, float radius,
-		uint16_t layerMask, UUID ignoreEntity) const
+		const Vector3& p0,const Vector3& p1,float radius,
+		uint16_t layerMask,UUID ignoreEntity) const
 	{
 		if (!m_Initialized) return {};
 
@@ -657,28 +633,23 @@ namespace CB
 		if (segLen < 1e-6f)
 			return OverlapSphere((p0 + p1) * 0.5f, radius, layerMask, ignoreEntity);
 
-		float   halfHeight = segLen * 0.5f;
+		float halfHeight = segLen * 0.5f;
 		Vector3 center((p0.x + p1.x) * 0.5f, (p0.y + p1.y) * 0.5f, (p0.z + p1.z) * 0.5f);
 
 		// CapsuleShape is Y-axis aligned; build rotation from Y to segment direction
 		JPH::Vec3 segDir = jSeg / segLen;
 		JPH::Vec3 yAxis(0.0f, 1.0f, 0.0f);
-		float     dot = yAxis.Dot(segDir);
+		float dot = yAxis.Dot(segDir);
 
 		JPH::Quat jRot;
-		if (dot > 1.0f - 1e-5f)
-		{
-			jRot = JPH::Quat::sIdentity();
-		}
-		else if (dot < -1.0f + 1e-5f)
-		{
+		if (dot > 1.0f - 1e-5f) { jRot = JPH::Quat::sIdentity(); }
+		else if (dot < -1.0f + 1e-5f) {
 			// 180° around X axis: (x=1,y=0,z=0,w=0) in Jolt's (x,y,z,w) convention
 			jRot = JPH::Quat(1.0f, 0.0f, 0.0f, 0.0f);
 		}
-		else
-		{
-			JPH::Vec3 axis  = yAxis.Cross(segDir).Normalized();
-			float     angle = std::acos(std::max(-1.0f, std::min(1.0f, dot)));
+		else {
+			JPH::Vec3 axis = yAxis.Cross(segDir).Normalized();
+			float angle = std::acos(std::max(-1.0f, std::min(1.0f, dot)));
 			jRot = JPH::Quat::sRotation(axis, angle);
 		}
 
@@ -692,15 +663,15 @@ namespace CB
 	// Contact listener implementation
 
 	JPH::ValidateResult PhysicsWorld::OnContactValidate(
-		const JPH::Body& inBody1, const JPH::Body& inBody2,
-		JPH::RVec3Arg inBaseOffset, const JPH::CollideShapeResult& inCollisionResult)
+		const JPH::Body& inBody1,const JPH::Body& inBody2,
+		JPH::RVec3Arg inBaseOffset,const JPH::CollideShapeResult& inCollisionResult)
 	{
 		return JPH::ValidateResult::AcceptAllContactsForThisBodyPair;
 	}
 
 	void PhysicsWorld::OnContactAdded(
-		const JPH::Body& inBody1, const JPH::Body& inBody2,
-		const JPH::ContactManifold& inManifold, JPH::ContactSettings& ioSettings)
+		const JPH::Body& inBody1,const JPH::Body& inBody2,
+		const JPH::ContactManifold& inManifold,JPH::ContactSettings& ioSettings)
 	{
 		auto itA = m_BodyToEntityMap.find(inBody1.GetID().GetIndexAndSequenceNumber());
 		auto itB = m_BodyToEntityMap.find(inBody2.GetID().GetIndexAndSequenceNumber());
@@ -714,19 +685,18 @@ namespace CB
 		callback.EntityA = itA->second;
 		callback.EntityB = itB->second;
 		callback.ContactPoint = Vector3(
-			static_cast<float>(contactPoint.GetX()),
-			static_cast<float>(contactPoint.GetY()),
-			static_cast<float>(contactPoint.GetZ()));
+			contactPoint.GetX(),
+			contactPoint.GetY(),
+			contactPoint.GetZ());
 		callback.ContactNormal = Vector3(contactNormal.GetX(), contactNormal.GetY(), contactNormal.GetZ());
 
 		// Route sensor contacts to trigger callbacks; physical contacts to collision callbacks
 		bool isSensor = inBody1.IsSensor() || inBody2.IsSensor();
-		if (isSensor)
-		{
+		if (isSensor) {
 			// Track this pair so OnContactRemoved can route it without a body lock
 			uint32_t a = inBody1.GetID().GetIndexAndSequenceNumber();
 			uint32_t b = inBody2.GetID().GetIndexAndSequenceNumber();
-			uint64_t key = (uint64_t)std::min(a, b) | ((uint64_t)std::max(a, b) << 32);
+			uint64_t key = static_cast<uint64_t>(std::min(a, b)) | (static_cast<uint64_t>(std::max(a, b)) << 32);
 			{
 				std::lock_guard<std::mutex> lock(m_SensorPairsMutex);
 				m_SensorPairs.insert(key);
@@ -734,8 +704,7 @@ namespace CB
 			if (m_TriggerEnterCallback)
 				m_TriggerEnterCallback(callback);
 		}
-		else
-		{
+		else {
 			if (m_CollisionBeginCallback)
 				m_CollisionBeginCallback(callback);
 		}
@@ -756,26 +725,23 @@ namespace CB
 		// OnContactRemoved deadlocks because Jolt already holds internal locks here).
 		uint32_t a = inSubShapePair.GetBody1ID().GetIndexAndSequenceNumber();
 		uint32_t b = inSubShapePair.GetBody2ID().GetIndexAndSequenceNumber();
-		uint64_t key = (uint64_t)std::min(a, b) | ((uint64_t)std::max(a, b) << 32);
+		uint64_t key = static_cast<uint64_t>(std::min(a, b)) | (static_cast<uint64_t>(std::max(a, b)) << 32);
 
 		bool isSensor = false;
 		{
 			std::lock_guard<std::mutex> lock(m_SensorPairsMutex);
 			auto it = m_SensorPairs.find(key);
-			if (it != m_SensorPairs.end())
-			{
+			if (it != m_SensorPairs.end()) {
 				isSensor = true;
 				m_SensorPairs.erase(it);
 			}
 		}
 
-		if (isSensor)
-		{
+		if (isSensor) {
 			if (m_TriggerExitCallback)
 				m_TriggerExitCallback(callback);
 		}
-		else
-		{
+		else {
 			if (m_CollisionEndCallback)
 				m_CollisionEndCallback(callback);
 		}

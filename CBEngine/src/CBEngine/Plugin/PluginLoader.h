@@ -17,7 +17,6 @@ namespace CB
 		static void UnloadAll();
 
 		static IPlugin* GetPlugin(const char* name);
-
 	private:
 		struct LoadedPlugin
 		{

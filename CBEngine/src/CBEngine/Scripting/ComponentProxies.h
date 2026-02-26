@@ -29,17 +29,14 @@ namespace CB
 		bool IsValid() const
 		{
 			return OwnerEntity && OwnerEntity.HasComponent<RigidBodyComponent>()
-				&& OwnerEntity.GetComponent<RigidBodyComponent>().BodyCreated;
+			&& OwnerEntity.GetComponent<RigidBodyComponent>().BodyCreated;
 		}
 		PhysicsWorld* GetWorld() const
 		{
 			Scene* scene = OwnerEntity.GetScene();
 			return scene ? scene->GetPhysicsWorld() : nullptr;
 		}
-		JPH::BodyID GetBodyID() const
-		{
-			return OwnerEntity.GetComponent<RigidBodyComponent>().RuntimeBodyID;
-		}
+		JPH::BodyID GetBodyID() const { return OwnerEntity.GetComponent<RigidBodyComponent>().RuntimeBodyID; }
 	};
 
 	// =========================================================================
@@ -49,10 +46,7 @@ namespace CB
 	{
 		Entity OwnerEntity;
 
-		bool IsValid() const
-		{
-			return OwnerEntity && OwnerEntity.HasComponent<TransformComponent>();
-		}
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<TransformComponent>(); }
 	};
 
 	// =========================================================================
@@ -62,10 +56,7 @@ namespace CB
 	{
 		Entity OwnerEntity;
 
-		bool IsValid() const
-		{
-			return OwnerEntity && OwnerEntity.HasComponent<CameraComponent>();
-		}
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<CameraComponent>(); }
 	};
 
 	// =========================================================================
@@ -75,10 +66,7 @@ namespace CB
 	{
 		Entity OwnerEntity;
 
-		bool IsValid() const
-		{
-			return OwnerEntity && OwnerEntity.HasComponent<ColliderComponent>();
-		}
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<ColliderComponent>(); }
 	};
 
 	// =========================================================================
@@ -88,10 +76,7 @@ namespace CB
 	{
 		Entity OwnerEntity;
 
-		bool IsValid() const
-		{
-			return OwnerEntity && OwnerEntity.HasComponent<MeshRendererComponent>();
-		}
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<MeshRendererComponent>(); }
 	};
 
 	// =========================================================================
@@ -101,10 +86,7 @@ namespace CB
 	{
 		Entity OwnerEntity;
 
-		bool IsValid() const
-		{
-			return OwnerEntity && OwnerEntity.HasComponent<VoxelRendererComponent>();
-		}
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<VoxelRendererComponent>(); }
 	};
 
 	// =========================================================================
@@ -114,10 +96,7 @@ namespace CB
 	{
 		Entity OwnerEntity;
 
-		bool IsValid() const
-		{
-			return OwnerEntity && OwnerEntity.HasComponent<DirectionalLightComponent>();
-		}
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<DirectionalLightComponent>(); }
 	};
 
 	// =========================================================================
@@ -140,7 +119,7 @@ namespace CB
 		bool IsValid() const
 		{
 			return OwnerEntity && OwnerEntity.HasComponent<MeshRendererComponent>()
-				&& OwnerEntity.GetComponent<MeshRendererComponent>().MaterialAsset != nullptr;
+			&& OwnerEntity.GetComponent<MeshRendererComponent>().MaterialAsset != nullptr;
 		}
 	};
 
@@ -151,10 +130,7 @@ namespace CB
 	{
 		Entity OwnerEntity;
 
-		bool IsValid() const
-		{
-			return OwnerEntity && OwnerEntity.HasComponent<AudioSourceComponent>();
-		}
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<AudioSourceComponent>(); }
 	};
 
 	// =========================================================================
@@ -164,10 +140,7 @@ namespace CB
 	{
 		Entity OwnerEntity;
 
-		bool IsValid() const
-		{
-			return OwnerEntity && OwnerEntity.HasComponent<HingeJointComponent>();
-		}
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<HingeJointComponent>(); }
 
 		bool IsActive() const
 		{
@@ -192,8 +165,7 @@ namespace CB
 			auto& hj = OwnerEntity.GetComponent<HingeJointComponent>();
 			hj.TargetVelocity = degsPerSec;
 			if (hj.ConstraintCreated && hj.RuntimeConstraint
-				&& hj.ConstraintType == JointConstraintType::Hinge)
-			{
+				&& hj.ConstraintType == JointConstraintType::Hinge) {
 				auto* c = static_cast<JPH::HingeConstraint*>(hj.RuntimeConstraint);
 				c->SetTargetAngularVelocity(glm::radians(degsPerSec));
 			}
@@ -205,8 +177,7 @@ namespace CB
 			auto& hj = OwnerEntity.GetComponent<HingeJointComponent>();
 			hj.UseMotor = on;
 			if (hj.ConstraintCreated && hj.RuntimeConstraint
-				&& hj.ConstraintType == JointConstraintType::Hinge)
-			{
+				&& hj.ConstraintType == JointConstraintType::Hinge) {
 				auto* c = static_cast<JPH::HingeConstraint*>(hj.RuntimeConstraint);
 				c->SetMotorState(on ? JPH::EMotorState::Velocity : JPH::EMotorState::Off);
 			}
@@ -218,12 +189,10 @@ namespace CB
 			auto& hj = OwnerEntity.GetComponent<HingeJointComponent>();
 
 			// Remove the live Jolt constraint so the body is truly free immediately.
-			if (hj.ConstraintCreated && hj.RuntimeConstraint)
-			{
+			if (hj.ConstraintCreated && hj.RuntimeConstraint) {
 				Scene* scene = OwnerEntity.GetScene();
 				PhysicsWorld* pw = scene ? scene->GetPhysicsWorld() : nullptr;
-				if (pw)
-				{
+				if (pw) {
 					pw->GetPhysicsSystem().RemoveConstraint(hj.RuntimeConstraint);
 					hj.RuntimeConstraint->Release();
 					hj.RuntimeConstraint = nullptr;
@@ -231,7 +200,7 @@ namespace CB
 			}
 
 			hj.ConstraintCreated = true; // prevent HingeJointSystem from re-initialising
-			hj.IsBroken          = true;
+			hj.IsBroken = true;
 		}
 
 		void Reset()

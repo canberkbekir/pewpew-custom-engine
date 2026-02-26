@@ -7,40 +7,40 @@
 
 namespace YAML
 {
-    class Emitter;
-    class Node;
+	class Emitter;
+	class Node;
 }
 
 namespace CB
 {
-    class VoxelTextureAsset;
+	class VoxelTextureAsset;
 
-    struct VoxelRendererComponent
-    {
-        // Cached runtime GPU mesh (generated from vmesh grid)
-        Ref<Mesh> MeshAsset;
+	struct VoxelRendererComponent
+	{
+		// Cached runtime GPU mesh (generated from vmesh grid)
+		Ref<Mesh> MeshAsset;
 
-        // Voxel-specific asset UUIDs
-        UUID VoxelMeshUUID = UUID(0); // .vmesh asset UUID
-        UUID VoxelTextureUUID = UUID(0); // .vtex asset UUID
+		// Voxel-specific asset UUIDs
+		UUID VoxelMeshUUID = UUID(0); // .vmesh asset UUID
+		UUID VoxelTextureUUID = UUID(0); // .vtex asset UUID
 
-        // Palette textures (for GPU rendering)
-        Ref<Texture2D> PaletteColorTexture;
-        Ref<Texture2D> PaletteMaterialTexture;
-        bool HasPalette = false;
+		// Palette textures (for GPU rendering)
+		Ref<Texture2D> PaletteColorTexture;
+		Ref<Texture2D> PaletteMaterialTexture;
+		bool HasPalette = false;
 
-        // Voxel Texture (.vtex) - per-voxel material type data + PBR overrides
-        Ref<VoxelTextureAsset> VoxelTexture;
+		// Voxel Texture (.vtex) - per-voxel material type data + PBR overrides
+		Ref<VoxelTextureAsset> VoxelTexture;
 
-        bool Visible = true;
+		bool Visible = true;
 
-        static constexpr auto YAMLKey = "VoxelRendererComponent";
+		static constexpr auto YAMLKey = "VoxelRendererComponent";
 
-        VoxelRendererComponent() = default;
-        VoxelRendererComponent(const VoxelRendererComponent&) = default;
+		VoxelRendererComponent() = default;
+		VoxelRendererComponent(const VoxelRendererComponent&) = default;
 
-        void Serialize(YAML::Emitter& out) const;
-        void Deserialize(const YAML::Node& node);
-        void ResolveAssets();
-    };
+		void Serialize(YAML::Emitter& out) const;
+		void Deserialize(const YAML::Node& node);
+		void ResolveAssets();
+	};
 }

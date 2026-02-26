@@ -10,8 +10,7 @@ namespace CB
 		// CreatePaletteMeshFromGrid. Linear index = x*sizeY*sizeZ + y*sizeZ + z.
 		std::unordered_map<uint64_t, size_t> map;
 		size_t filledIdx = 0;
-		for (uint64_t i = 0; i < grid.totalVoxels; ++i)
-		{
+		for (uint64_t i = 0; i < grid.totalVoxels; ++i) {
 			if (grid.IsFilled(i))
 				map[i] = filledIdx++;
 		}
@@ -19,8 +18,8 @@ namespace CB
 	}
 
 	uint64_t VoxelSplitter::RemoveSphere(voxelizer::VoxelGrid& grid,
-		std::vector<uint8_t>& paletteIndices,
-		const Vector3& worldCenter, float radius)
+	                                     std::vector<uint8_t>& paletteIndices,
+	                                     const Vector3& worldCenter,float radius)
 	{
 		// Convert sphere center to voxel space
 		glm::ivec3 centerVoxel = grid.WorldToVoxel(worldCenter);
@@ -38,8 +37,7 @@ namespace CB
 		std::vector<glm::ivec3> toRemove;
 		for (int z = minCoord.z; z <= maxCoord.z; z++)
 			for (int y = minCoord.y; y <= maxCoord.y; y++)
-				for (int x = minCoord.x; x <= maxCoord.x; x++)
-				{
+				for (int x = minCoord.x; x <= maxCoord.x; x++) {
 					if (!grid.IsFilled(x, y, z))
 						continue;
 
@@ -54,8 +52,7 @@ namespace CB
 
 		// Mark indices to remove from palette
 		std::unordered_set<size_t> removedPaletteIndices;
-		for (const auto& coord : toRemove)
-		{
+		for (const auto& coord : toRemove) {
 			uint64_t idx = grid.CoordToIndex(coord.x, coord.y, coord.z);
 			auto it = filledMap.find(idx);
 			if (it != filledMap.end())
@@ -67,12 +64,10 @@ namespace CB
 			grid.Clear(coord.x, coord.y, coord.z);
 
 		// Rebuild palette indices (remove entries for deleted voxels)
-		if (!paletteIndices.empty())
-		{
+		if (!paletteIndices.empty()) {
 			std::vector<uint8_t> newPalette;
 			newPalette.reserve(paletteIndices.size() - removedPaletteIndices.size());
-			for (size_t i = 0; i < paletteIndices.size(); i++)
-			{
+			for (size_t i = 0; i < paletteIndices.size(); i++) {
 				if (removedPaletteIndices.find(i) == removedPaletteIndices.end())
 					newPalette.push_back(paletteIndices[i]);
 			}
@@ -83,8 +78,8 @@ namespace CB
 	}
 
 	uint64_t VoxelSplitter::RemoveVoxels(voxelizer::VoxelGrid& grid,
-		std::vector<uint8_t>& paletteIndices,
-		const std::vector<glm::ivec3>& coordsToRemove)
+	                                     std::vector<uint8_t>& paletteIndices,
+	                                     const std::vector<glm::ivec3>& coordsToRemove)
 	{
 		if (coordsToRemove.empty())
 			return grid.CountFilled();
@@ -92,8 +87,7 @@ namespace CB
 		auto filledMap = BuildFilledIndexMap(grid);
 
 		std::unordered_set<size_t> removedPaletteIndices;
-		for (const auto& coord : coordsToRemove)
-		{
+		for (const auto& coord : coordsToRemove) {
 			if (!grid.IsValidCoord(coord) || !grid.IsFilled(coord))
 				continue;
 
@@ -105,12 +99,10 @@ namespace CB
 			grid.Clear(coord.x, coord.y, coord.z);
 		}
 
-		if (!paletteIndices.empty())
-		{
+		if (!paletteIndices.empty()) {
 			std::vector<uint8_t> newPalette;
 			newPalette.reserve(paletteIndices.size() - removedPaletteIndices.size());
-			for (size_t i = 0; i < paletteIndices.size(); i++)
-			{
+			for (size_t i = 0; i < paletteIndices.size(); i++) {
 				if (removedPaletteIndices.find(i) == removedPaletteIndices.end())
 					newPalette.push_back(paletteIndices[i]);
 			}
@@ -130,7 +122,8 @@ namespace CB
 
 		// Visited tracking
 		std::vector<bool> visited(static_cast<size_t>(sizeX) * sizeY * sizeZ, false);
-		auto vidx = [&](int x, int y, int z) -> size_t {
+		auto vidx = [&](int x,int y,int z) -> size_t
+		{
 			return static_cast<size_t>(x) + static_cast<size_t>(y) * sizeX + static_cast<size_t>(z) * sizeX * sizeY;
 		};
 
@@ -143,12 +136,9 @@ namespace CB
 
 		std::vector<std::vector<glm::ivec3>> components;
 
-		for (int z = 0; z < sizeZ; z++)
-		{
-			for (int y = 0; y < sizeY; y++)
-			{
-				for (int x = 0; x < sizeX; x++)
-				{
+		for (int z = 0; z < sizeZ; z++) {
+			for (int y = 0; y < sizeY; y++) {
+				for (int x = 0; x < sizeX; x++) {
 					if (!grid.IsFilled(x, y, z) || visited[vidx(x, y, z)])
 						continue;
 
@@ -158,14 +148,12 @@ namespace CB
 					queue.push({x, y, z});
 					visited[vidx(x, y, z)] = true;
 
-					while (!queue.empty())
-					{
+					while (!queue.empty()) {
 						glm::ivec3 current = queue.front();
 						queue.pop();
 						component.push_back(current);
 
-						for (const auto& offset : neighbors)
-						{
+						for (const auto& offset : neighbors) {
 							glm::ivec3 neighbor = current + offset;
 							if (!grid.IsValidCoord(neighbor))
 								continue;
@@ -188,10 +176,7 @@ namespace CB
 		std::vector<VoxelFragment> fragments;
 		fragments.reserve(components.size());
 
-		for (auto& coords : components)
-		{
-			fragments.push_back(ExtractComponent(grid, paletteIndices, coords));
-		}
+		for (auto& coords : components) { fragments.push_back(ExtractComponent(grid, paletteIndices, coords)); }
 
 		return fragments;
 	}
@@ -211,8 +196,7 @@ namespace CB
 		glm::ivec3 maxC = componentCoords[0];
 		Vector3 comSum(0.0f);
 
-		for (const auto& coord : componentCoords)
-		{
+		for (const auto& coord : componentCoords) {
 			minC = glm::min(minC, coord);
 			maxC = glm::max(maxC, coord);
 			comSum += sourceGrid.VoxelCenterToWorld(coord);
@@ -238,11 +222,9 @@ namespace CB
 			fragment.Grid.SetFilled(coord - minC);
 
 		// Pass 2: Build palette in LINEAR order (matching GetFilledCoords/CreatePaletteMeshFromGrid)
-		if (!sourcePaletteIndices.empty())
-		{
+		if (!sourcePaletteIndices.empty()) {
 			auto sourceFilledMap = BuildFilledIndexMap(sourceGrid);
-			for (uint64_t i = 0; i < fragment.Grid.totalVoxels; ++i)
-			{
+			for (uint64_t i = 0; i < fragment.Grid.totalVoxels; ++i) {
 				if (!fragment.Grid.IsFilled(i)) continue;
 				glm::ivec3 localCoord = fragment.Grid.IndexToCoord(i);
 				glm::ivec3 sourceCoord = localCoord + minC;

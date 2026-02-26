@@ -17,22 +17,21 @@ namespace CB
 		// Track which voxels have been merged
 		std::vector<bool> visited(sizeX * sizeY * sizeZ, false);
 
-		auto idx = [&](int x, int y, int z) -> size_t {
+		auto idx = [&](int x,int y,int z) -> size_t
+		{
 			return static_cast<size_t>(x) + static_cast<size_t>(y) * sizeX + static_cast<size_t>(z) * sizeX * sizeY;
 		};
 
-		auto isFilledAndFree = [&](int x, int y, int z) -> bool {
+		auto isFilledAndFree = [&](int x,int y,int z) -> bool
+		{
 			if (x < 0 || x >= sizeX || y < 0 || y >= sizeY || z < 0 || z >= sizeZ)
 				return false;
 			return grid.IsFilled(x, y, z) && !visited[idx(x, y, z)];
 		};
 
-		for (int z = 0; z < sizeZ; z++)
-		{
-			for (int y = 0; y < sizeY; y++)
-			{
-				for (int x = 0; x < sizeX; x++)
-				{
+		for (int z = 0; z < sizeZ; z++) {
+			for (int y = 0; y < sizeY; y++) {
+				for (int x = 0; x < sizeX; x++) {
 					if (!isFilledAndFree(x, y, z))
 						continue;
 
@@ -45,12 +44,9 @@ namespace CB
 
 					// Extend along Y - check full X row
 					bool canExtendY = true;
-					while (canExtendY && maxY + 1 < sizeY)
-					{
-						for (int ix = x; ix <= maxX; ix++)
-						{
-							if (!isFilledAndFree(ix, maxY + 1, z))
-							{
+					while (canExtendY && maxY + 1 < sizeY) {
+						for (int ix = x; ix <= maxX; ix++) {
+							if (!isFilledAndFree(ix, maxY + 1, z)) {
 								canExtendY = false;
 								break;
 							}
@@ -61,14 +57,10 @@ namespace CB
 
 					// Extend along Z - check full XY plane
 					bool canExtendZ = true;
-					while (canExtendZ && maxZ + 1 < sizeZ)
-					{
-						for (int iy = y; iy <= maxY; iy++)
-						{
-							for (int ix = x; ix <= maxX; ix++)
-							{
-								if (!isFilledAndFree(ix, iy, maxZ + 1))
-								{
+					while (canExtendZ && maxZ + 1 < sizeZ) {
+						for (int iy = y; iy <= maxY; iy++) {
+							for (int ix = x; ix <= maxX; ix++) {
+								if (!isFilledAndFree(ix, iy, maxZ + 1)) {
 									canExtendZ = false;
 									break;
 								}
@@ -104,8 +96,7 @@ namespace CB
 		// Build compound shape (even for single box, to preserve correct position)
 		JPH::StaticCompoundShapeSettings compoundSettings;
 
-		for (const auto& box : mergedBoxes)
-		{
+		for (const auto& box : mergedBoxes) {
 			glm::vec3 halfExtents(
 				(box.Max.x - box.Min.x + 1) * 0.5f * grid.voxelSize.x,
 				(box.Max.y - box.Min.y + 1) * 0.5f * grid.voxelSize.y,
@@ -129,8 +120,7 @@ namespace CB
 		}
 
 		auto result = compoundSettings.Create();
-		if (result.HasError())
-		{
+		if (result.HasError()) {
 			CB_CORE_ERROR("Failed to create compound shape: {0}", result.GetError().c_str());
 			return nullptr;
 		}
@@ -142,7 +132,7 @@ namespace CB
 	{
 		auto mergedBoxes = GreedyMerge(grid);
 		CB_CORE_INFO("VoxelCollisionShapeGenerator: {0} voxels merged into {1} boxes",
-			grid.CountFilled(), mergedBoxes.size());
+		             grid.CountFilled(), mergedBoxes.size());
 		return CreateCompoundShape(grid, mergedBoxes);
 	}
 }

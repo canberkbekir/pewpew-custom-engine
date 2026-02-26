@@ -10,73 +10,73 @@
 
 namespace CB
 {
-    struct TransformComponent
-    {
-        Vector3 Position = Vector3(0, 0, 0);
-        Vector3 Rotation = Vector3(0, 0, 0);
-        Vector3 Scale = Vector3(1, 1, 1);
+	struct TransformComponent
+	{
+		Vector3 Position = Vector3(0, 0, 0);
+		Vector3 Rotation = Vector3(0, 0, 0);
+		Vector3 Scale = Vector3(1, 1, 1);
 
-        // Hierarchy
-        UUID Parent{0};
-        std::vector<UUID> Children;
+		// Hierarchy
+		UUID Parent{0};
+		std::vector<UUID> Children;
 
-        // Cached world transform
-        Mat4 WorldMatrix{1.0f};
-        bool Dirty = true;
+		// Cached world transform
+		Mat4 WorldMatrix{1.0f};
+		bool Dirty = true;
 
-        static constexpr auto YAMLKey = "TransformComponent";
+		static constexpr auto YAMLKey = "TransformComponent";
 
-        TransformComponent() = default;
-        TransformComponent(const TransformComponent&) = default;
+		TransformComponent() = default;
+		TransformComponent(const TransformComponent&) = default;
 
-        TransformComponent(const Vector3& position) : Position(position)
-        {
-        }
+		TransformComponent(const Vector3& position) : Position(position)
+		{
+		}
 
-        void Serialize(YAML::Emitter& out) const
-        {
-            out << YAML::Key << "Position" << YAML::Value << Position;
-            out << YAML::Key << "Rotation" << YAML::Value << Rotation;
-            out << YAML::Key << "Scale" << YAML::Value << Scale;
-            out << YAML::Key << "Parent" << YAML::Value << Parent;
-        }
+		void Serialize(YAML::Emitter& out) const
+		{
+			out << YAML::Key << "Position" << YAML::Value << Position;
+			out << YAML::Key << "Rotation" << YAML::Value << Rotation;
+			out << YAML::Key << "Scale" << YAML::Value << Scale;
+			out << YAML::Key << "Parent" << YAML::Value << Parent;
+		}
 
-        void Deserialize(const YAML::Node& node)
-        {
-            Position = node["Position"].as<glm::vec3>();
-            Rotation = node["Rotation"].as<glm::vec3>();
-            Scale = node["Scale"].as<glm::vec3>();
+		void Deserialize(const YAML::Node& node)
+		{
+			Position = node["Position"].as<glm::vec3>();
+			Rotation = node["Rotation"].as<glm::vec3>();
+			Scale = node["Scale"].as<glm::vec3>();
 
-            if (node["Parent"])
-                Parent = UUID(node["Parent"].as<uint64_t>());
-        }
+			if (node["Parent"])
+				Parent = UUID(node["Parent"].as<uint64_t>());
+		}
 
-        Mat4 GetLocalTransform() const
-        {
-            Mat4 rotation = toMat4(glm::quat(Rotation));
-            return translate(Mat4(1.0f), Position) * rotation * scale(Mat4(1.0f), Scale);
-        }
+		Mat4 GetLocalTransform() const
+		{
+			Mat4 rotation = toMat4(glm::quat(Rotation));
+			return translate(Mat4(1.0f), Position) * rotation * scale(Mat4(1.0f), Scale);
+		}
 
-        Mat4 GetTransform() const
-        {
-            if (Dirty)
-                return GetLocalTransform();
-            return WorldMatrix;
-        }
+		Mat4 GetTransform() const
+		{
+			if (Dirty)
+				return GetLocalTransform();
+			return WorldMatrix;
+		}
 
-        // World space getters
-        Vector3 GetWorldPosition() const
-        {
-            if (Dirty && !HasParent())
-                return Position;
-            return Vector3(WorldMatrix[3]);
-        }
+		// World space getters
+		Vector3 GetWorldPosition() const
+		{
+			if (Dirty && !HasParent())
+				return Position;
+			return Vector3(WorldMatrix[3]);
+		}
 
-        Vector3 GetForward() const { return normalize(Vector3(WorldMatrix[2])); }
-        Vector3 GetRight() const { return normalize(Vector3(WorldMatrix[0])); }
-        Vector3 GetUp() const { return normalize(Vector3(WorldMatrix[1])); }
+		Vector3 GetForward() const { return normalize(Vector3(WorldMatrix[2])); }
+		Vector3 GetRight() const { return normalize(Vector3(WorldMatrix[0])); }
+		Vector3 GetUp() const { return normalize(Vector3(WorldMatrix[1])); }
 
-        bool HasParent() const { return Parent != 0; }
-        bool HasChildren() const { return !Children.empty(); }
-    };
+		bool HasParent() const { return Parent != 0; }
+		bool HasChildren() const { return !Children.empty(); }
+	};
 }

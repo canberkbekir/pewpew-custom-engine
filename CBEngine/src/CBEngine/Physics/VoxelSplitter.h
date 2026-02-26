@@ -29,14 +29,14 @@ namespace CB
 		/// Remove all voxels within a sphere (world-space center + radius).
 		/// Returns the updated voxel count.
 		static uint64_t RemoveSphere(voxelizer::VoxelGrid& grid,
-			std::vector<uint8_t>& paletteIndices,
-			const Vector3& worldCenter, float radius);
+		                             std::vector<uint8_t>& paletteIndices,
+		                             const Vector3& worldCenter,float radius);
 
 		/// Remove specific voxels by coordinate list.
 		/// Returns the updated voxel count.
 		static uint64_t RemoveVoxels(voxelizer::VoxelGrid& grid,
-			std::vector<uint8_t>& paletteIndices,
-			const std::vector<glm::ivec3>& coordsToRemove);
+		                             std::vector<uint8_t>& paletteIndices,
+		                             const std::vector<glm::ivec3>& coordsToRemove);
 
 		/// Find connected components via 6-connected BFS flood fill.
 		/// Returns a vector of VoxelFragment, one per connected component.
@@ -44,7 +44,6 @@ namespace CB
 		static std::vector<VoxelFragment> FindConnectedComponents(
 			const voxelizer::VoxelGrid& grid,
 			const std::vector<uint8_t>& paletteIndices);
-
 	private:
 		/// Extract a tight-fitting sub-grid for one connected component.
 		static VoxelFragment ExtractComponent(

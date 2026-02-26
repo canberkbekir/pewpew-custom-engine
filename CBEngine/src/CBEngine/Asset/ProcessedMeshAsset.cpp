@@ -5,426 +5,397 @@
 
 namespace CB
 {
-    // ============================================================================
-    // MaterialSlot / TextureSlot serialization
-    // ============================================================================
+	// ============================================================================
+	// MaterialSlot / TextureSlot serialization
+	// ============================================================================
 
-    void MaterialSlot::Serialize(BinaryWriter& writer) const
-    {
-        writer << Name;
-        writer << static_cast<uint64_t>(MaterialUUID);
-    }
+	void MaterialSlot::Serialize(BinaryWriter& writer) const
+	{
+		writer << Name;
+		writer << static_cast<uint64_t>(MaterialUUID);
+	}
 
-    void MaterialSlot::Deserialize(BinaryReader& reader)
-    {
-        reader >> Name;
-        uint64_t uuid = 0;
-        reader >> uuid;
-        MaterialUUID = UUID(uuid);
-    }
+	void MaterialSlot::Deserialize(BinaryReader& reader)
+	{
+		reader >> Name;
+		uint64_t uuid = 0;
+		reader >> uuid;
+		MaterialUUID = UUID(uuid);
+	}
 
-    void TextureSlot::Serialize(BinaryWriter& writer) const
-    {
-        writer << Name;
-        writer << static_cast<uint64_t>(TextureUUID);
-    }
+	void TextureSlot::Serialize(BinaryWriter& writer) const
+	{
+		writer << Name;
+		writer << static_cast<uint64_t>(TextureUUID);
+	}
 
-    void TextureSlot::Deserialize(BinaryReader& reader)
-    {
-        reader >> Name;
-        uint64_t uuid = 0;
-        reader >> uuid;
-        TextureUUID = UUID(uuid);
-    }
+	void TextureSlot::Deserialize(BinaryReader& reader)
+	{
+		reader >> Name;
+		uint64_t uuid = 0;
+		reader >> uuid;
+		TextureUUID = UUID(uuid);
+	}
 
-    // ============================================================================
-    // ProcessedMeshAsset
-    // ============================================================================
+	// ============================================================================
+	// ProcessedMeshAsset
+	// ============================================================================
 
-    ProcessedMeshAsset::ProcessedMeshAsset()
-    {
-        m_Type = AssetType::ProcessedMesh;
-    }
+	ProcessedMeshAsset::ProcessedMeshAsset() { m_Type = AssetType::ProcessedMesh; }
 
-    bool ProcessedMeshAsset::Save(const std::filesystem::path& filePath)
-    {
-        FileStream stream(filePath.string().c_str(), "wb");
-        if (!stream.IsOpen())
-        {
-            CB_CORE_ERROR("ProcessedMeshAsset: Failed to save to {0}", filePath.string());
-            return false;
-        }
+	bool ProcessedMeshAsset::Save(const std::filesystem::path& filePath)
+	{
+		FileStream stream(filePath.string().c_str(), "wb");
+		if (!stream.IsOpen()) {
+			CB_CORE_ERROR("ProcessedMeshAsset: Failed to save to {0}", filePath.string());
+			return false;
+		}
 
-        BinaryWriter writer(stream);
+		BinaryWriter writer(stream);
 
-        // Header
-        writer << s_MeshMagic;
-        writer << s_MeshVersion;
-        uint32_t flags = 0;
-        writer << flags;
+		// Header
+		writer << s_MeshMagic;
+		writer << s_MeshVersion;
+		uint32_t flags = 0;
+		writer << flags;
 
-        // Source
-        writer << SourceFilePath;
-        writer << static_cast<uint64_t>(SourceMeshUUID);
+		// Source
+		writer << SourceFilePath;
+		writer << static_cast<uint64_t>(SourceMeshUUID);
 
-        // Import settings
-        writer << static_cast<uint8_t>(ImportSettings.GenerateNormals);
-        writer << static_cast<uint8_t>(ImportSettings.CalcTangents);
-        writer << static_cast<uint8_t>(ImportSettings.JoinIdenticalVertices);
-        writer << static_cast<uint8_t>(ImportSettings.PreTransformVertices);
-        writer << ImportSettings.Scale;
+		// Import settings
+		writer << static_cast<uint8_t>(ImportSettings.GenerateNormals);
+		writer << static_cast<uint8_t>(ImportSettings.CalcTangents);
+		writer << static_cast<uint8_t>(ImportSettings.JoinIdenticalVertices);
+		writer << static_cast<uint8_t>(ImportSettings.PreTransformVertices);
+		writer << ImportSettings.Scale;
 
-        // Slots
-        writer << MaterialSlots;
-        writer << TextureSlots;
+		// Slots
+		writer << MaterialSlots;
+		writer << TextureSlots;
 
-        // Geometry
-        uint32_t vertexCount = static_cast<uint32_t>(Vertices.size());
-        uint32_t indexCount = static_cast<uint32_t>(Indices.size());
-        writer << vertexCount;
-        writer << indexCount;
+		// Geometry
+		uint32_t vertexCount = static_cast<uint32_t>(Vertices.size());
+		uint32_t indexCount = static_cast<uint32_t>(Indices.size());
+		writer << vertexCount;
+		writer << indexCount;
 
-        if (vertexCount > 0)
-            writer.WriteBytes(Vertices.data(), vertexCount * sizeof(Vertex));
-        if (indexCount > 0)
-            writer.WriteBytes(Indices.data(), indexCount * sizeof(uint32_t));
+		if (vertexCount > 0)
+			writer.WriteBytes(Vertices.data(), vertexCount * sizeof(Vertex));
+		if (indexCount > 0)
+			writer.WriteBytes(Indices.data(), indexCount * sizeof(uint32_t));
 
-        return true;
-    }
+		return true;
+	}
 
-    Ref<ProcessedMeshAsset> ProcessedMeshAsset::Load(const std::filesystem::path& filePath)
-    {
-        FileStream stream(filePath.string().c_str(), "rb");
-        if (!stream.IsOpen())
-        {
-            CB_CORE_ERROR("ProcessedMeshAsset: Failed to open {0}", filePath.string());
-            return nullptr;
-        }
+	Ref<ProcessedMeshAsset> ProcessedMeshAsset::Load(const std::filesystem::path& filePath)
+	{
+		FileStream stream(filePath.string().c_str(), "rb");
+		if (!stream.IsOpen()) {
+			CB_CORE_ERROR("ProcessedMeshAsset: Failed to open {0}", filePath.string());
+			return nullptr;
+		}
 
-        BinaryReader reader(stream);
+		BinaryReader reader(stream);
 
-        // Header
-        uint32_t magic = 0, version = 0, flags = 0;
-        reader >> magic;
-        if (magic != s_MeshMagic)
-        {
-            CB_CORE_ERROR("ProcessedMeshAsset: Invalid magic in {0} (expected 0x{1:08X}, got 0x{2:08X})",
-                          filePath.string(), s_MeshMagic, magic);
-            return nullptr;
-        }
-        reader >> version;
-        if (version != 1 && version != 2)
-        {
-            CB_CORE_ERROR("ProcessedMeshAsset: Unsupported version {0} in {1}", version, filePath.string());
-            return nullptr;
-        }
-        reader >> flags;
+		// Header
+		uint32_t magic = 0, version = 0, flags = 0;
+		reader >> magic;
+		if (magic != s_MeshMagic) {
+			CB_CORE_ERROR("ProcessedMeshAsset: Invalid magic in {0} (expected 0x{1:08X}, got 0x{2:08X})",
+			              filePath.string(), s_MeshMagic, magic);
+			return nullptr;
+		}
+		reader >> version;
+		if (version != 1 && version != 2) {
+			CB_CORE_ERROR("ProcessedMeshAsset: Unsupported version {0} in {1}", version, filePath.string());
+			return nullptr;
+		}
+		reader >> flags;
 
-        auto asset = CreateRef<ProcessedMeshAsset>();
-        asset->m_Path = filePath;
+		auto asset = CreateRef<ProcessedMeshAsset>();
+		asset->m_Path = filePath;
 
-        // Source
-        reader >> asset->SourceFilePath;
-        uint64_t sourceUUID = 0;
-        reader >> sourceUUID;
-        asset->SourceMeshUUID = UUID(sourceUUID);
+		// Source
+		reader >> asset->SourceFilePath;
+		uint64_t sourceUUID = 0;
+		reader >> sourceUUID;
+		asset->SourceMeshUUID = UUID(sourceUUID);
 
-        // Import settings
-        uint8_t genNormals = 0, calcTangents = 0, joinVerts = 0, preTransform = 0;
-        reader >> genNormals;
-        reader >> calcTangents;
-        reader >> joinVerts;
-        reader >> preTransform;
-        reader >> asset->ImportSettings.Scale;
-        asset->ImportSettings.GenerateNormals = genNormals != 0;
-        asset->ImportSettings.CalcTangents = calcTangents != 0;
-        asset->ImportSettings.JoinIdenticalVertices = joinVerts != 0;
-        asset->ImportSettings.PreTransformVertices = preTransform != 0;
+		// Import settings
+		uint8_t genNormals = 0, calcTangents = 0, joinVerts = 0, preTransform = 0;
+		reader >> genNormals;
+		reader >> calcTangents;
+		reader >> joinVerts;
+		reader >> preTransform;
+		reader >> asset->ImportSettings.Scale;
+		asset->ImportSettings.GenerateNormals = genNormals != 0;
+		asset->ImportSettings.CalcTangents = calcTangents != 0;
+		asset->ImportSettings.JoinIdenticalVertices = joinVerts != 0;
+		asset->ImportSettings.PreTransformVertices = preTransform != 0;
 
-        // Slots
-        reader >> asset->MaterialSlots;
-        reader >> asset->TextureSlots;
+		// Slots
+		reader >> asset->MaterialSlots;
+		reader >> asset->TextureSlots;
 
-        // Geometry
-        uint32_t vertexCount = 0, indexCount = 0;
-        reader >> vertexCount;
-        reader >> indexCount;
+		// Geometry
+		uint32_t vertexCount = 0, indexCount = 0;
+		reader >> vertexCount;
+		reader >> indexCount;
 
-        if (vertexCount > 0)
-        {
-            asset->Vertices.resize(vertexCount);
-            if (version == 1)
-            {
-                // v1 Vertex was 68 bytes (no PaletteIndex field)
-                static constexpr size_t OldVertexSize = 68;
-                for (uint32_t i = 0; i < vertexCount; i++)
-                {
-                    reader.ReadBytes(&asset->Vertices[i], OldVertexSize);
-                    asset->Vertices[i].PaletteIndex = 0.0f;
-                }
-            }
-            else
-            {
-                reader.ReadBytes(asset->Vertices.data(), vertexCount * sizeof(Vertex));
-            }
-        }
-        if (indexCount > 0)
-        {
-            asset->Indices.resize(indexCount);
-            reader.ReadBytes(asset->Indices.data(), indexCount * sizeof(uint32_t));
-        }
+		if (vertexCount > 0) {
+			asset->Vertices.resize(vertexCount);
+			if (version == 1) {
+				// v1 Vertex was 68 bytes (no PaletteIndex field)
+				static constexpr size_t OldVertexSize = 68;
+				for (uint32_t i = 0; i < vertexCount; i++) {
+					reader.ReadBytes(&asset->Vertices[i], OldVertexSize);
+					asset->Vertices[i].PaletteIndex = 0.0f;
+				}
+			}
+			else { reader.ReadBytes(asset->Vertices.data(), vertexCount * sizeof(Vertex)); }
+		}
+		if (indexCount > 0) {
+			asset->Indices.resize(indexCount);
+			reader.ReadBytes(asset->Indices.data(), indexCount * sizeof(uint32_t));
+		}
 
-        return asset;
-    }
+		return asset;
+	}
 
-    Ref<Mesh> ProcessedMeshAsset::CreateMesh() const
-    {
-        if (!HasGeometryData())
-        {
-            CB_CORE_WARN("ProcessedMeshAsset::CreateMesh: No geometry data embedded");
-            return nullptr;
-        }
+	Ref<Mesh> ProcessedMeshAsset::CreateMesh() const
+	{
+		if (!HasGeometryData()) {
+			CB_CORE_WARN("ProcessedMeshAsset::CreateMesh: No geometry data embedded");
+			return nullptr;
+		}
 
-        return CreateRef<Mesh>(Vertices, Indices);
-    }
+		return CreateRef<Mesh>(Vertices, Indices);
+	}
 
-    bool ProcessedMeshAsset::Reload()
-    {
-        if (m_Path.empty())
-            return false;
+	bool ProcessedMeshAsset::Reload()
+	{
+		if (m_Path.empty())
+			return false;
 
-        auto reloaded = Load(m_Path);
-        if (!reloaded)
-            return false;
+		auto reloaded = Load(m_Path);
+		if (!reloaded)
+			return false;
 
-        SourceFilePath = reloaded->SourceFilePath;
-        SourceMeshUUID = reloaded->SourceMeshUUID;
-        ImportSettings = reloaded->ImportSettings;
-        MaterialSlots = reloaded->MaterialSlots;
-        TextureSlots = reloaded->TextureSlots;
-        Vertices = std::move(reloaded->Vertices);
-        Indices = std::move(reloaded->Indices);
-        return true;
-    }
+		SourceFilePath = reloaded->SourceFilePath;
+		SourceMeshUUID = reloaded->SourceMeshUUID;
+		ImportSettings = reloaded->ImportSettings;
+		MaterialSlots = reloaded->MaterialSlots;
+		TextureSlots = reloaded->TextureSlots;
+		Vertices = std::move(reloaded->Vertices);
+		Indices = std::move(reloaded->Indices);
+		return true;
+	}
 
-    // ============================================================================
-    // VoxelMeshAsset
-    // ============================================================================
+	// ============================================================================
+	// VoxelMeshAsset
+	// ============================================================================
 
-    VoxelMeshAsset::VoxelMeshAsset()
-    {
-        m_Type = AssetType::VoxelMesh;
-    }
+	VoxelMeshAsset::VoxelMeshAsset() { m_Type = AssetType::VoxelMesh; }
 
-    bool VoxelMeshAsset::Save(const std::filesystem::path& filePath)
-    {
-        FileStream stream(filePath.string().c_str(), "wb");
-        if (!stream.IsOpen())
-        {
-            CB_CORE_ERROR("VoxelMeshAsset: Failed to save to {0}", filePath.string());
-            return false;
-        }
+	bool VoxelMeshAsset::Save(const std::filesystem::path& filePath)
+	{
+		FileStream stream(filePath.string().c_str(), "wb");
+		if (!stream.IsOpen()) {
+			CB_CORE_ERROR("VoxelMeshAsset: Failed to save to {0}", filePath.string());
+			return false;
+		}
 
-        BinaryWriter writer(stream);
+		BinaryWriter writer(stream);
 
-        // Header
-        writer << s_VmeshMagic;
-        writer << s_VmeshVersion;
-        uint32_t flags = 0;
-        writer << flags;
+		// Header
+		writer << s_VmeshMagic;
+		writer << s_VmeshVersion;
+		uint32_t flags = 0;
+		writer << flags;
 
-        // Source
-        writer << SourceFilePath;
-        writer << static_cast<uint64_t>(SourceMeshUUID);
+		// Source
+		writer << SourceFilePath;
+		writer << static_cast<uint64_t>(SourceMeshUUID);
 
-        // Import settings
-        writer << static_cast<uint8_t>(ImportSettings.GenerateNormals);
-        writer << static_cast<uint8_t>(ImportSettings.CalcTangents);
-        writer << static_cast<uint8_t>(ImportSettings.JoinIdenticalVertices);
-        writer << static_cast<uint8_t>(ImportSettings.PreTransformVertices);
-        writer << ImportSettings.Scale;
+		// Import settings
+		writer << static_cast<uint8_t>(ImportSettings.GenerateNormals);
+		writer << static_cast<uint8_t>(ImportSettings.CalcTangents);
+		writer << static_cast<uint8_t>(ImportSettings.JoinIdenticalVertices);
+		writer << static_cast<uint8_t>(ImportSettings.PreTransformVertices);
+		writer << ImportSettings.Scale;
 
-        // Voxel settings
-        writer << VoxelSettings.GridSize;
-        writer << VoxelSettings.VoxelSize;
-        writer << static_cast<uint8_t>(VoxelSettings.Solid);
-        writer << VoxelSettings.Padding;
-        writer << static_cast<uint64_t>(ColorTextureUUID);
+		// Voxel settings
+		writer << VoxelSettings.GridSize;
+		writer << VoxelSettings.VoxelSize;
+		writer << static_cast<uint8_t>(VoxelSettings.Solid);
+		writer << VoxelSettings.Padding;
+		writer << static_cast<uint64_t>(ColorTextureUUID);
 
-        // Slots
-        writer << MaterialSlots;
-        writer << TextureSlots;
+		// Slots
+		writer << MaterialSlots;
+		writer << TextureSlots;
 
-        // Grid data
-        writer << GridData.size.x;
-        writer << GridData.size.y;
-        writer << GridData.size.z;
-        writer << GridData.origin.x;
-        writer << GridData.origin.y;
-        writer << GridData.origin.z;
-        writer << GridData.voxelSize.x;
-        writer << GridData.voxelSize.y;
-        writer << GridData.voxelSize.z;
-        writer << GridData.totalVoxels;
-        writer << VoxelCount;
-        writer << GridData.data; // vector<uint64_t> - uses BinaryIO vector serialization
+		// Grid data
+		writer << GridData.size.x;
+		writer << GridData.size.y;
+		writer << GridData.size.z;
+		writer << GridData.origin.x;
+		writer << GridData.origin.y;
+		writer << GridData.origin.z;
+		writer << GridData.voxelSize.x;
+		writer << GridData.voxelSize.y;
+		writer << GridData.voxelSize.z;
+		writer << GridData.totalVoxels;
+		writer << VoxelCount;
+		writer << GridData.data; // vector<uint64_t> - uses BinaryIO vector serialization
 
-        // Palette data (v2+)
-        writer << static_cast<uint8_t>(HasPalette ? 1 : 0);
-        if (HasPalette)
-        {
-            Palette.Serialize(writer);
-            writer << PaletteIndices;
-        }
+		// Palette data (v2+)
+		writer << static_cast<uint8_t>(HasPalette ? 1 : 0);
+		if (HasPalette) {
+			Palette.Serialize(writer);
+			writer << PaletteIndices;
+		}
 
-        // Per-voxel UVs (v3+)
-        writer << static_cast<uint8_t>(HasUVs ? 1 : 0);
-        if (HasUVs)
-        {
-            uint32_t uvCount = static_cast<uint32_t>(VoxelUVs.size());
-            writer << uvCount;
-            if (uvCount > 0)
-                writer.WriteBytes(VoxelUVs.data(), uvCount * sizeof(Vector2));
-        }
+		// Per-voxel UVs (v3+)
+		writer << static_cast<uint8_t>(HasUVs ? 1 : 0);
+		if (HasUVs) {
+			uint32_t uvCount = static_cast<uint32_t>(VoxelUVs.size());
+			writer << uvCount;
+			if (uvCount > 0)
+				writer.WriteBytes(VoxelUVs.data(), uvCount * sizeof(Vector2));
+		}
 
-        return true;
-    }
+		return true;
+	}
 
-    Ref<VoxelMeshAsset> VoxelMeshAsset::Load(const std::filesystem::path& filePath)
-    {
-        FileStream stream(filePath.string().c_str(), "rb");
-        if (!stream.IsOpen())
-        {
-            CB_CORE_ERROR("VoxelMeshAsset: Failed to open {0}", filePath.string());
-            return nullptr;
-        }
+	Ref<VoxelMeshAsset> VoxelMeshAsset::Load(const std::filesystem::path& filePath)
+	{
+		FileStream stream(filePath.string().c_str(), "rb");
+		if (!stream.IsOpen()) {
+			CB_CORE_ERROR("VoxelMeshAsset: Failed to open {0}", filePath.string());
+			return nullptr;
+		}
 
-        BinaryReader reader(stream);
+		BinaryReader reader(stream);
 
-        // Header
-        uint32_t magic = 0, version = 0, flags = 0;
-        reader >> magic;
-        if (magic != s_VmeshMagic)
-        {
-            CB_CORE_ERROR("VoxelMeshAsset: Invalid magic in {0} (expected 0x{1:08X}, got 0x{2:08X})",
-                          filePath.string(), s_VmeshMagic, magic);
-            return nullptr;
-        }
-        reader >> version;
-        if (version < 1 || version > 3)
-        {
-            CB_CORE_ERROR("VoxelMeshAsset: Unsupported version {0} in {1}", version, filePath.string());
-            return nullptr;
-        }
-        reader >> flags;
+		// Header
+		uint32_t magic = 0, version = 0, flags = 0;
+		reader >> magic;
+		if (magic != s_VmeshMagic) {
+			CB_CORE_ERROR("VoxelMeshAsset: Invalid magic in {0} (expected 0x{1:08X}, got 0x{2:08X})",
+			              filePath.string(), s_VmeshMagic, magic);
+			return nullptr;
+		}
+		reader >> version;
+		if (version < 1 || version > 3) {
+			CB_CORE_ERROR("VoxelMeshAsset: Unsupported version {0} in {1}", version, filePath.string());
+			return nullptr;
+		}
+		reader >> flags;
 
-        auto asset = CreateRef<VoxelMeshAsset>();
-        asset->m_Path = filePath;
+		auto asset = CreateRef<VoxelMeshAsset>();
+		asset->m_Path = filePath;
 
-        // Source
-        reader >> asset->SourceFilePath;
-        uint64_t sourceUUID = 0;
-        reader >> sourceUUID;
-        asset->SourceMeshUUID = UUID(sourceUUID);
+		// Source
+		reader >> asset->SourceFilePath;
+		uint64_t sourceUUID = 0;
+		reader >> sourceUUID;
+		asset->SourceMeshUUID = UUID(sourceUUID);
 
-        // Import settings
-        uint8_t genNormals = 0, calcTangents = 0, joinVerts = 0, preTransform = 0;
-        reader >> genNormals;
-        reader >> calcTangents;
-        reader >> joinVerts;
-        reader >> preTransform;
-        reader >> asset->ImportSettings.Scale;
-        asset->ImportSettings.GenerateNormals = genNormals != 0;
-        asset->ImportSettings.CalcTangents = calcTangents != 0;
-        asset->ImportSettings.JoinIdenticalVertices = joinVerts != 0;
-        asset->ImportSettings.PreTransformVertices = preTransform != 0;
+		// Import settings
+		uint8_t genNormals = 0, calcTangents = 0, joinVerts = 0, preTransform = 0;
+		reader >> genNormals;
+		reader >> calcTangents;
+		reader >> joinVerts;
+		reader >> preTransform;
+		reader >> asset->ImportSettings.Scale;
+		asset->ImportSettings.GenerateNormals = genNormals != 0;
+		asset->ImportSettings.CalcTangents = calcTangents != 0;
+		asset->ImportSettings.JoinIdenticalVertices = joinVerts != 0;
+		asset->ImportSettings.PreTransformVertices = preTransform != 0;
 
-        // Voxel settings
-        reader >> asset->VoxelSettings.GridSize;
-        reader >> asset->VoxelSettings.VoxelSize;
-        uint8_t solid = 0;
-        reader >> solid;
-        asset->VoxelSettings.Solid = solid != 0;
-        reader >> asset->VoxelSettings.Padding;
-        uint64_t colorTexUUID = 0;
-        reader >> colorTexUUID;
-        asset->ColorTextureUUID = UUID(colorTexUUID);
+		// Voxel settings
+		reader >> asset->VoxelSettings.GridSize;
+		reader >> asset->VoxelSettings.VoxelSize;
+		uint8_t solid = 0;
+		reader >> solid;
+		asset->VoxelSettings.Solid = solid != 0;
+		reader >> asset->VoxelSettings.Padding;
+		uint64_t colorTexUUID = 0;
+		reader >> colorTexUUID;
+		asset->ColorTextureUUID = UUID(colorTexUUID);
 
-        // Slots
-        reader >> asset->MaterialSlots;
-        reader >> asset->TextureSlots;
+		// Slots
+		reader >> asset->MaterialSlots;
+		reader >> asset->TextureSlots;
 
-        // Grid data
-        reader >> asset->GridData.size.x;
-        reader >> asset->GridData.size.y;
-        reader >> asset->GridData.size.z;
-        reader >> asset->GridData.origin.x;
-        reader >> asset->GridData.origin.y;
-        reader >> asset->GridData.origin.z;
-        reader >> asset->GridData.voxelSize.x;
-        reader >> asset->GridData.voxelSize.y;
-        reader >> asset->GridData.voxelSize.z;
-        reader >> asset->GridData.totalVoxels;
-        reader >> asset->VoxelCount;
-        reader >> asset->GridData.data; // vector<uint64_t>
+		// Grid data
+		reader >> asset->GridData.size.x;
+		reader >> asset->GridData.size.y;
+		reader >> asset->GridData.size.z;
+		reader >> asset->GridData.origin.x;
+		reader >> asset->GridData.origin.y;
+		reader >> asset->GridData.origin.z;
+		reader >> asset->GridData.voxelSize.x;
+		reader >> asset->GridData.voxelSize.y;
+		reader >> asset->GridData.voxelSize.z;
+		reader >> asset->GridData.totalVoxels;
+		reader >> asset->VoxelCount;
+		reader >> asset->GridData.data; // vector<uint64_t>
 
-        // Palette data (v2+)
-        if (version >= 2)
-        {
-            uint8_t hasPalette = 0;
-            reader >> hasPalette;
-            asset->HasPalette = hasPalette != 0;
-            if (asset->HasPalette)
-            {
-                asset->Palette.Deserialize(reader);
-                reader >> asset->PaletteIndices;
-            }
-        }
+		// Palette data (v2+)
+		if (version >= 2) {
+			uint8_t hasPalette = 0;
+			reader >> hasPalette;
+			asset->HasPalette = hasPalette != 0;
+			if (asset->HasPalette) {
+				asset->Palette.Deserialize(reader);
+				reader >> asset->PaletteIndices;
+			}
+		}
 
-        // Per-voxel UVs (v3+)
-        if (version >= 3)
-        {
-            uint8_t hasUVs = 0;
-            reader >> hasUVs;
-            asset->HasUVs = hasUVs != 0;
-            if (asset->HasUVs)
-            {
-                uint32_t uvCount = 0;
-                reader >> uvCount;
-                if (uvCount > 0)
-                {
-                    asset->VoxelUVs.resize(uvCount);
-                    reader.ReadBytes(asset->VoxelUVs.data(), uvCount * sizeof(Vector2));
-                }
-            }
-        }
+		// Per-voxel UVs (v3+)
+		if (version >= 3) {
+			uint8_t hasUVs = 0;
+			reader >> hasUVs;
+			asset->HasUVs = hasUVs != 0;
+			if (asset->HasUVs) {
+				uint32_t uvCount = 0;
+				reader >> uvCount;
+				if (uvCount > 0) {
+					asset->VoxelUVs.resize(uvCount);
+					reader.ReadBytes(asset->VoxelUVs.data(), uvCount * sizeof(Vector2));
+				}
+			}
+		}
 
-        return asset;
-    }
+		return asset;
+	}
 
-    bool VoxelMeshAsset::Reload()
-    {
-        if (m_Path.empty())
-            return false;
+	bool VoxelMeshAsset::Reload()
+	{
+		if (m_Path.empty())
+			return false;
 
-        auto reloaded = Load(m_Path);
-        if (!reloaded)
-            return false;
+		auto reloaded = Load(m_Path);
+		if (!reloaded)
+			return false;
 
-        SourceFilePath = reloaded->SourceFilePath;
-        SourceMeshUUID = reloaded->SourceMeshUUID;
-        ImportSettings = reloaded->ImportSettings;
-        VoxelSettings = reloaded->VoxelSettings;
-        ColorTextureUUID = reloaded->ColorTextureUUID;
-        GridData = reloaded->GridData;
-        VoxelCount = reloaded->VoxelCount;
-        MaterialSlots = reloaded->MaterialSlots;
-        TextureSlots = reloaded->TextureSlots;
-        Palette = reloaded->Palette;
-        PaletteIndices = std::move(reloaded->PaletteIndices);
-        HasPalette = reloaded->HasPalette;
-        VoxelUVs = std::move(reloaded->VoxelUVs);
-        HasUVs = reloaded->HasUVs;
-        return true;
-    }
+		SourceFilePath = reloaded->SourceFilePath;
+		SourceMeshUUID = reloaded->SourceMeshUUID;
+		ImportSettings = reloaded->ImportSettings;
+		VoxelSettings = reloaded->VoxelSettings;
+		ColorTextureUUID = reloaded->ColorTextureUUID;
+		GridData = reloaded->GridData;
+		VoxelCount = reloaded->VoxelCount;
+		MaterialSlots = reloaded->MaterialSlots;
+		TextureSlots = reloaded->TextureSlots;
+		Palette = reloaded->Palette;
+		PaletteIndices = std::move(reloaded->PaletteIndices);
+		HasPalette = reloaded->HasPalette;
+		VoxelUVs = std::move(reloaded->VoxelUVs);
+		HasUVs = reloaded->HasUVs;
+		return true;
+	}
 }

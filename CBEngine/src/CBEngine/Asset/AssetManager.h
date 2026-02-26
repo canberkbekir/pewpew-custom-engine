@@ -11,125 +11,122 @@
 
 namespace CB
 {
-    class CB_API AssetManager
-    {
-    public:
-        using AssetLoaderFn = std::function<Ref<Asset>(const AssetMetadata&)>;
+	class CB_API AssetManager
+	{
+	public:
+		using AssetLoaderFn = std::function<Ref<Asset>(const AssetMetadata&)>;
 
-        static void Init(const std::filesystem::path& assetDirectory);
-        static void Shutdown();
+		static void Init(const std::filesystem::path& assetDirectory);
+		static void Shutdown();
 
-        // Runtime registration of custom loaders and extensions
-        static void RegisterLoader(AssetType type, AssetLoaderFn loader);
-        static void RegisterExtension(const std::string& ext, AssetType type);
-        static AssetType AllocateCustomType(); // Returns next available custom AssetType
+		// Runtime registration of custom loaders and extensions
+		static void RegisterLoader(AssetType type,AssetLoaderFn loader);
+		static void RegisterExtension(const std::string& ext,AssetType type);
+		static AssetType AllocateCustomType(); // Returns next available custom AssetType
 
-        static const std::filesystem::path& GetAssetDirectory() { return s_AssetDirectory; }
+		static const std::filesystem::path& GetAssetDirectory() { return s_AssetDirectory; }
 
-        // Import a new asset (creates .meta file if needed)
-        static UUID ImportAsset(const std::filesystem::path& filePath);
+		// Import a new asset (creates .meta file if needed)
+		static UUID ImportAsset(const std::filesystem::path& filePath);
 
-        // Get asset by UUID (returns cached if already loaded)
-        template <typename T>
-        static Ref<T> GetAsset(UUID uuid);
+		// Get asset by UUID (returns cached if already loaded)
+		template <typename T>
+		static Ref<T> GetAsset(UUID uuid);
 
-        // Get asset by path (looks up UUID first)
-        template <typename T>
-        static Ref<T> GetAsset(const std::filesystem::path& path);
+		// Get asset by path (looks up UUID first)
+		template <typename T>
+		static Ref<T> GetAsset(const std::filesystem::path& path);
 
-        // Check if asset is loaded
-        static bool IsLoaded(UUID uuid);
+		// Check if asset is loaded
+		static bool IsLoaded(UUID uuid);
 
-        // Force reload
-        static void ReloadAsset(UUID uuid);
+		// Force reload
+		static void ReloadAsset(UUID uuid);
 
-        // Process pending hot reloads (call from main thread each frame)
-        static void ProcessReloadQueue();
+		// Process pending hot reloads (call from main thread each frame)
+		static void ProcessReloadQueue();
 
-        // Queue asset for reload (thread-safe, called by file watcher)
-        static void QueueReload(UUID uuid);
+		// Queue asset for reload (thread-safe, called by file watcher)
+		static void QueueReload(UUID uuid);
 
-        // Asset operations
-        static void RenameAsset(UUID uuid, const std::string& newName);
-        static void MoveAsset(UUID uuid, const std::filesystem::path& newDirectory);
-        static void DeleteAsset(UUID uuid);
+		// Asset operations
+		static void RenameAsset(UUID uuid,const std::string& newName);
+		static void MoveAsset(UUID uuid,const std::filesystem::path& newDirectory);
+		static void DeleteAsset(UUID uuid);
 
-        // Registry access
-        static AssetRegistry& GetRegistry() { return s_Registry; }
+		// Registry access
+		static AssetRegistry& GetRegistry() { return s_Registry; }
 
-        // Get loaded asset (nullptr if not loaded)
-        static Ref<Asset> GetLoadedAsset(UUID uuid);
+		// Get loaded asset (nullptr if not loaded)
+		static Ref<Asset> GetLoadedAsset(UUID uuid);
 
-        // Register a procedurally-created asset (no file on disk) so it can be
-        // resolved by UUID. The asset's internal UUID and type fields are set here.
-        static void RegisterBuiltinAsset(UUID uuid, Ref<Asset> asset, AssetType type = AssetType::Mesh);
+		// Register a procedurally-created asset (no file on disk) so it can be
+		// resolved by UUID. The asset's internal UUID and type fields are set here.
+		static void RegisterBuiltinAsset(UUID uuid,Ref<Asset> asset,AssetType type = AssetType::Mesh);
+	private:
+		static void ScanDirectory(const std::filesystem::path& directory);
+		static void LoadMetaFile(const std::filesystem::path& metaPath);
+		static void CreateMetaFile(const std::filesystem::path& assetPath,UUID uuid);
+		static std::filesystem::path GetMetaFilePath(const std::filesystem::path& assetPath);
 
-    private:
-        static void ScanDirectory(const std::filesystem::path& directory);
-        static void LoadMetaFile(const std::filesystem::path& metaPath);
-        static void CreateMetaFile(const std::filesystem::path& assetPath, UUID uuid);
-        static std::filesystem::path GetMetaFilePath(const std::filesystem::path& assetPath);
+		static Ref<Asset> LoadAssetInternal(const AssetMetadata& metadata);
 
-        static Ref<Asset> LoadAssetInternal(const AssetMetadata& metadata);
+		static std::filesystem::path s_AssetDirectory;
+		static AssetRegistry s_Registry;
+		static std::unordered_map<UUID, Ref<Asset>> s_LoadedAssets;
 
-        static std::filesystem::path s_AssetDirectory;
-        static AssetRegistry s_Registry;
-        static std::unordered_map<UUID, Ref<Asset>> s_LoadedAssets;
+		static std::unordered_map<AssetType, AssetLoaderFn> s_Loaders;
+		static std::unordered_map<std::string, AssetType> s_ExtensionMap;
+		static uint16_t s_NextCustomType;
 
-        static std::unordered_map<AssetType, AssetLoaderFn> s_Loaders;
-        static std::unordered_map<std::string, AssetType> s_ExtensionMap;
-        static uint16_t s_NextCustomType;
+		static std::queue<UUID> s_ReloadQueue;
+		static std::mutex s_QueueMutex;
+		static std::mutex s_AssetsMutex; // Protects s_LoadedAssets
+	};
 
-        static std::queue<UUID> s_ReloadQueue;
-        static std::mutex s_QueueMutex;
-        static std::mutex s_AssetsMutex; // Protects s_LoadedAssets
-    };
+	// Template implementations
+	template <typename T>
+	Ref<T> AssetManager::GetAsset(UUID uuid)
+	{
+		if (!uuid.IsValid())
+			return nullptr;
 
-    // Template implementations
-    template <typename T>
-    Ref<T> AssetManager::GetAsset(UUID uuid)
-    {
-        if (!uuid.IsValid())
-            return nullptr;
+		{
+			// Check if already loaded (with lock)
+			std::lock_guard<std::mutex> lock(s_AssetsMutex);
+			auto it = s_LoadedAssets.find(uuid);
+			if (it != s_LoadedAssets.end())
+				return std::dynamic_pointer_cast<T>(it->second);
+		}
 
-        {
-            // Check if already loaded (with lock)
-            std::lock_guard<std::mutex> lock(s_AssetsMutex);
-            auto it = s_LoadedAssets.find(uuid);
-            if (it != s_LoadedAssets.end())
-                return std::dynamic_pointer_cast<T>(it->second);
-        }
+		// Get metadata and load (outside lock to avoid blocking during load)
+		const AssetMetadata* metadata = s_Registry.GetMetadata(uuid);
+		if (!metadata)
+			return nullptr;
 
-        // Get metadata and load (outside lock to avoid blocking during load)
-        const AssetMetadata* metadata = s_Registry.GetMetadata(uuid);
-        if (!metadata)
-            return nullptr;
+		Ref<Asset> asset = LoadAssetInternal(*metadata);
+		if (asset) {
+			std::lock_guard<std::mutex> lock(s_AssetsMutex);
+			// Double-check in case another thread loaded it
+			auto it = s_LoadedAssets.find(uuid);
+			if (it != s_LoadedAssets.end())
+				return std::dynamic_pointer_cast<T>(it->second);
 
-        Ref<Asset> asset = LoadAssetInternal(*metadata);
-        if (asset)
-        {
-            std::lock_guard<std::mutex> lock(s_AssetsMutex);
-            // Double-check in case another thread loaded it
-            auto it = s_LoadedAssets.find(uuid);
-            if (it != s_LoadedAssets.end())
-                return std::dynamic_pointer_cast<T>(it->second);
+			s_LoadedAssets[uuid] = asset;
+			return std::dynamic_pointer_cast<T>(asset);
+		}
 
-            s_LoadedAssets[uuid] = asset;
-            return std::dynamic_pointer_cast<T>(asset);
-        }
+		return nullptr;
+	}
 
-        return nullptr;
-    }
-
-    template <typename T>
-    Ref<T> AssetManager::GetAsset(const std::filesystem::path& path)
-    {
-        UUID uuid = s_Registry.GetUUIDByPath(path);
-        if (!uuid.IsValid())
-        {
-            // Try to import the asset
-            uuid = ImportAsset(path);
-        }
-        return GetAsset<T>(uuid);
-    }
+	template <typename T>
+	Ref<T> AssetManager::GetAsset(const std::filesystem::path& path)
+	{
+		UUID uuid = s_Registry.GetUUIDByPath(path);
+		if (!uuid.IsValid()) {
+			// Try to import the asset
+			uuid = ImportAsset(path);
+		}
+		return GetAsset<T>(uuid);
+	}
 }

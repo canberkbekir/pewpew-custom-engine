@@ -9,7 +9,7 @@ namespace CB
 	class CollisionBeginEvent : public Event
 	{
 	public:
-		CollisionBeginEvent(UUID entityA, UUID entityB, const Vector3& contactPoint, const Vector3& contactNormal)
+		CollisionBeginEvent(UUID entityA,UUID entityB,const Vector3& contactPoint,const Vector3& contactNormal)
 			: m_EntityA(entityA), m_EntityB(entityB), m_ContactPoint(contactPoint), m_ContactNormal(contactNormal)
 		{
 		}
@@ -22,13 +22,12 @@ namespace CB
 		std::string ToString() const override
 		{
 			std::stringstream ss;
-			ss << "CollisionBeginEvent: " << (uint64_t)m_EntityA << " <-> " << (uint64_t)m_EntityB;
+			ss << "CollisionBeginEvent: " << m_EntityA << " <-> " << m_EntityB;
 			return ss.str();
 		}
 
 		EVENT_CLASS_TYPE(CollisionBegin)
 		EVENT_CLASS_CATEGORY(EventCategoryPhysics)
-
 	private:
 		UUID m_EntityA;
 		UUID m_EntityB;
@@ -39,7 +38,7 @@ namespace CB
 	class CollisionEndEvent : public Event
 	{
 	public:
-		CollisionEndEvent(UUID entityA, UUID entityB)
+		CollisionEndEvent(UUID entityA,UUID entityB)
 			: m_EntityA(entityA), m_EntityB(entityB)
 		{
 		}
@@ -50,13 +49,12 @@ namespace CB
 		std::string ToString() const override
 		{
 			std::stringstream ss;
-			ss << "CollisionEndEvent: " << (uint64_t)m_EntityA << " <-> " << (uint64_t)m_EntityB;
+			ss << "CollisionEndEvent: " << m_EntityA << " <-> " << m_EntityB;
 			return ss.str();
 		}
 
 		EVENT_CLASS_TYPE(CollisionEnd)
 		EVENT_CLASS_CATEGORY(EventCategoryPhysics)
-
 	private:
 		UUID m_EntityA;
 		UUID m_EntityB;

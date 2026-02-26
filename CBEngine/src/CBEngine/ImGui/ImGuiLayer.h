@@ -6,21 +6,20 @@
 
 namespace CB
 {
-    class ImGuiLayer : public Layer
-    {
-    public:
-        ImGuiLayer();
-        ~ImGuiLayer() override;
+	class ImGuiLayer : public Layer
+	{
+	public:
+		ImGuiLayer();
+		~ImGuiLayer() override;
 
-        void OnAttach() override;
-        void OnDetach() override;
-        void OnEvent(Event& e) override;
-        void OnImGuiRender() override;
+		void OnAttach() override;
+		void OnDetach() override;
+		void OnEvent(Event& e) override;
+		void OnImGuiRender() override;
 
-        void Begin();
-        void End();
-
-    private:
-        float m_Time = 0.0f;
-    };
+		void Begin();
+		void End();
+	private:
+		float m_Time = 0.0f;
+	};
 }

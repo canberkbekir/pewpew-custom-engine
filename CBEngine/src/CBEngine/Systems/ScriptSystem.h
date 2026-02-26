@@ -9,8 +9,8 @@ namespace CB
 	public:
 		void Init(Scene* scene) override;
 		void Shutdown() override;
-		void OnUpdate(Scene* scene, Timestep ts) override;
-		void OnLateUpdate(Scene* scene, Timestep ts) override;
+		void OnUpdate(Scene* scene,Timestep ts) override;
+		void OnLateUpdate(Scene* scene,Timestep ts) override;
 		const char* GetName() const override { return "ScriptSystem"; }
 		int GetPriority() const override { return 150; } // After Transform(100), before Destruction(200)
 

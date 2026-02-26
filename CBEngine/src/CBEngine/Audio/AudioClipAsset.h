@@ -7,7 +7,7 @@
 #include <filesystem>
 
 // Forward-declare OpenAL type to avoid requiring AL/al.h in header
-typedef unsigned int ALuint;
+using ALuint = unsigned int;
 
 namespace CB
 {
@@ -19,7 +19,9 @@ namespace CB
 	{
 		UUID AssetUUID;
 		AudioHandle() = default;
-		explicit AudioHandle(UUID uuid) : AssetUUID(uuid) {}
+		explicit AudioHandle(UUID uuid) : AssetUUID(uuid)
+		{
+		}
 		bool IsValid() const { return AssetUUID.IsValid(); }
 	};
 
@@ -40,20 +42,20 @@ namespace CB
 	{
 	public:
 		// Settings (editable in editor)
-		std::string SourcePath;      // Relative path to raw audio file (WAV/MP3)
-		float Volume     = 1.0f;
-		float Pitch      = 1.0f;
-		bool  Loop       = false;
-		float SpatialBlend = 1.0f;  // 0 = 2D, 1 = 3D
+		std::string SourcePath; // Relative path to raw audio file (WAV/MP3)
+		float Volume = 1.0f;
+		float Pitch = 1.0f;
+		bool Loop = false;
+		float SpatialBlend = 1.0f; // 0 = 2D, 1 = 3D
 		float MinDistance = 1.0f;
 		float MaxDistance = 50.0f;
-		std::string Rolloff = "linear";  // linear, inverseClamped
-		int   Priority   = 128;
+		std::string Rolloff = "linear"; // linear, inverseClamped
+		int Priority = 128;
 
 		// Runtime (not serialized)
-		ALuint BufferID  = 0;
-		float  Duration  = 0.0f;
-		int    SampleRate = 0;
+		ALuint BufferID = 0;
+		float Duration = 0.0f;
+		int SampleRate = 0;
 
 		// Asset interface
 		bool Reload() override;
@@ -62,7 +64,6 @@ namespace CB
 		// Factory
 		static Ref<AudioClipAsset> Load(const std::filesystem::path& path);
 		bool Save(const std::filesystem::path& path) const;
-
 	private:
 		bool LoadFromFile(const std::filesystem::path& path);
 	};

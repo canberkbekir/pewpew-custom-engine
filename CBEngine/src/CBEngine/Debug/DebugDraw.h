@@ -18,12 +18,12 @@ namespace CB
 	class DebugDraw
 	{
 	public:
-		static void DrawLine(const Vector3& from, const Vector3& to,
-			const Vector3& color = Vector3(0.0f, 1.0f, 0.0f), float duration = 0.0f);
+		static void DrawLine(const Vector3& from,const Vector3& to,
+		                     const Vector3& color = Vector3(0.0f, 1.0f, 0.0f),float duration = 0.0f);
 
-		static void DrawRay(const Vector3& origin, const Vector3& direction,
-			float maxDistance = 100.0f, const Vector3& color = Vector3(1.0f, 0.0f, 0.0f),
-			float duration = 0.0f);
+		static void DrawRay(const Vector3& origin,const Vector3& direction,
+		                    float maxDistance = 100.0f,const Vector3& color = Vector3(1.0f, 0.0f, 0.0f),
+		                    float duration = 0.0f);
 
 		/// Render all buffered lines. Call once per frame from the viewport.
 		static void Flush(const Camera& camera);
@@ -33,7 +33,6 @@ namespace CB
 
 		/// Clear all lines immediately.
 		static void Clear();
-
 	private:
 		static std::vector<DebugLine> s_Lines;
 	};
