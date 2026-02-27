@@ -1,47 +1,43 @@
 #pragma once
 
-#include "VoxelSubstance.h"
+// =========================================================================
+// DEPRECATED — Use SubstanceRegistry instead.
+// This header is kept as a thin forwarding wrapper during transition.
+// =========================================================================
+
+#include "SubstanceRegistry.h"
 #include "CBEngine/Utils/VoxelMaterialType.h"
 
 #include <string>
 
 namespace CB
 {
-	// =========================================================================
-	// VoxelSubstanceDatabase — singleton that maps VoxelMaterialType to
-	// VoxelSubstanceProperties. Loaded from assets/config/voxel_substances.yaml
-	// at startup. Call Load() once from Application or editor startup.
-	// =========================================================================
-	class VoxelSubstanceDatabase
+	class [[deprecated("Use SubstanceRegistry instead")]] VoxelSubstanceDatabase
 	{
 	public:
-		// Load (or reload) from a yaml file path.
-		// Path is relative to the asset directory or absolute.
-		static void Load(const std::string& path);
+		static void Load(const std::string& path) { SubstanceRegistry::Load(path); }
+		static void Save(const std::string& path) { SubstanceRegistry::Save(path); }
 
-		// Look up properties for a given material type.
-		// Returns the fallback (indestructible) entry if not loaded or type invalid.
-		static const VoxelSubstanceProperties& Get(VoxelMaterialType type);
+		static const VoxelSubstanceProperties& Get(VoxelMaterialType type)
+		{
+			return SubstanceRegistry::GetByLegacyType(type);
+		}
 
-		// Fallback used when no substance is configured — very high health, all resistances = 1.
-		static const VoxelSubstanceProperties& GetFallback();
+		static const VoxelSubstanceProperties& GetFallback()
+		{
+			return SubstanceRegistry::GetFallback().Properties;
+		}
 
-		static bool IsLoaded() { return s_Loaded; }
+		static bool IsLoaded() { return SubstanceRegistry::IsLoaded(); }
 
-		// Resolve a substance name string ("Stone", "Wood", ...) to a material type.
-		// Returns VoxelMaterialType::Stone as default if not recognised.
-		static VoxelMaterialType ResolveSubstanceName(const std::string& name);
+		static VoxelMaterialType ResolveSubstanceName(const std::string& name)
+		{
+			return VoxelMaterialTypeFromString(name);
+		}
 
-		// Mutable access for editor panel (returns reference to internal storage)
-		static VoxelSubstanceProperties& GetMutable(VoxelMaterialType type);
-
-		// Serialize current state back to YAML file
-		static void Save(const std::string& path);
-	private:
-		// One slot per VoxelMaterialType enum value
-		static VoxelSubstanceProperties s_Properties[static_cast<int>(VoxelMaterialType::Count)];
-		// Indestructible fallback — very high health, all resistances = 1
-		static VoxelSubstanceProperties s_Fallback;
-		static bool s_Loaded;
+		static VoxelSubstanceProperties& GetMutable(VoxelMaterialType type)
+		{
+			return SubstanceRegistry::GetMutable(VoxelMaterialTypeToString(type));
+		}
 	};
 }

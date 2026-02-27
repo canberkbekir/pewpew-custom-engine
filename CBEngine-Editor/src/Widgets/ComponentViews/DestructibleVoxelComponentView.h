@@ -3,6 +3,7 @@
 #include "imgui.h"
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Components/DestructibleVoxelComponent.h"
+#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
 #include "../ComponentCard.h"
 
 namespace CB
@@ -75,14 +76,29 @@ namespace CB
 				ImGui::TextUnformatted("Substance");
 				ImGui::Separator();
 
-				char substanceBuf[128];
-				std::strncpy(substanceBuf, dv.SubstanceOverride.c_str(), sizeof(substanceBuf) - 1);
-				substanceBuf[sizeof(substanceBuf) - 1] = '\0';
-				if (ImGui::InputText("Substance Override", substanceBuf, sizeof(substanceBuf)))
-					dv.SubstanceOverride = substanceBuf;
+				// Substance picker combo
+				{
+					auto allIDs = SubstanceRegistry::GetAllIDs();
+					// Prepend empty option for "per-voxel lookup"
+					int currentIdx = 0;
+					std::vector<std::string> options;
+					options.push_back("(Per-Voxel)");
+					for (const auto& id : allIDs) {
+						options.push_back(id);
+						if (id == dv.SubstanceOverride)
+							currentIdx = static_cast<int>(options.size()) - 1;
+					}
+					std::vector<const char*> optionPtrs;
+					for (const auto& o : options)
+						optionPtrs.push_back(o.c_str());
 
-				if (ImGui::IsItemHovered())
-					ImGui::SetTooltip("Empty = per-voxel lookup. Set to e.g. 'Stone', 'Wood' to force all voxels");
+					if (ImGui::Combo("Substance Override", &currentIdx,
+						optionPtrs.data(), static_cast<int>(optionPtrs.size()))) {
+						dv.SubstanceOverride = (currentIdx == 0) ? "" : options[currentIdx];
+					}
+					if (ImGui::IsItemHovered())
+						ImGui::SetTooltip("Per-Voxel = uses VoxelTextureAsset mapping.\nOtherwise forces all voxels to selected substance.");
+				}
 
 				ImGui::DragFloat("Health Multiplier", &dv.HealthMultiplier, 0.05f, 0.01f, 100.0f, "%.2f");
 				ImGui::DragFloat("Resistance Multiplier", &dv.ResistanceMultiplier, 0.05f, 0.01f, 100.0f, "%.2f");

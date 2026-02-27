@@ -16,7 +16,7 @@
 #include "CBEngine/Physics/VoxelCollisionShapeGenerator.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Utils/VoxelizerAPI.h"
-#include "CBEngine/Voxel/Destruction/VoxelSubstanceDatabase.h"
+#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
 #include "CBEngine/Voxel/Destruction/VoxelStructuralIntegrity.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
 
@@ -38,7 +38,18 @@ namespace CB
 	// =========================================================================
 	// LoadSubstances
 	// =========================================================================
-	void VoxelDestructionSystem::LoadSubstances(const std::string& path) { VoxelSubstanceDatabase::Load(path); }
+	void VoxelDestructionSystem::LoadSubstances(const std::string& path) { SubstanceRegistry::Load(path); }
+
+	// Helper: resolve substance from DestructibleVoxelComponent override string
+	static const VoxelSubstanceProperties& ResolveSubstance(const DestructibleVoxelComponent& dv)
+	{
+		return SubstanceRegistry::Get(dv.SubstanceOverride.empty() ? kDefaultSubstanceID : dv.SubstanceOverride);
+	}
+
+	static SubstanceID ResolveSubstanceID(const DestructibleVoxelComponent& dv)
+	{
+		return dv.SubstanceOverride.empty() ? SubstanceID(kDefaultSubstanceID) : dv.SubstanceOverride;
+	}
 
 	// =========================================================================
 	// QueueDamage — thread-safe append
@@ -187,13 +198,8 @@ namespace CB
 			if (!dvComp.Enabled)
 				continue;
 
-			// Resolve substance for this entity/voxel
-			auto matType = VoxelMaterialType::Stone;
-			if (!dvComp.SubstanceOverride.empty())
-				matType = VoxelSubstanceDatabase::ResolveSubstanceName(dvComp.SubstanceOverride);
-			// TODO Phase 4: per-voxel lookup via VoxelTextureAsset
-
-			const VoxelSubstanceProperties& sub = VoxelSubstanceDatabase::Get(matType);
+			// Resolve substance for this entity
+			const VoxelSubstanceProperties& sub = ResolveSubstance(dvComp);
 
 			// Impact threshold check
 			if (event.Type == VoxelDamageType::Impact && event.RawAmount < sub.ImpactThreshold)
@@ -253,9 +259,10 @@ namespace CB
 			else
 				health.FractureStage = 0;
 
-			// Apply damage tint
+			// Apply damage tint (skip Fire — VoxelSpreadSystem owns burn stage tinting)
 			auto tintCfgIt = sub.DamageTints.find(event.Type);
-			if (tintCfgIt != sub.DamageTints.end() && tintCfgIt->second.Intensity > 0.0f) {
+			if (event.Type != VoxelDamageType::Fire &&
+				tintCfgIt != sub.DamageTints.end() && tintCfgIt->second.Intensity > 0.0f) {
 				const auto& tintCfg = tintCfgIt->second;
 				float damageRatio = glm::clamp(effective / glm::max(health.MaxHealth, 0.01f), 0.0f, 1.0f);
 				float addedIntensity = damageRatio * tintCfg.Intensity;
@@ -298,8 +305,15 @@ namespace CB
 				{
 					burn.Type = event.Type;
 					burn.Timer = sub.BurnDuration;
-					burn.SpreadTimer = 0.5f;
-					burn.TickTimer = 0.2f;
+					burn.SpreadTimer = 0.0f; // spread immediately on first tick
+					burn.TickTimer = 0.0f;   // tick immediately too
+
+					// Apply immediate burn tint so player sees instant feedback
+					// (VoxelSpreadSystem will take over smoothly on subsequent ticks)
+					auto& tint = state.TintMap[event.GridCoord];
+					tint.Color = sub.BurnStageTints[1]; // Burning stage color
+					tint.Intensity = 0.5f;
+					state.MeshDirty = true;
 				}
 				health.Burning = true;
 				health.FireTimer = sub.BurnDuration;
@@ -548,10 +562,7 @@ namespace CB
 			auto& fragRB = fragEntity.AddComponent<RigidBodyComponent>();
 			fragRB.Type = BodyType::Dynamic;
 			{
-				auto matType = VoxelMaterialType::Stone;
-				if (!origDV.SubstanceOverride.empty())
-					matType = VoxelSubstanceDatabase::ResolveSubstanceName(origDV.SubstanceOverride);
-				float massPerVoxel = VoxelSubstanceDatabase::Get(matType).MassPerVoxel;
+				float massPerVoxel = ResolveSubstance(origDV).MassPerVoxel;
 				fragRB.Mass = static_cast<float>(frag.VoxelCount) * massPerVoxel;
 			}
 			fragRB.Friction = origFriction;
@@ -854,13 +865,9 @@ namespace CB
 		auto& rb = chunkEntity.AddComponent<RigidBodyComponent>();
 		rb.Type = BodyType::Dynamic;
 		{
-			auto matType = VoxelMaterialType::Stone;
-			if (sourceEntity.HasComponent<DestructibleVoxelComponent>()) {
-				const auto& dv = sourceEntity.GetComponent<DestructibleVoxelComponent>();
-				if (!dv.SubstanceOverride.empty())
-					matType = VoxelSubstanceDatabase::ResolveSubstanceName(dv.SubstanceOverride);
-			}
-			float massPerVoxel = VoxelSubstanceDatabase::Get(matType).MassPerVoxel;
+			float massPerVoxel = SubstanceRegistry::Get(kDefaultSubstanceID).MassPerVoxel;
+			if (sourceEntity.HasComponent<DestructibleVoxelComponent>())
+				massPerVoxel = ResolveSubstance(sourceEntity.GetComponent<DestructibleVoxelComponent>()).MassPerVoxel;
 			rb.Mass = static_cast<float>(cluster.VoxelCount) * massPerVoxel;
 		}
 		rb.UseGravity = true;
@@ -1014,11 +1021,7 @@ namespace CB
 			int yMax = glm::min(h - 1, centerVoxel.y + r);
 			int zMax = glm::min(d - 1, centerVoxel.z + r);
 
-			// Resolve substance name for hits
-			auto matType = VoxelMaterialType::Stone;
-			if (!dvComp.SubstanceOverride.empty())
-				matType = VoxelSubstanceDatabase::ResolveSubstanceName(dvComp.SubstanceOverride);
-			std::string substanceName = VoxelMaterialTypeToString(matType);
+			std::string substanceName = ResolveSubstanceID(dvComp);
 
 			for (int x = xMin; x <= xMax; ++x)
 				for (int y = yMin; y <= yMax; ++y)
@@ -1123,10 +1126,7 @@ namespace CB
 			int yMax = glm::min(h - 1, gridMax.y + 1);
 			int zMax = glm::min(d - 1, gridMax.z + 1);
 
-			auto matType = VoxelMaterialType::Stone;
-			if (!dvComp.SubstanceOverride.empty())
-				matType = VoxelSubstanceDatabase::ResolveSubstanceName(dvComp.SubstanceOverride);
-			std::string substanceName = VoxelMaterialTypeToString(matType);
+			std::string substanceName = ResolveSubstanceID(dvComp);
 
 			for (int x = xMin; x <= xMax; ++x)
 				for (int y = yMin; y <= yMax; ++y)

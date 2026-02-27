@@ -1,126 +1,165 @@
-# Voxel Substance Definitions
-# ============================================================
-# Each entry maps to a VoxelMaterialType enum value (Stone, Wood,
-# Metal, Glass, Marble). The key MUST match VoxelMaterialTypeToString().
-#
-# Fields:
-#   mass_per_voxel         - kg per voxel (mass = VoxelCount * mass_per_voxel, size-independent)
-#   health                 - base HP before full destruction
-#   hardness               - 0-100, reduces impact damage
-#   explosion_resistance   - 0-1 damage multiplier (1 = immune)
-#   slice_resistance       - 0-1 (0 = cuts like butter)
-#   tensile_strength       - load capacity for structural checks
-#   impact_threshold       - min impact force (N) to register any damage
-#   fracture_behavior      - NONE | CHIP | CRACK | SHATTER | CRUMBLE
-#   fracture_threshold     - 0-1, health fraction where visual cracking starts
-#   fragment_count         - debris pieces on full destruction
-#   fragments_have_physics - should debris get Jolt RigidBody simulation
-#   flammable              - can this substance catch fire
-#   ignition_temperature   - heat required to ignite (if flammable)
-#   burn_duration          - seconds before burning out
-#   propagates_damage      - does fire/explosion spread to neighbors
-#   damage_spread_factor   - damage multiplier when spreading to neighbors
-# ============================================================
-
 substances:
 
-  Stone:
-    mass_per_voxel: 0.03    # 1000 voxels = 30 kg
-    health: 100
-    hardness: 80
-    explosion_resistance: 0.70
-    slice_resistance: 0.95
-    tensile_strength: 120
-    impact_threshold: 15.0
-    fracture_behavior: CHIP
-    fracture_threshold: 0.30
-    fragment_count: 8
-    fragments_have_physics: true
-    flammable: false
-    propagates_damage: false
-    damage_tints:
-      Fire:
-        color: [0.3, 0.3, 0.3]
-        intensity: 0.5
-        spread_radius: 1
-        spread_falloff: 0.3
-      Explosion:
-        color: [0.15, 0.1, 0.08]
-        intensity: 0.8
-        spread_radius: 2
-        spread_falloff: 0.5
-  
-  Wood:
-    mass_per_voxel: 0.015           # 1000 voxels = 15 kg
-    health: 80                    
-    hardness: 25                  
-    explosion_resistance: 0.20    
-    slice_resistance: 0.30        
-    tensile_strength: 70          
-    impact_threshold: 9.0    
-    fracture_behavior: CRACK
-    fracture_threshold: 0.65     
-    fragment_count: 3            
-    fragments_have_physics: true 
-    flammable: true
-    ignition_temperature: 280.0  
-    burn_duration: 18.0       
-    propagates_damage: true
-    damage_spread_factor: 0.55  
-    damage_tints:
-      Fire:
-        color: [ 0.15, 0.08, 0.03 ]
-        intensity: 1.3
-        spread_radius: 4
-        spread_falloff: 0.25      
-      
-      Acid:
-        color: [ 0.25, 0.55, 0.15 ]
-        intensity: 0.9
-        spread_radius: 1
-        spread_falloff: 0.5       
-
-  Metal:
-    mass_per_voxel: 0.08    # 1000 voxels = 80 kg
-    health: 200
-    hardness: 95
-    explosion_resistance: 0.85
-    slice_resistance: 0.99
-    tensile_strength: 300
-    impact_threshold: 50.0
-    fracture_behavior: CHIP
-    fracture_threshold: 0.15
-    fragment_count: 4
-    fragments_have_physics: true
-    flammable: false
-    propagates_damage: false
-
   Glass:
-    mass_per_voxel: 0.004   # 1000 voxels = 4 kg
-    health: 20
-    hardness: 5
-    explosion_resistance: 0.05
-    slice_resistance: 0.05
-    tensile_strength: 15
-    impact_threshold: 2.0
-    fracture_behavior: SHATTER
-    fracture_threshold: 0.90
-    fragment_count: 20
-    fragments_have_physics: true
-    flammable: false
-    propagates_damage: false
+    display_color: [0.3, 0.8, 0.9]
+    pbr_defaults:
+      metallic: 0.05
+      roughness: 0.05
+      emission: 0
+    properties:
+      mass_per_voxel: 0.004
+      health: 15
+      hardness: 3
+      explosion_resistance: 0.03
+      slice_resistance: 0.02
+      tensile_strength: 6
+      impact_threshold: 1.2
+      fracture_behavior: SHATTER
+      fracture_threshold: 0.85
+      fragment_count: 24
+      fragments_have_physics: true
+      flammable: false
+      ignition_temperature: 0
+      burn_duration: 0
+      propagates_damage: false
+      damage_spread_factor: 0.2
+      soot_resistance: 0.9
+      soot_color: [0.15, 0.15, 0.15]
+      cross_entity_spread_radius: 0.2
 
   Marble:
-    mass_per_voxel: 0.05    # 1000 voxels = 50 kg
-    health: 150
-    hardness: 85
-    explosion_resistance: 0.65
-    slice_resistance: 0.90
-    tensile_strength: 180
-    impact_threshold: 25.0
-    fracture_behavior: CHIP
-    fracture_threshold: 0.25
-    fragment_count: 10
-    fragments_have_physics: true
-    flammable: false
-    propagates_damage: false
+    display_color: [0.9, 0.88, 0.85]
+    pbr_defaults:
+      metallic: 0
+      roughness: 0.45
+      emission: 0
+    properties:
+      mass_per_voxel: 0.052
+      health: 140
+      hardness: 82
+      explosion_resistance: 0.6
+      slice_resistance: 0.88
+      tensile_strength: 90
+      impact_threshold: 22
+      fracture_behavior: CHIP
+      fracture_threshold: 0.28
+      fragment_count: 9
+      fragments_have_physics: true
+      flammable: false
+      ignition_temperature: 0
+      burn_duration: 0
+      propagates_damage: false
+      damage_spread_factor: 0.35
+      soot_resistance: 0.6
+      soot_color: [0.18, 0.17, 0.16]
+      cross_entity_spread_radius: 0.4
+
+  Metal:
+    display_color: [0.75, 0.75, 0.8]
+    pbr_defaults:
+      metallic: 1
+      roughness: 0.25
+      emission: 0
+    properties:
+      mass_per_voxel: 0.085
+      health: 220
+      hardness: 97
+      explosion_resistance: 0.9
+      slice_resistance: 0.995
+      tensile_strength: 420
+      impact_threshold: 65
+      fracture_behavior: CHIP
+      fracture_threshold: 0.12
+      fragment_count: 3
+      fragments_have_physics: true
+      flammable: false
+      ignition_temperature: 0
+      burn_duration: 0
+      propagates_damage: false
+      damage_spread_factor: 0.25
+      soot_resistance: 0.95
+      soot_color: [0.12, 0.12, 0.12]
+      cross_entity_spread_radius: 0.3
+
+  Stone:
+    display_color: [0.5, 0.5, 0.5]
+    pbr_defaults:
+      metallic: 0
+      roughness: 0.85
+      emission: 0
+    properties:
+      mass_per_voxel: 0.032
+      health: 110
+      hardness: 78
+      explosion_resistance: 0.65
+      slice_resistance: 0.92
+      tensile_strength: 60
+      impact_threshold: 13
+      fracture_behavior: CHIP
+      fracture_threshold: 0.32
+      fragment_count: 10
+      fragments_have_physics: true
+      flammable: false
+      ignition_temperature: 0
+      burn_duration: 0
+      propagates_damage: false
+      damage_spread_factor: 0.4
+      soot_resistance: 0.55
+      soot_color: [0.2, 0.18, 0.15]
+      cross_entity_spread_radius: 0.45
+      damage_tints:
+        Fire:
+          color: [0.25, 0.25, 0.25]
+          intensity: 0.4
+          spread_radius: 1
+          spread_falloff: 0.35
+        Explosion:
+          color: [0.18, 0.12, 0.1]
+          intensity: 0.85
+          spread_radius: 2
+          spread_falloff: 0.55
+
+  Wood:
+    display_color: [0.55, 0.35, 0.15]
+    pbr_defaults:
+      metallic: 0
+      roughness: 0.75
+      emission: 0
+    properties:
+      mass_per_voxel: 0.014
+      health: 85
+      hardness: 22
+      explosion_resistance: 0.18
+      slice_resistance: 0.28
+      tensile_strength: 65
+      impact_threshold: 8
+      fracture_behavior: CRACK
+      fracture_threshold: 0.6
+      fragment_count: 4
+      fragments_have_physics: true
+      flammable: true
+      ignition_temperature: 260
+      burn_duration: 22
+      propagates_damage: true
+      damage_spread_factor: 0.6
+      soot_resistance: 0.25
+      soot_color: [0.1, 0.08, 0.06]
+      cross_entity_spread_radius: 0.8
+      burn_stages:
+        tints:
+          - [1.0, 0.95, 0.9]
+          - [0.9, 0.45, 0.15]
+          - [0.18, 0.09, 0.04]
+          - [0.04, 0.04, 0.04]
+        thresholds: [0.15, 0.45, 0.8]
+      damage_tints:
+        Acid:
+          color: [0.22, 0.5, 0.14]
+          intensity: 0.8
+          spread_radius: 1
+          spread_falloff: 0.45
+        Fire:
+          color: [0.14, 0.06, 0.025]
+          intensity: 1.4
+          spread_radius: 4
+          spread_falloff: 0.3

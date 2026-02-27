@@ -13,7 +13,7 @@
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
-#include "CBEngine/Voxel/Destruction/VoxelSubstanceDatabase.h"
+#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
 
 // Forward declaration — forces the linker to include ComponentRegistrations.obj
 // from CBEngine.lib (MSVC dead-strips objects with no referenced symbols).
@@ -44,7 +44,7 @@ namespace CB
 		ScriptEngine::Init();
 
 		AssetManager::Init("assets");
-		VoxelSubstanceDatabase::Load("assets/config/voxel_substances.yaml");
+		SubstanceRegistry::Load("assets/config/voxel_substances.yaml");
 
 #ifdef CB_ENABLE_IMGUI
 		m_ImGuiLayer = new ImGuiLayer();

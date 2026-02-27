@@ -5,6 +5,7 @@
 #include "CBEngine/Core/UUID.h"
 #include "CBEngine/Utils/VoxelMaterialType.h"
 #include "CBEngine/Utils/VoxelPalette.h"
+#include "CBEngine/Voxel/Destruction/SubstanceID.h"
 
 #include <glm/glm.hpp>
 #include <unordered_map>
@@ -18,13 +19,13 @@ namespace CB
 	struct CustomBrush
 	{
 		VoxelPaletteEntry Entry;
-		VoxelMaterialType MaterialType = VoxelMaterialType::Stone;
+		SubstanceID MaterialSubstance = "Stone";
 	};
 
 	class VoxelTextureAsset : public Asset
 	{
 	public:
-		static constexpr uint32_t s_VtexVersion = 3;
+		static constexpr uint32_t s_VtexVersion = 4;
 
 		VoxelTextureAsset() = default;
 		~VoxelTextureAsset() override = default;
@@ -36,11 +37,11 @@ namespace CB
 		glm::ivec3 GridSize = {0, 0, 0};
 		uint64_t VoxelCount = 0;
 
-		// Palette index -> material type mapping (covers the bulk of voxels)
-		std::unordered_map<uint8_t, VoxelMaterialType> PaletteMapping;
+		// Palette index -> substance ID mapping (covers the bulk of voxels)
+		std::unordered_map<uint8_t, SubstanceID> PaletteMapping;
 
-		// Sparse per-voxel overrides (filled voxel index -> material type)
-		std::unordered_map<uint32_t, VoxelMaterialType> VoxelOverrides;
+		// Sparse per-voxel overrides (filled voxel index -> substance ID)
+		std::unordered_map<uint32_t, SubstanceID> VoxelOverrides;
 
 		// Custom brushes (added by user, persisted in vtex)
 		std::vector<CustomBrush> CustomBrushes;
@@ -65,24 +66,31 @@ namespace CB
 		VoxelPalette ApplyOverrides(const VoxelPalette& basePalette) const;
 
 		// Query: checks overrides first, then palette mapping
-		VoxelMaterialType GetMaterialType(uint32_t filledVoxelIndex,uint8_t paletteIndex) const;
+		SubstanceID GetSubstanceID(uint32_t filledVoxelIndex, uint8_t paletteIndex) const;
+
+		// Legacy compatibility: returns VoxelMaterialType from string
+		VoxelMaterialType GetMaterialType(uint32_t filledVoxelIndex, uint8_t paletteIndex) const;
 
 		// Set per-voxel override
-		void SetMaterialType(uint32_t filledVoxelIndex,VoxelMaterialType type);
+		void SetSubstanceID(uint32_t filledVoxelIndex, const SubstanceID& id);
+
+		// Legacy
+		void SetMaterialType(uint32_t filledVoxelIndex, VoxelMaterialType type);
 
 		// Set palette-level mapping (affects all voxels with that palette index)
-		void SetPaletteType(uint8_t paletteIndex,VoxelMaterialType type);
+		void SetPaletteSubstance(uint8_t paletteIndex, const SubstanceID& id);
+
+		// Legacy
+		void SetPaletteType(uint8_t paletteIndex, VoxelMaterialType type);
 
 		// Generate from an existing vmesh asset (auto-detects material types from palette)
 		static Ref<VoxelTextureAsset> GenerateFromVmesh(const Ref<VoxelMeshAsset>& vmesh);
 
 		// Regenerate palette mapping by sampling a texture via vmesh UVs
-		// Each palette entry's color is replaced by the average sampled color from the texture
 		void GenerateMappingFromTexture(const Ref<VoxelMeshAsset>& vmesh,
 		                                const std::filesystem::path& texturePath);
 
 		// Apply PBR properties from a material to all palette entries as overrides
-		// If the material has an albedo map, also resamples palette colors via vmesh UVs
 		void GenerateFromMaterial(const Ref<class Material>& material,
 		                          const Ref<class VoxelMeshAsset>& vmesh);
 

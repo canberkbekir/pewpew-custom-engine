@@ -3,6 +3,7 @@
 #include <imgui.h>
 
 #include "CBEngine/Core/Log.h"
+#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
 #include "CBEngine/Renderer/Core/RenderCommand.h"
 #include "CBEngine/Renderer/Core/Renderer3D.h"
 #include "CBEngine/Asset/AssetManager.h"
@@ -140,7 +141,10 @@ namespace CB
 				for (const auto& brush : m_Vtex->CustomBrushes) {
 					uint8_t newIdx = m_Vmesh->Palette.AddEntry(brush.Entry);
 					m_CustomBrushPaletteIndices.push_back(newIdx);
-					m_Vtex->SetPaletteType(newIdx, brush.MaterialType);
+					// Only set substance if this index doesn't already have a mapping
+					// (user may have overridden it via "Set All" etc.)
+					if (m_Vtex->PaletteMapping.find(newIdx) == m_Vtex->PaletteMapping.end())
+						m_Vtex->SetPaletteSubstance(newIdx, brush.MaterialSubstance);
 				}
 			}
 
@@ -195,8 +199,8 @@ namespace CB
 		VoxelPalette materialPalette;
 		uint32_t usedCount = m_Vmesh->Palette.GetUsedCount();
 		for (uint8_t i = 0; i < usedCount; i++) {
-			VoxelMaterialType type = m_Vtex->GetMaterialType(0, i);
-			Vector3 displayColor = VoxelMaterialTypeDisplayColor(type);
+			SubstanceID subID = m_Vtex->GetSubstanceID(0, i);
+			Vector3 displayColor = SubstanceRegistry::GetDisplayColor(subID);
 
 			VoxelPaletteEntry entry;
 			entry.Color = displayColor;
@@ -353,8 +357,8 @@ namespace CB
 					if (filledIdx < static_cast<int32_t>(m_Vmesh->PaletteIndices.size()))
 						palIdx = m_Vmesh->PaletteIndices[filledIdx];
 
-					VoxelMaterialType type = m_Vtex->GetMaterialType(filledIdx, palIdx);
-					Vector3 col = VoxelMaterialTypeDisplayColor(type);
+					SubstanceID subID = m_Vtex->GetSubstanceID(filledIdx, palIdx);
+					Vector3 col = SubstanceRegistry::GetDisplayColor(subID);
 					drawList->AddRectFilled(pMin, pMax, IM_COL32(static_cast<int>(col.x * 255),
 					                                             static_cast<int>(col.y * 255),
 					                                             static_cast<int>(col.z * 255), 255));
@@ -480,42 +484,32 @@ namespace CB
 				group.EntryIndices.push_back(i);
 				group.Expanded = false;
 
-				// Assign material type: use existing palette mapping if all entries agree
-				group.MaterialType = m_Vtex->GetMaterialType(0, i);
+				// Assign substance: use palette mapping directly (not GetSubstanceID
+				// which checks VoxelOverrides and could return wrong substance)
+				auto palIt = m_Vtex->PaletteMapping.find(i);
+				group.MaterialSubstance = (palIt != m_Vtex->PaletteMapping.end())
+					? palIt->second : std::string("Stone");
 				m_ColorGroups.push_back(group);
 			}
 		}
 
-		// For groups with multiple entries, check if all have same type; if not, auto-detect from average
+		// For groups with multiple entries, check if all have same substance
 		for (auto& group : m_ColorGroups) {
 			if (group.EntryIndices.size() > 1) {
-				VoxelMaterialType firstType = m_Vtex->GetMaterialType(0, group.EntryIndices[0]);
+				auto getpal = [&](uint8_t idx) -> SubstanceID {
+					auto it = m_Vtex->PaletteMapping.find(idx);
+					return (it != m_Vtex->PaletteMapping.end()) ? it->second : std::string("Stone");
+				};
+				SubstanceID firstSub = getpal(group.EntryIndices[0]);
 				bool allSame = true;
 				for (size_t j = 1; j < group.EntryIndices.size(); j++) {
-					if (m_Vtex->GetMaterialType(0, group.EntryIndices[j]) != firstType) {
+					if (getpal(group.EntryIndices[j]) != firstSub) {
 						allSame = false;
 						break;
 					}
 				}
 
-				if (allSame)
-					group.MaterialType = firstType;
-				else {
-					// Average metallic/roughness for auto-detect
-					float avgMet = 0.0f, avgRough = 0.0f;
-					for (uint8_t idx : group.EntryIndices) {
-						const auto& e = m_Vmesh->Palette.GetEntry(idx);
-						avgMet += e.Metallic;
-						avgRough += e.Roughness;
-					}
-					float n = static_cast<float>(group.EntryIndices.size());
-					group.MaterialType = AutoDetectMaterialType(group.AverageColor);
-
-					// Sync group type back to all entries so brush selection is consistent
-					for (uint8_t idx : group.EntryIndices)
-						m_Vtex->SetPaletteType(idx, group.MaterialType);
-					m_MaterialMapDirty = true;
-				}
+				group.MaterialSubstance = firstSub;
 			}
 		}
 	}
@@ -560,8 +554,8 @@ namespace CB
 		VoxelPalette materialPalette;
 		uint32_t usedCount = m_Vmesh->Palette.GetUsedCount();
 		for (uint8_t i = 0; i < usedCount; i++) {
-			VoxelMaterialType type = m_Vtex->GetMaterialType(0, i);
-			Vector3 displayColor = VoxelMaterialTypeDisplayColor(type);
+			SubstanceID subID = m_Vtex->GetSubstanceID(0, i);
+			Vector3 displayColor = SubstanceRegistry::GetDisplayColor(subID);
 
 			VoxelPaletteEntry entry;
 			entry.Color = displayColor;
@@ -885,9 +879,12 @@ namespace CB
 			return;
 		}
 
-		// Material type names for combo
-		static const char* materialTypeNames[] = {"Stone", "Wood", "Metal", "Glass", "Marble"};
-		static_assert(std::size(materialTypeNames) == static_cast<int>(VoxelMaterialType::Count));
+		// Build substance names list from registry
+		auto substanceIDs = SubstanceRegistry::GetAllIDs();
+		std::vector<const char*> substanceNames;
+		substanceNames.reserve(substanceIDs.size());
+		for (const auto& id : substanceIDs)
+			substanceNames.push_back(id.c_str());
 
 		// Row 1: Auto-Detect + Save
 		if (ImGui::Button("Auto-Detect All")) {
@@ -896,7 +893,7 @@ namespace CB
 				uint32_t usedCount = m_Vmesh->Palette.GetUsedCount();
 				for (uint8_t i = 0; i < usedCount; i++) {
 					const auto& entry = m_Vmesh->Palette.GetEntry(i);
-					m_Vtex->PaletteMapping[i] = AutoDetectMaterialType(entry.Color);
+					m_Vtex->PaletteMapping[i] = VoxelMaterialTypeToString(AutoDetectMaterialType(entry.Color));
 				}
 				m_MaterialMapDirty = true;
 				m_ColorGroupsDirty = true;
@@ -904,25 +901,25 @@ namespace CB
 		}
 		ImGui::SameLine();
 
-		// "Set All" substance dropdown — changes every palette entry to the chosen type
+		// "Set All" substance dropdown
 		{
 			static int setAllIdx = 0;
 			ImGui::SameLine();
-			ImGui::SetNextItemWidth(80.0f);
-			ImGui::Combo("##SetAllType", &setAllIdx, materialTypeNames,
-			             static_cast<int>(VoxelMaterialType::Count));
+			ImGui::SetNextItemWidth(120.0f);
+			if (!substanceNames.empty())
+				ImGui::Combo("##SetAllType", &setAllIdx, substanceNames.data(),
+				             static_cast<int>(substanceNames.size()));
 			ImGui::SameLine();
-			if (ImGui::Button("Set All Substance")) {
-				auto newType = static_cast<VoxelMaterialType>(setAllIdx);
+			if (ImGui::Button("Set All Substance") && !substanceIDs.empty()) {
+				const auto& newSub = substanceIDs[glm::clamp(setAllIdx, 0, static_cast<int>(substanceIDs.size()) - 1)];
 				if (m_Vmesh->HasPalette) {
 					uint32_t usedCount = m_Vmesh->Palette.GetUsedCount();
 					for (uint8_t i = 0; i < usedCount; i++)
-						m_Vtex->SetPaletteType(i, newType);
+						m_Vtex->SetPaletteSubstance(i, newSub);
 				}
 				m_MaterialMapDirty = true;
 				m_ColorGroupsDirty = true;
-				CB_CORE_INFO("Set all palette entries to substance: {0}",
-				             VoxelMaterialTypeToString(newType));
+				CB_CORE_INFO("Set all palette entries to substance: {0}", newSub);
 			}
 		}
 
@@ -996,20 +993,18 @@ namespace CB
 		// Brush indicator
 		if (m_SelectedBrushIndex >= 0 && m_SelectedBrushIndex < static_cast<int>(m_Vmesh->Palette.GetUsedCount())) {
 			const auto& brushEntry = m_Vmesh->Palette.GetEntry(static_cast<uint8_t>(m_SelectedBrushIndex));
-			VoxelMaterialType brushType = m_Vtex->GetMaterialType(0, static_cast<uint8_t>(m_SelectedBrushIndex));
-			Vector3 brushMtCol = VoxelMaterialTypeDisplayColor(brushType);
+			SubstanceID brushSub = m_Vtex->GetSubstanceID(0, static_cast<uint8_t>(m_SelectedBrushIndex));
+			Vector3 brushMtCol = SubstanceRegistry::GetDisplayColor(brushSub);
 
 			ImGui::Text("Brush:");
 			ImGui::SameLine();
-			// Material type color (what the cell will look like)
 			ImGui::ColorButton("##brushmtcol", ImVec4(brushMtCol.x, brushMtCol.y, brushMtCol.z, 1.0f),
 			                   ImGuiColorEditFlags_NoTooltip, ImVec2(16, 16));
 			ImGui::SameLine();
-			// Actual palette color (small indicator)
 			ImGui::ColorButton("##brushcol", ImVec4(brushEntry.Color.r, brushEntry.Color.g, brushEntry.Color.b, 1.0f),
 			                   ImGuiColorEditFlags_NoTooltip, ImVec2(10, 10));
 			ImGui::SameLine();
-			ImGui::Text("%s [%d]", VoxelMaterialTypeToString(brushType), m_SelectedBrushIndex);
+			ImGui::Text("%s [%d]", brushSub.c_str(), m_SelectedBrushIndex);
 			ImGui::SameLine();
 			if (ImGui::SmallButton("Clear"))
 				m_SelectedBrushIndex = -1;
@@ -1058,15 +1053,16 @@ namespace CB
 					ImGui::SetTooltip("Click to select as brush");
 				ImGui::SameLine();
 
-				// Material type combo
-				int currentIdx = static_cast<int>(group.MaterialType);
-				ImGui::SetNextItemWidth(70.0f);
-				if (ImGui::Combo("##grptype", &currentIdx, materialTypeNames,
-				                 static_cast<int>(VoxelMaterialType::Count))) {
-					auto newType = static_cast<VoxelMaterialType>(currentIdx);
-					group.MaterialType = newType;
+				// Substance combo
+				int currentIdx = 0;
+				for (int si = 0; si < static_cast<int>(substanceIDs.size()); si++)
+					if (substanceIDs[si] == group.MaterialSubstance) { currentIdx = si; break; }
+				ImGui::SetNextItemWidth(100.0f);
+				if (!substanceNames.empty() && ImGui::Combo("##grptype", &currentIdx,
+					substanceNames.data(), static_cast<int>(substanceNames.size()))) {
+					group.MaterialSubstance = substanceIDs[currentIdx];
 					for (uint8_t idx : group.EntryIndices)
-						m_Vtex->SetPaletteType(idx, newType);
+						m_Vtex->SetPaletteSubstance(idx, group.MaterialSubstance);
 					m_MaterialMapDirty = true;
 				}
 				ImGui::SameLine();
@@ -1100,8 +1096,8 @@ namespace CB
 						}
 						ImGui::SameLine();
 
-						VoxelMaterialType entryType = m_Vtex->GetMaterialType(0, idx);
-						Vector3 mtCol = VoxelMaterialTypeDisplayColor(entryType);
+						SubstanceID entrySub = m_Vtex->GetSubstanceID(0, idx);
+						Vector3 mtCol = SubstanceRegistry::GetDisplayColor(entrySub);
 						ImGui::ColorButton("##emtcol", ImVec4(mtCol.x, mtCol.y, mtCol.z, 1.0f),
 						                   ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder,
 						                   ImVec2(10, 10));
@@ -1154,20 +1150,22 @@ namespace CB
 				                       ImGuiColorEditFlags_NoTooltip, ImVec2(20, 20))) { m_SelectedBrushIndex = i; }
 				ImGui::SameLine();
 
-				// Material type combo
-				VoxelMaterialType currentType = m_Vtex->GetMaterialType(0, i);
-				int currentIdx = static_cast<int>(currentType);
+				// Substance combo
+				SubstanceID currentSub = m_Vtex->GetSubstanceID(0, i);
+				int currentIdx = 0;
+				for (int si = 0; si < static_cast<int>(substanceIDs.size()); si++)
+					if (substanceIDs[si] == currentSub) { currentIdx = si; break; }
 
-				ImGui::SetNextItemWidth(80.0f);
-				if (ImGui::Combo("##type", &currentIdx, materialTypeNames,
-				                 static_cast<int>(VoxelMaterialType::Count))) {
-					m_Vtex->SetPaletteType(i, static_cast<VoxelMaterialType>(currentIdx));
+				ImGui::SetNextItemWidth(100.0f);
+				if (!substanceNames.empty() && ImGui::Combo("##type", &currentIdx,
+					substanceNames.data(), static_cast<int>(substanceNames.size()))) {
+					m_Vtex->SetPaletteSubstance(i, substanceIDs[currentIdx]);
 					m_MaterialMapDirty = true;
 				}
 
-				// Show material type color indicator
+				// Show substance color indicator
 				ImGui::SameLine();
-				Vector3 mtCol = VoxelMaterialTypeDisplayColor(currentType);
+				Vector3 mtCol = SubstanceRegistry::GetDisplayColor(currentSub);
 				ImGui::ColorButton("##mtcol", ImVec4(mtCol.x, mtCol.y, mtCol.z, 1.0f),
 				                   ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder, ImVec2(12, 12));
 
@@ -1196,23 +1194,25 @@ namespace CB
 		ImGui::ColorEdit3("##newcolor", m_NewPaletteColor, ImGuiColorEditFlags_NoInputs);
 		ImGui::SameLine();
 		ImGui::SetNextItemWidth(80.0f);
-		ImGui::Combo("##newtype", &m_NewPaletteMaterialType, materialTypeNames,
-		             static_cast<int>(VoxelMaterialType::Count));
+		if (!substanceNames.empty())
+			ImGui::Combo("##newtype", &m_NewPaletteMaterialType, substanceNames.data(),
+			             static_cast<int>(substanceNames.size()));
 		ImGui::SameLine();
 		if (ImGui::Button("Add")) {
-			if (usedCount < VoxelPalette::MaxEntries) {
+			if (usedCount < VoxelPalette::MaxEntries && !substanceIDs.empty()) {
 				VoxelPaletteEntry newEntry;
 				newEntry.Color = Vector3(m_NewPaletteColor[0], m_NewPaletteColor[1], m_NewPaletteColor[2]);
 				newEntry.Metallic = 0.0f;
 				newEntry.Roughness = 0.5f;
 				uint8_t newIdx = m_Vmesh->Palette.AddEntry(newEntry);
-				auto newType = static_cast<VoxelMaterialType>(m_NewPaletteMaterialType);
-				m_Vtex->SetPaletteType(newIdx, newType);
+				const auto& newSub = substanceIDs[glm::clamp(m_NewPaletteMaterialType, 0,
+					static_cast<int>(substanceIDs.size()) - 1)];
+				m_Vtex->SetPaletteSubstance(newIdx, newSub);
 
 				// Record as custom brush for persistence
 				CustomBrush brush;
 				brush.Entry = newEntry;
-				brush.MaterialType = newType;
+				brush.MaterialSubstance = newSub;
 				m_Vtex->CustomBrushes.push_back(brush);
 				m_CustomBrushPaletteIndices.push_back(newIdx);
 
@@ -1230,23 +1230,20 @@ namespace CB
 
 		ImGui::Separator();
 
-		// Material type count summary
-		uint32_t counts[static_cast<int>(VoxelMaterialType::Count)] = {};
-		for (const auto& [idx, type] : m_Vtex->PaletteMapping)
-			counts[static_cast<int>(type)]++;
+		// Substance count summary
+		std::unordered_map<SubstanceID, uint32_t> subCounts;
+		for (const auto& [idx, id] : m_Vtex->PaletteMapping)
+			subCounts[id]++;
 
-		for (int i = 0; i < static_cast<int>(VoxelMaterialType::Count); i++) {
-			if (counts[i] > 0) {
-				auto mt = static_cast<VoxelMaterialType>(i);
-				Vector3 col = VoxelMaterialTypeDisplayColor(mt);
-				ImGui::ColorButton(("##sum" + std::to_string(i)).c_str(),
-				                   ImVec4(col.x, col.y, col.z, 1.0f),
-				                   ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder,
-				                   ImVec2(10, 10));
-				ImGui::SameLine();
-				ImGui::Text("%s: %u", VoxelMaterialTypeToString(mt), counts[i]);
-				ImGui::SameLine();
-			}
+		for (const auto& [id, count] : subCounts) {
+			Vector3 col = SubstanceRegistry::GetDisplayColor(id);
+			ImGui::ColorButton(("##sum" + id).c_str(),
+			                   ImVec4(col.x, col.y, col.z, 1.0f),
+			                   ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder,
+			                   ImVec2(10, 10));
+			ImGui::SameLine();
+			ImGui::Text("%s: %u", id.c_str(), count);
+			ImGui::SameLine();
 		}
 		ImGui::NewLine();
 	}
@@ -1269,9 +1266,9 @@ namespace CB
 			if (m_Vtex->HasMetallicOverrides && !prev) {
 				// Populate defaults from material type
 				for (uint8_t i = 0; i < usedCount; i++) {
-					VoxelMaterialType type = m_Vtex->GetMaterialType(0, i);
-					auto props = GetDefaultPBRProperties(type);
-					m_Vtex->MetallicOverrides[i] = props.Metallic;
+					SubstanceID subID = m_Vtex->GetSubstanceID(0, i);
+					auto& def = SubstanceRegistry::GetDefinition(subID);
+					m_Vtex->MetallicOverrides[i] = def.PBRDefaults.Metallic;
 				}
 				changed = true;
 			}
@@ -1310,9 +1307,9 @@ namespace CB
 			ImGui::Checkbox("Override Roughness", &m_Vtex->HasRoughnessOverrides);
 			if (m_Vtex->HasRoughnessOverrides && !prev) {
 				for (uint8_t i = 0; i < usedCount; i++) {
-					VoxelMaterialType type = m_Vtex->GetMaterialType(0, i);
-					auto props = GetDefaultPBRProperties(type);
-					m_Vtex->RoughnessOverrides[i] = props.Roughness;
+					SubstanceID subID = m_Vtex->GetSubstanceID(0, i);
+					auto& def = SubstanceRegistry::GetDefinition(subID);
+					m_Vtex->RoughnessOverrides[i] = def.PBRDefaults.Roughness;
 				}
 				changed = true;
 			}
@@ -1351,9 +1348,9 @@ namespace CB
 			ImGui::Checkbox("Override Emission", &m_Vtex->HasEmissionOverrides);
 			if (m_Vtex->HasEmissionOverrides && !prev) {
 				for (uint8_t i = 0; i < usedCount; i++) {
-					VoxelMaterialType type = m_Vtex->GetMaterialType(0, i);
-					auto props = GetDefaultPBRProperties(type);
-					m_Vtex->EmissionOverrides[i] = props.Emission;
+					SubstanceID subID = m_Vtex->GetSubstanceID(0, i);
+					auto& def = SubstanceRegistry::GetDefinition(subID);
+					m_Vtex->EmissionOverrides[i] = def.PBRDefaults.Emission;
 				}
 				changed = true;
 			}

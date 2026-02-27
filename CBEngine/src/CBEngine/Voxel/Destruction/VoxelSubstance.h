@@ -64,7 +64,7 @@ namespace CB
 
 	// =========================================================================
 	// VoxelSubstanceProperties — physical destruction properties for one substance
-	// Loaded from assets/config/voxel_substances.yaml by VoxelSubstanceDatabase
+	// Loaded from assets/config/voxel_substances.yaml by SubstanceRegistry
 	// =========================================================================
 	struct VoxelSubstanceProperties
 	{
@@ -91,6 +91,28 @@ namespace CB
 		float BurnDuration = 0.0f; // seconds, 0 = never burns out
 		bool PropagatesDamage = false; // fire/explosion spreads to neighbors
 		float DamageSpreadFactor = 0.5f; // damage multiplier when spreading
+
+		// --- Soot ---
+		float SootResistance = 0.5f; // 0 = absorbs soot easily, 1 = stays clean
+		Vector3 SootColor = {0.2f, 0.18f, 0.15f}; // dark gray-brown soot tint
+
+		// --- Cross-Entity Fire Spread ---
+		float CrossEntitySpreadRadius = 0.5f; // world units — how far fire jumps to another mesh
+
+		// --- Burn Stage Tints (visual progression when on fire) ---
+		// Each color is a tint multiplier applied to the voxel's original palette color.
+		// (1,1,1) = no tint, (0.1,0.08,0.05) = very dark.
+		// Index 0 = Normal, 1 = Burning, 2 = Charred, 3 = Collapse
+		static constexpr int kBurnStageCount = 4;
+		Vector3 BurnStageTints[kBurnStageCount] = {
+			{1.0f, 1.0f, 1.0f},     // Normal  — no tint (original color)
+			{1.0f, 0.4f, 0.1f},     // Burning — warm orange darkening
+			{0.15f, 0.08f, 0.03f},  // Charred — very dark brown
+			{0.05f, 0.05f, 0.05f}   // Collapse — ash black
+		};
+		// Thresholds (fraction of BurnDuration elapsed) at which each stage begins
+		// Stage 0 = [0, t[0]), Stage 1 = [t[0], t[1]), Stage 2 = [t[1], t[2]), Stage 3 = [t[2], 1.0]
+		float BurnStageThresholds[3] = {0.1f, 0.5f, 0.85f};
 
 		// --- Damage Tint (visual, per damage type) ---
 		std::unordered_map<VoxelDamageType, DamageTintConfig, VoxelDamageTypeHash> DamageTints;

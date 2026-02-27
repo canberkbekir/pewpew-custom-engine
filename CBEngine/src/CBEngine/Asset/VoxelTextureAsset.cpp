@@ -10,29 +10,42 @@
 
 namespace CB
 {
-	VoxelMaterialType VoxelTextureAsset::GetMaterialType(uint32_t filledVoxelIndex,uint8_t paletteIndex) const
+	SubstanceID VoxelTextureAsset::GetSubstanceID(uint32_t filledVoxelIndex, uint8_t paletteIndex) const
 	{
-		// Check per-voxel overrides first
 		auto it = VoxelOverrides.find(filledVoxelIndex);
 		if (it != VoxelOverrides.end())
 			return it->second;
 
-		// Fall back to palette mapping
 		auto pit = PaletteMapping.find(paletteIndex);
 		if (pit != PaletteMapping.end())
 			return pit->second;
 
-		return VoxelMaterialType::Stone;
+		return "Stone";
 	}
 
-	void VoxelTextureAsset::SetMaterialType(uint32_t filledVoxelIndex,VoxelMaterialType type)
+	VoxelMaterialType VoxelTextureAsset::GetMaterialType(uint32_t filledVoxelIndex, uint8_t paletteIndex) const
 	{
-		VoxelOverrides[filledVoxelIndex] = type;
+		return VoxelMaterialTypeFromString(GetSubstanceID(filledVoxelIndex, paletteIndex));
 	}
 
-	void VoxelTextureAsset::SetPaletteType(uint8_t paletteIndex,VoxelMaterialType type)
+	void VoxelTextureAsset::SetSubstanceID(uint32_t filledVoxelIndex, const SubstanceID& id)
 	{
-		PaletteMapping[paletteIndex] = type;
+		VoxelOverrides[filledVoxelIndex] = id;
+	}
+
+	void VoxelTextureAsset::SetMaterialType(uint32_t filledVoxelIndex, VoxelMaterialType type)
+	{
+		VoxelOverrides[filledVoxelIndex] = VoxelMaterialTypeToString(type);
+	}
+
+	void VoxelTextureAsset::SetPaletteSubstance(uint8_t paletteIndex, const SubstanceID& id)
+	{
+		PaletteMapping[paletteIndex] = id;
+	}
+
+	void VoxelTextureAsset::SetPaletteType(uint8_t paletteIndex, VoxelMaterialType type)
+	{
+		PaletteMapping[paletteIndex] = VoxelMaterialTypeToString(type);
 	}
 
 	Ref<VoxelTextureAsset> VoxelTextureAsset::GenerateFromVmesh(const Ref<VoxelMeshAsset>& vmesh)
@@ -43,26 +56,22 @@ namespace CB
 		auto vtex = CreateRef<VoxelTextureAsset>();
 		vtex->SourceVmeshUUID = vmesh->GetUUID();
 
-		// Copy grid info
 		const auto& grid = vmesh->GridData;
 		vtex->GridSize = grid.size;
 		vtex->VoxelCount = vmesh->VoxelCount;
 
-		// Auto-detect material types from palette entries
 		if (vmesh->HasPalette) {
 			uint32_t usedCount = vmesh->Palette.GetUsedCount();
 			for (uint8_t i = 0; i < usedCount; i++) {
 				const auto& entry = vmesh->Palette.GetEntry(i);
 				VoxelMaterialType detected = AutoDetectMaterialType(entry.Color);
-				vtex->PaletteMapping[i] = detected;
+				vtex->PaletteMapping[i] = VoxelMaterialTypeToString(detected);
 			}
 		}
 		else {
-			// No palette data - default everything to Stone
-			vtex->PaletteMapping[0] = VoxelMaterialType::Stone;
+			vtex->PaletteMapping[0] = "Stone";
 		}
 
-		// Auto-apply PBR from vmesh's first material slot if available
 		if (!vmesh->MaterialSlots.empty() && vmesh->MaterialSlots[0].MaterialUUID.IsValid()) {
 			auto mat = AssetManager::GetAsset<Material>(vmesh->MaterialSlots[0].MaterialUUID);
 			if (mat)
@@ -87,7 +96,6 @@ namespace CB
 		PaletteMapping.clear();
 
 		if (vmesh->HasUVs && !vmesh->VoxelUVs.empty() && vmesh->HasPalette && !vmesh->PaletteIndices.empty()) {
-			// Sample the texture for each voxel, accumulate colors per palette index
 			uint32_t paletteCount = vmesh->Palette.GetUsedCount();
 			std::vector<Vector3> colorSums(paletteCount, Vector3(0.0f));
 			std::vector<uint32_t> colorCounts(paletteCount, 0);
@@ -102,24 +110,19 @@ namespace CB
 				}
 			}
 
-			// Auto-detect material type from averaged sampled color
 			for (uint8_t i = 0; i < paletteCount; i++) {
 				Vector3 avgColor = (colorCounts[i] > 0)
 					                   ? colorSums[i] / static_cast<float>(colorCounts[i])
 					                   : vmesh->Palette.GetEntry(i).Color;
 
-				float metallic = vmesh->Palette.GetEntry(i).Metallic;
-				float roughness = vmesh->Palette.GetEntry(i).Roughness;
-
-				PaletteMapping[i] = AutoDetectMaterialType(avgColor);
+				PaletteMapping[i] = VoxelMaterialTypeToString(AutoDetectMaterialType(avgColor));
 			}
 		}
 		else if (vmesh->HasPalette) {
-			// No UVs - just sample the texture at evenly spaced points and use palette data
 			uint32_t paletteCount = vmesh->Palette.GetUsedCount();
 			for (uint8_t i = 0; i < paletteCount; i++) {
 				const auto& entry = vmesh->Palette.GetEntry(i);
-				PaletteMapping[i] = AutoDetectMaterialType(entry.Color);
+				PaletteMapping[i] = VoxelMaterialTypeToString(AutoDetectMaterialType(entry.Color));
 			}
 			CB_CORE_WARN("VoxelTextureAsset: VMesh has no UVs, falling back to palette-based detection");
 		}
@@ -137,39 +140,27 @@ namespace CB
 		if (usedCount == 0)
 			return;
 
-		// Apply material's albedo map to resample palette colors via UVs
 		if (material->HasAlbedoMap() && !material->GetPath().empty()) {
-			// Resolve albedo map path relative to material file
-			std::filesystem::path matDir = std::filesystem::path(material->GetPath()).parent_path();
-
-			// The albedo map is already loaded on the GPU but we need the file path
-			// for CPU-side texture sampling. Try the asset registry approach.
-			// The material's albedo map is a Texture2D — we can try to get its source path.
-			// For now, use GenerateMappingFromTexture if we can find the texture path.
-			// We'll look at the vmesh's texture slots or the material file directory.
+			// Placeholder for CPU-side texture sampling
 		}
 
-		// Set metallic override from material scalar
 		HasMetallicOverrides = true;
 		MetallicOverrides.clear();
 		float matMetallic = material->GetMetallic();
 		for (uint8_t i = 0; i < usedCount; i++)
 			MetallicOverrides[i] = matMetallic;
 
-		// Set roughness override from material scalar
 		HasRoughnessOverrides = true;
 		RoughnessOverrides.clear();
 		float matRoughness = material->GetRoughness();
 		for (uint8_t i = 0; i < usedCount; i++)
 			RoughnessOverrides[i] = matRoughness;
 
-		// Set albedo override from material color (uniform tint)
 		const Vector3& matAlbedo = material->GetAlbedo();
 		if (matAlbedo != Vector3(1.0f, 1.0f, 1.0f)) {
 			HasAlbedoOverrides = true;
 			AlbedoOverrides.clear();
 			for (uint8_t i = 0; i < usedCount; i++) {
-				// Modulate existing palette color with material albedo
 				const auto& entry = vmesh->Palette.GetEntry(i);
 				AlbedoOverrides[i] = entry.Color * matAlbedo;
 			}
@@ -229,18 +220,18 @@ namespace CB
 		<< YAML::BeginSeq << GridSize.x << GridSize.y << GridSize.z << YAML::EndSeq;
 		out << YAML::Key << "voxelCount" << YAML::Value << VoxelCount;
 
-		// Palette mapping
+		// Palette mapping (now SubstanceID strings)
 		out << YAML::Key << "paletteMapping" << YAML::Value << YAML::BeginMap;
-		for (const auto& [index, type] : PaletteMapping) {
-			out << YAML::Key << static_cast<int>(index) << YAML::Value << VoxelMaterialTypeToString(type);
+		for (const auto& [index, id] : PaletteMapping) {
+			out << YAML::Key << static_cast<int>(index) << YAML::Value << id;
 		}
 		out << YAML::EndMap;
 
-		// Voxel overrides (sparse)
+		// Voxel overrides (sparse, now SubstanceID strings)
 		if (!VoxelOverrides.empty()) {
 			out << YAML::Key << "voxelOverrides" << YAML::Value << YAML::BeginMap;
-			for (const auto& [index, type] : VoxelOverrides) {
-				out << YAML::Key << index << YAML::Value << VoxelMaterialTypeToString(type);
+			for (const auto& [index, id] : VoxelOverrides) {
+				out << YAML::Key << index << YAML::Value << id;
 			}
 			out << YAML::EndMap;
 		}
@@ -256,13 +247,13 @@ namespace CB
 				out << YAML::Key << "metallic" << YAML::Value << brush.Entry.Metallic;
 				out << YAML::Key << "roughness" << YAML::Value << brush.Entry.Roughness;
 				out << YAML::Key << "emission" << YAML::Value << brush.Entry.Emission;
-				out << YAML::Key << "materialType" << YAML::Value << VoxelMaterialTypeToString(brush.MaterialType);
+				out << YAML::Key << "substance" << YAML::Value << brush.MaterialSubstance;
 				out << YAML::EndMap;
 			}
 			out << YAML::EndSeq;
 		}
 
-		// Palette index overrides (sparse: filledVoxelIndex -> paletteIndex)
+		// Palette index overrides
 		if (!PaletteIndexOverrides.empty()) {
 			out << YAML::Key << "paletteIndexOverrides" << YAML::Value << YAML::BeginMap;
 			for (const auto& [index, palIdx] : PaletteIndexOverrides) {
@@ -337,6 +328,10 @@ namespace CB
 
 		auto vtex = CreateRef<VoxelTextureAsset>();
 
+		uint32_t version = 3;
+		if (root["version"])
+			version = root["version"].as<uint32_t>();
+
 		if (root["sourceVmesh"])
 			vtex->SourceVmeshUUID = UUID(root["sourceVmesh"].as<uint64_t>());
 
@@ -349,12 +344,12 @@ namespace CB
 		if (root["voxelCount"])
 			vtex->VoxelCount = root["voxelCount"].as<uint64_t>();
 
-		// Palette mapping
+		// Palette mapping — v3 stored VoxelMaterialType names, v4+ stores SubstanceID strings
+		// Both are string values, so the format is identical (auto-compatible)
 		if (root["paletteMapping"] && root["paletteMapping"].IsMap()) {
 			for (auto it = root["paletteMapping"].begin(); it != root["paletteMapping"].end(); ++it) {
 				uint8_t index = static_cast<uint8_t>(it->first.as<int>());
-				VoxelMaterialType type = VoxelMaterialTypeFromString(it->second.as<std::string>());
-				vtex->PaletteMapping[index] = type;
+				vtex->PaletteMapping[index] = it->second.as<std::string>();
 			}
 		}
 
@@ -362,12 +357,11 @@ namespace CB
 		if (root["voxelOverrides"] && root["voxelOverrides"].IsMap()) {
 			for (auto it = root["voxelOverrides"].begin(); it != root["voxelOverrides"].end(); ++it) {
 				uint32_t index = it->first.as<uint32_t>();
-				VoxelMaterialType type = VoxelMaterialTypeFromString(it->second.as<std::string>());
-				vtex->VoxelOverrides[index] = type;
+				vtex->VoxelOverrides[index] = it->second.as<std::string>();
 			}
 		}
 
-		// Custom brushes (v2+)
+		// Custom brushes
 		if (root["customBrushes"] && root["customBrushes"].IsSequence()) {
 			for (size_t i = 0; i < root["customBrushes"].size(); i++) {
 				const auto& node = root["customBrushes"][i];
@@ -384,14 +378,18 @@ namespace CB
 					brush.Entry.Roughness = node["roughness"].as<float>();
 				if (node["emission"])
 					brush.Entry.Emission = node["emission"].as<float>();
-				if (node["materialType"])
-					brush.MaterialType = VoxelMaterialTypeFromString(node["materialType"].as<std::string>());
+
+				// v4+: "substance" key; legacy v3: "materialType" key
+				if (node["substance"])
+					brush.MaterialSubstance = node["substance"].as<std::string>();
+				else if (node["materialType"])
+					brush.MaterialSubstance = node["materialType"].as<std::string>();
 
 				vtex->CustomBrushes.push_back(brush);
 			}
 		}
 
-		// Palette index overrides (v2+)
+		// Palette index overrides
 		if (root["paletteIndexOverrides"] && root["paletteIndexOverrides"].IsMap()) {
 			for (auto it = root["paletteIndexOverrides"].begin(); it != root["paletteIndexOverrides"].end(); ++it) {
 				uint32_t index = it->first.as<uint32_t>();

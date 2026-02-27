@@ -70,6 +70,12 @@ namespace CB
 		}
 	}
 
+	// Bridge: convert VoxelMaterialType to SubstanceID string
+	inline std::string VoxelMaterialTypeToSubstanceID(VoxelMaterialType type)
+	{
+		return VoxelMaterialTypeToString(type);
+	}
+
 	// Auto-detect material type from voxel visual properties
 	inline VoxelMaterialType AutoDetectMaterialType(const Vector3& color)
 	{

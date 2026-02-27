@@ -1,7 +1,11 @@
 #include "SubstanceEditorPanel.h"
-#include "CBEngine/Voxel/Destruction/VoxelSubstanceDatabase.h"
+#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
+#include "CBEngine/Voxel/Destruction/SubstancePropertySchema.h"
+#include "../Widgets/SubstanceEditorUtils.h"
 
 #include <imgui.h>
+#include <algorithm>
+#include <cstring>
 
 namespace CB
 {
@@ -11,131 +15,200 @@ namespace CB
 
 		ImGui::Begin("Substance Editor", &m_Visible);
 
-		// Substance selector (tab bar with one tab per material type)
-		if (ImGui::BeginTabBar("Substances")) {
-			for (int i = 0; i < static_cast<int>(VoxelMaterialType::Count); ++i) {
-				auto type = static_cast<VoxelMaterialType>(i);
-				const char* name = VoxelMaterialTypeToString(type);
-				if (ImGui::BeginTabItem(name)) {
-					m_SelectedSubstance = i;
-					DrawSubstance(type);
-					ImGui::EndTabItem();
-				}
-			}
-			ImGui::EndTabBar();
-		}
+		float panelWidth = ImGui::GetContentRegionAvail().x;
+		float listWidth = glm::max(180.0f, panelWidth * 0.25f);
 
-		ImGui::Separator();
+		// Left pane: substance list
+		ImGui::BeginChild("##SubstanceList", ImVec2(listWidth, 0), true);
+		DrawSubstanceList();
+		ImGui::EndChild();
 
-		// Save/Reload buttons
-		if (ImGui::Button("Save to YAML"))
-			VoxelSubstanceDatabase::Save("assets/config/voxel_substances.yaml");
 		ImGui::SameLine();
-		if (ImGui::Button("Reload from YAML"))
-			VoxelSubstanceDatabase::Load("assets/config/voxel_substances.yaml");
+
+		// Right pane: inspector
+		ImGui::BeginChild("##SubstanceInspector", ImVec2(0, 0), true);
+		DrawSubstanceInspector();
+		ImGui::EndChild();
 
 		ImGui::End();
 	}
 
-	void SubstanceEditorPanel::DrawSubstance(VoxelMaterialType type)
+	void SubstanceEditorPanel::DrawSubstanceList()
 	{
-		auto& p = VoxelSubstanceDatabase::GetMutable(type);
+		// Search filter
+		ImGui::SetNextItemWidth(-1);
+		ImGui::InputTextWithHint("##search", "Search...", m_SearchFilter, sizeof(m_SearchFilter));
 
-		// --- Physical ---
-		if (ImGui::CollapsingHeader("Physical", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::DragFloat("Mass Per Voxel", &p.MassPerVoxel, 0.001f, 0.001f, 10.0f, "%.4f");
-		}
+		ImGui::Separator();
 
-		// --- Structural ---
-		if (ImGui::CollapsingHeader("Structural", ImGuiTreeNodeFlags_DefaultOpen)) {
-			ImGui::DragFloat("Health", &p.Health, 1.0f, 1.0f, 10000.0f);
-			ImGui::SliderFloat("Hardness", &p.Hardness, 0.0f, 100.0f);
-			ImGui::SliderFloat("Explosion Resist", &p.ExplosionResistance, 0.0f, 1.0f);
-			ImGui::SliderFloat("Slice Resist", &p.SliceResistance, 0.0f, 1.0f);
-			ImGui::DragFloat("Tensile Strength", &p.TensileStrength, 1.0f, 0.0f, 100000.0f);
-			ImGui::DragFloat("Impact Threshold", &p.ImpactThreshold, 0.1f, 0.0f, 1000.0f);
-		}
+		// Substance list
+		auto allIDs = SubstanceRegistry::GetAllIDs();
+		std::string filterStr(m_SearchFilter);
+		// Case-insensitive filter
+		std::transform(filterStr.begin(), filterStr.end(), filterStr.begin(), ::tolower);
 
-		// --- Fracture ---
-		if (ImGui::CollapsingHeader("Fracture")) {
-			const char* fractureNames[] = {"None", "Chip", "Crack", "Shatter", "Crumble"};
-			int fracIdx = static_cast<int>(p.Fracture);
-			if (ImGui::Combo("Behavior", &fracIdx, fractureNames, 5))
-				p.Fracture = static_cast<FractureBehavior>(fracIdx);
-			ImGui::SliderFloat("Fracture Threshold", &p.FractureThreshold, 0.0f, 1.0f);
-			ImGui::SliderInt("Fragment Count", &p.FragmentCount, 0, 20);
-			ImGui::Checkbox("Fragments Have Physics", &p.FragmentsHavePhysics);
-		}
-
-		// --- Environmental ---
-		if (ImGui::CollapsingHeader("Environmental")) {
-			ImGui::Checkbox("Flammable", &p.Flammable);
-			if (p.Flammable) {
-				ImGui::DragFloat("Ignition Temperature", &p.IgnitionTemperature, 1.0f, 0.0f, 1000.0f);
-				ImGui::DragFloat("Burn Duration (s)", &p.BurnDuration, 0.1f, 0.0f, 60.0f);
+		for (const auto& id : allIDs) {
+			if (!filterStr.empty()) {
+				std::string lowerID = id;
+				std::transform(lowerID.begin(), lowerID.end(), lowerID.begin(), ::tolower);
+				if (lowerID.find(filterStr) == std::string::npos)
+					continue;
 			}
-			ImGui::Checkbox("Propagates Damage", &p.PropagatesDamage);
-			if (p.PropagatesDamage)
-				ImGui::SliderFloat("Spread Factor", &p.DamageSpreadFactor, 0.0f, 1.0f);
+
+			Vector3 col = SubstanceRegistry::GetDisplayColor(id);
+			ImGui::ColorButton(("##col_" + id).c_str(),
+				ImVec4(col.x, col.y, col.z, 1.0f),
+				ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder,
+				ImVec2(12, 12));
+			ImGui::SameLine();
+
+			bool selected = (m_SelectedID == id);
+			if (ImGui::Selectable(id.c_str(), selected)) {
+				m_SelectedID = id;
+			}
+
+			// Right-click context menu
+			if (ImGui::BeginPopupContextItem(("##ctx_" + id).c_str())) {
+				if (ImGui::MenuItem("Rename")) {
+					std::strncpy(m_RenameBuffer, id.c_str(), sizeof(m_RenameBuffer) - 1);
+					m_RenameBuffer[sizeof(m_RenameBuffer) - 1] = '\0';
+					m_ShowRenamePopup = true;
+					m_SelectedID = id;
+				}
+				if (ImGui::MenuItem("Duplicate")) {
+					std::string newID = id + "_Copy";
+					int suffix = 1;
+					while (SubstanceRegistry::Exists(newID))
+						newID = id + "_Copy" + std::to_string(++suffix);
+					SubstanceRegistry::Duplicate(id, newID);
+					m_SelectedID = newID;
+				}
+				if (ImGui::MenuItem("Delete")) {
+					SubstanceRegistry::Remove(id);
+					if (m_SelectedID == id)
+						m_SelectedID.clear();
+				}
+				ImGui::EndPopup();
+			}
 		}
 
-		// --- Damage Tints ---
-		DrawDamageTints(p);
+		ImGui::Separator();
+
+		// Bottom buttons
+		if (ImGui::Button("+ New")) {
+			std::string newID = "NewSubstance";
+			int suffix = 1;
+			while (SubstanceRegistry::Exists(newID))
+				newID = "NewSubstance" + std::to_string(++suffix);
+
+			SubstanceDefinition def;
+			def.ID = newID;
+			SubstanceRegistry::Register(std::move(def));
+			m_SelectedID = newID;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Duplicate") && !m_SelectedID.empty()) {
+			std::string newID = m_SelectedID + "_Copy";
+			int suffix = 1;
+			while (SubstanceRegistry::Exists(newID))
+				newID = m_SelectedID + "_Copy" + std::to_string(++suffix);
+			SubstanceRegistry::Duplicate(m_SelectedID, newID);
+			m_SelectedID = newID;
+		}
+
+		// Rename popup
+		if (m_ShowRenamePopup) {
+			ImGui::OpenPopup("Rename Substance");
+			m_ShowRenamePopup = false;
+		}
+		if (ImGui::BeginPopup("Rename Substance")) {
+			ImGui::Text("Rename: %s", m_SelectedID.c_str());
+			ImGui::InputText("New Name", m_RenameBuffer, sizeof(m_RenameBuffer));
+			if (ImGui::Button("OK")) {
+				std::string newID(m_RenameBuffer);
+				if (!newID.empty() && newID != m_SelectedID && !SubstanceRegistry::Exists(newID)) {
+					SubstanceRegistry::Rename(m_SelectedID, newID);
+					m_SelectedID = newID;
+				}
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+				ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+		}
 	}
 
-	void SubstanceEditorPanel::DrawDamageTints(VoxelSubstanceProperties& props)
+	void SubstanceEditorPanel::DrawSubstanceInspector()
 	{
-		if (!ImGui::CollapsingHeader("Damage Tints"))
+		if (m_SelectedID.empty() || !SubstanceRegistry::Exists(m_SelectedID)) {
+			ImGui::TextDisabled("Select a substance from the list");
 			return;
-
-		static const char* damageTypeNames[] = {
-			"Impact", "Explosion", "Slice", "Fire", "Acid", "Pressure", "Structural"
-		};
-		static constexpr VoxelDamageType damageTypeValues[] = {
-			VoxelDamageType::Impact, VoxelDamageType::Explosion, VoxelDamageType::Slice,
-			VoxelDamageType::Fire, VoxelDamageType::Acid, VoxelDamageType::Pressure,
-			VoxelDamageType::Structural
-		};
-
-		// Iterate configured tints
-		std::vector<VoxelDamageType> toRemove;
-		for (auto& [dmgType, cfg] : props.DamageTints) {
-			auto typeName = "Unknown";
-			for (int i = 0; i < 7; ++i)
-				if (damageTypeValues[i] == dmgType) {
-					typeName = damageTypeNames[i];
-					break;
-				}
-
-			ImGui::PushID(static_cast<int>(dmgType));
-			if (ImGui::TreeNode(typeName)) {
-				float col[3] = {cfg.Color.x, cfg.Color.y, cfg.Color.z};
-				if (ImGui::ColorEdit3("Tint Color", col))
-					cfg.Color = Vector3(col[0], col[1], col[2]);
-				ImGui::DragFloat("Intensity", &cfg.Intensity, 0.01f, 0.0f, 5.0f);
-				ImGui::SliderInt("Spread Radius", &cfg.SpreadRadius, 0, 4);
-				ImGui::SliderFloat("Spread Falloff", &cfg.SpreadFalloff, 0.0f, 1.0f);
-
-				if (ImGui::Button("Remove"))
-					toRemove.push_back(dmgType);
-
-				ImGui::TreePop();
-			}
-			ImGui::PopID();
 		}
 
-		for (auto t : toRemove)
-			props.DamageTints.erase(t);
+		auto& def = SubstanceRegistry::GetDefinition(m_SelectedID);
+		auto& props = def.Properties;
 
-		// Add new tint config
+		// Header: name + display color + PBR
+		ImGui::Text("%s", def.ID.c_str());
 		ImGui::Separator();
-		static int addTypeIdx = 3; // default to Fire
-		ImGui::Combo("##AddType", &addTypeIdx, damageTypeNames, 7);
-		ImGui::SameLine();
-		if (ImGui::Button("Add Tint")) {
-			VoxelDamageType addType = damageTypeValues[addTypeIdx];
-			if (props.DamageTints.find(addType) == props.DamageTints.end())
-				props.DamageTints[addType] = DamageTintConfig{};
+
+		float col[3] = {def.DisplayColor.x, def.DisplayColor.y, def.DisplayColor.z};
+		if (ImGui::ColorEdit3("Display Color", col))
+			def.DisplayColor = Vector3(col[0], col[1], col[2]);
+
+		if (ImGui::CollapsingHeader("PBR Defaults")) {
+			ImGui::DragFloat("Metallic", &def.PBRDefaults.Metallic, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat("Roughness", &def.PBRDefaults.Roughness, 0.01f, 0.0f, 1.0f);
+			ImGui::DragFloat("Emission", &def.PBRDefaults.Emission, 0.01f, 0.0f, 10.0f);
 		}
+
+		ImGui::Separator();
+
+		// Schema-driven property categories
+		DrawSubstanceCategory("Physical", props, true);
+		DrawSubstanceCategory("Structural", props, true);
+		DrawSubstanceCategory("Fracture", props);
+
+		// Environmental section — needs special handling for burn stages
+		{
+			ImGuiTreeNodeFlags flags = 0;
+			if (ImGui::CollapsingHeader("Environmental", flags)) {
+				const auto& schema = GetSubstancePropertySchema();
+				for (const auto& meta : schema) {
+					if (std::string(meta.Category) != "Environmental")
+						continue;
+					if (meta.Widget == SubstancePropWidget::Custom) {
+						// Burn stages custom widget
+						if (std::string(meta.YAMLKey) == "burn_stages") {
+							if (IsPropertyEnabled(meta, props)) {
+								ImGui::Separator();
+								DrawBurnStages(props, def.DisplayColor);
+							}
+						}
+						continue;
+					}
+					if (!IsPropertyEnabled(meta, props))
+						continue;
+
+					ImGui::PushID(meta.YAMLKey);
+					DrawSubstanceProperty(meta, props);
+					ImGui::PopID();
+				}
+			}
+		}
+
+		// Damage Tints section
+		if (ImGui::CollapsingHeader("Damage Tints"))
+			DrawDamageTints(props);
+
+		ImGui::Separator();
+
+		// Footer: Save / Save All / Reload
+		if (ImGui::Button("Save All"))
+			SubstanceRegistry::Save("assets/config/voxel_substances.yaml");
+		ImGui::SameLine();
+		if (ImGui::Button("Reload"))
+			SubstanceRegistry::Load("assets/config/voxel_substances.yaml");
 	}
 }

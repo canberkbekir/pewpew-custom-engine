@@ -13,6 +13,7 @@
 #include "CBEngine/Asset/VoxelTextureAsset.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "CBEngine/Utils/VoxelMaterialType.h"
+#include "CBEngine/Voxel/Destruction/SubstanceID.h"
 
 #include <set>
 
@@ -111,7 +112,7 @@ namespace CB
 		struct PaletteColorGroup
 		{
 			Vector3 AverageColor;
-			VoxelMaterialType MaterialType = VoxelMaterialType::Stone;
+			SubstanceID MaterialSubstance = "Stone";
 			std::vector<uint8_t> EntryIndices;
 			bool Expanded = false;
 		};

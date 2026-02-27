@@ -1,7 +1,8 @@
 #pragma once
 #include "Panel.h"
-#include "CBEngine/Utils/VoxelMaterialType.h"
-#include "CBEngine/Voxel/Destruction/VoxelSubstance.h"
+#include "CBEngine/Voxel/Destruction/SubstanceID.h"
+
+#include <string>
 
 namespace CB
 {
@@ -11,13 +12,16 @@ namespace CB
 		SubstanceEditorPanel()
 			: Panel("Substance Editor", false)
 		{
-		} // hidden by default
+		}
 
 		void OnImGuiRender() override;
 	private:
-		void DrawSubstance(VoxelMaterialType type);
-		void DrawDamageTints(VoxelSubstanceProperties& props);
+		void DrawSubstanceList();
+		void DrawSubstanceInspector();
 
-		int m_SelectedSubstance = 0;
+		SubstanceID m_SelectedID;
+		char m_SearchFilter[128] = {};
+		char m_RenameBuffer[128] = {};
+		bool m_ShowRenamePopup = false;
 	};
 }

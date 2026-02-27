@@ -8,6 +8,7 @@
 #include "CBEngine/Utils/VoxelizerAPI.h"
 #include "CBEngine/Utils/VoxelMaterialType.h"
 #include "CBEngine/Asset/VoxelTextureAsset.h"
+#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
 #include "../AssetPicker.h"
 #include "../ComponentCard.h"
 
@@ -102,27 +103,24 @@ namespace CB
 					}
 				}
 
-				// Show material type distribution if vtex is loaded
+				// Show substance distribution if vtex is loaded
 				if (voxelRenderer.VoxelTexture) {
 					const auto& vtex = voxelRenderer.VoxelTexture;
 
-					// Count material types from palette mapping
-					uint32_t counts[static_cast<int>(VoxelMaterialType::Count)] = {};
-					for (const auto& [idx, type] : vtex->PaletteMapping)
-						counts[static_cast<int>(type)]++;
+					// Count substances from palette mapping
+					std::unordered_map<SubstanceID, uint32_t> subCounts;
+					for (const auto& [idx, id] : vtex->PaletteMapping)
+						subCounts[id]++;
 
-					ImGui::TextDisabled("Palette types:");
-					for (int i = 0; i < static_cast<int>(VoxelMaterialType::Count); i++) {
-						if (counts[i] > 0) {
-							auto mt = static_cast<VoxelMaterialType>(i);
-							Vector3 col = VoxelMaterialTypeDisplayColor(mt);
-							ImGui::ColorButton(("##mt" + std::to_string(i)).c_str(),
-							                   ImVec4(col.x, col.y, col.z, 1.0f),
-							                   ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder,
-							                   ImVec2(12, 12));
-							ImGui::SameLine();
-							ImGui::Text("%s: %u", VoxelMaterialTypeToString(mt), counts[i]);
-						}
+					ImGui::TextDisabled("Palette substances:");
+					for (const auto& [id, count] : subCounts) {
+						Vector3 col = SubstanceRegistry::GetDisplayColor(id);
+						ImGui::ColorButton(("##mt" + id).c_str(),
+						                   ImVec4(col.x, col.y, col.z, 1.0f),
+						                   ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoBorder,
+						                   ImVec2(12, 12));
+						ImGui::SameLine();
+						ImGui::Text("%s: %u", id.c_str(), count);
 					}
 
 					if (!vtex->VoxelOverrides.empty())

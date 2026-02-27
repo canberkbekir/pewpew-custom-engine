@@ -5,6 +5,7 @@
 #include "CBEngine/Voxel/Destruction/VoxelDamageMap.h"
 #include "CBEngine/Voxel/Destruction/VoxelSubstance.h"
 
+#include <glm/glm.hpp>
 #include <future>
 #include <chrono>
 #include <vector>
@@ -12,6 +13,31 @@
 namespace CB
 {
 	class Scene;
+
+	// Info about one destructible entity for cross-entity spread checks
+	struct CrossEntityInfo
+	{
+		uint64_t EntityUUID;
+		glm::vec3 AABBMin;
+		glm::vec3 AABBMax;
+		bool Flammable;
+		float SootResistance;
+		Vector3 SootColor;
+		float BurnDuration;
+	};
+
+	// Shared context for cross-entity spread (const, built on main thread)
+	struct CrossEntityContext
+	{
+		std::vector<CrossEntityInfo> Entities;
+	};
+
+	// Cross-entity ignition event produced by worker thread
+	struct CrossEntityIgnition
+	{
+		uint64_t TargetEntityUUID;
+		glm::vec3 WorldPos;
+	};
 
 	// Snapshot of one entity's burn state for worker thread
 	struct SpreadSnapshot
@@ -21,6 +47,7 @@ namespace CB
 		VoxelBurnMap Burns; // deep copy
 		VoxelSubstanceProperties Substance;
 		float DeltaTime;
+		glm::mat4 WorldTransform = glm::mat4(1.0f); // entity-to-world
 	};
 
 	// Results from one entity's spread tick
@@ -32,6 +59,7 @@ namespace CB
 		VoxelTintMap TintUpdates; // tint changes to merge
 		VoxelBurnMap UpdatedBurns; // new burn state
 		std::vector<glm::ivec3> Extinguished; // fires that expired
+		std::vector<CrossEntityIgnition> CrossIgnitions; // fire jumping to other entities
 	};
 
 	class VoxelSpreadSystem
@@ -44,11 +72,13 @@ namespace CB
 		static void CollectWorkerResults();
 		static void ApplyPendingResults(Scene* scene);
 		static std::vector<SpreadSnapshot> BuildSnapshots(Scene* scene,float dt);
+		static CrossEntityContext BuildCrossEntityContext(Scene* scene);
 
 		// Worker thread: process spread ticks (pure function, no shared state)
 		static std::vector<SpreadResult> ProcessSpreadTicks(
-			std::vector<SpreadSnapshot> snapshots);
-		static SpreadResult ProcessSingleEntity(const SpreadSnapshot& snap);
+			std::vector<SpreadSnapshot> snapshots, CrossEntityContext crossCtx);
+		static SpreadResult ProcessSingleEntity(const SpreadSnapshot& snap,
+			const CrossEntityContext& crossCtx);
 
 		// Async state
 		static std::future<std::vector<SpreadResult>> s_WorkerFuture;
