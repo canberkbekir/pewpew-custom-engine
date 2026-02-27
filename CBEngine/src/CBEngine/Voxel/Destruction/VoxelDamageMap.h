@@ -26,6 +26,7 @@ namespace CB
 		float Timer = 0.0f; // time remaining to burn (seconds)
 		float SpreadTimer = 0.0f; // cooldown until next spread attempt
 		float TickTimer = 0.0f; // cooldown until next tick damage
+		float SootTimer = 0.0f; // cooldown until next soot application
 	};
 
 	using VoxelBurnMap = std::unordered_map<glm::ivec3, ActiveBurn, VoxelCoordHash>;
@@ -48,6 +49,10 @@ namespace CB
 
 		// Voxels that reached 0 HP this frame, pending removal from the grid
 		std::vector<glm::ivec3> PendingRemoval;
+
+		// Incremented each time voxels are removed from ModifiedGrid;
+		// used by VoxelSpreadSystem grid cache to avoid redundant deep copies.
+		uint32_t GridGeneration = 0;
 
 		// Tint map — per-voxel visual tint from damage effects
 		VoxelTintMap TintMap;

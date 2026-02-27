@@ -31,11 +31,32 @@ namespace CB
 			default: break;
 			}
 
-			LogBuffer::Get().AddMessage(
-				fmt::to_string(formatted),
-				level,
-				std::string(msg.logger_name.data(), msg.logger_name.size())
-			);
+			std::string text = fmt::to_string(formatted);
+			LogCategory category = LogCategory::General;
+
+			// Detect category tag from the payload (not the formatted output)
+			std::string payload(msg.payload.data(), msg.payload.size());
+			struct TagMapping { const char* Tag; size_t Len; LogCategory Cat; };
+			static const TagMapping tags[] = {
+				{ "[Physics] ",   10, LogCategory::Physics },
+				{ "[Voxels] ",    9,  LogCategory::Voxels },
+				{ "[Scripting] ", 12, LogCategory::Scripting },
+				{ "[Rendering] ", 12, LogCategory::Rendering },
+			};
+			for (const auto& t : tags) {
+				if (payload.size() >= t.Len && payload.compare(0, t.Len, t.Tag) == 0) {
+					category = t.Cat;
+					// Strip the tag from the formatted text
+					auto pos = text.find(t.Tag);
+					if (pos != std::string::npos)
+						text.erase(pos, t.Len);
+					break;
+				}
+			}
+
+			LogBuffer::Get().AddMessage(text, level,
+				std::string(msg.logger_name.data(), msg.logger_name.size()),
+				category);
 		}
 
 		void flush_() override

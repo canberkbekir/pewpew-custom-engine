@@ -1,5 +1,4 @@
 substances:
-
   Glass:
     display_color: [0.3, 0.8, 0.9]
     pbr_defaults:
@@ -26,7 +25,6 @@ substances:
       soot_resistance: 0.9
       soot_color: [0.15, 0.15, 0.15]
       cross_entity_spread_radius: 0.2
-
   Marble:
     display_color: [0.9, 0.88, 0.85]
     pbr_defaults:
@@ -53,7 +51,6 @@ substances:
       soot_resistance: 0.6
       soot_color: [0.18, 0.17, 0.16]
       cross_entity_spread_radius: 0.4
-
   Metal:
     display_color: [0.75, 0.75, 0.8]
     pbr_defaults:
@@ -80,7 +77,6 @@ substances:
       soot_resistance: 0.95
       soot_color: [0.12, 0.12, 0.12]
       cross_entity_spread_radius: 0.3
-
   Stone:
     display_color: [0.5, 0.5, 0.5]
     pbr_defaults:
@@ -118,7 +114,6 @@ substances:
           intensity: 0.85
           spread_radius: 2
           spread_falloff: 0.55
-
   Wood:
     display_color: [0.55, 0.35, 0.15]
     pbr_defaults:
@@ -147,19 +142,23 @@ substances:
       cross_entity_spread_radius: 0.8
       burn_stages:
         tints:
-          - [1.0, 0.95, 0.9]
-          - [0.9, 0.45, 0.15]
-          - [0.18, 0.09, 0.04]
-          - [0.04, 0.04, 0.04]
-        thresholds: [0.15, 0.45, 0.8]
+          # Normal (clean / untreated)
+          - [ 0.85, 1.00, 0.80 ]   # pale toxic green 
+          # Acid reacting (early corrosion)
+          - [ 0.35, 1.00, 0.25 ]   # neon acid green 
+          # Heavy corrosion
+          - [ 0.10, 0.35, 0.10 ]   # dark corrosive green 
+          # Structural collapse / residue
+          - [ 0.03, 0.05, 0.03 ]   # near-black green sludge
+        thresholds: [ 0.15, 0.45, 0.8 ]
       damage_tints:
+        Fire:
+          color: [0.14, 0.06, 0.025]
+          intensity: 1.4
+          spread_radius: 1
+          spread_falloff: 0.3
         Acid:
           color: [0.22, 0.5, 0.14]
           intensity: 0.8
           spread_radius: 1
           spread_falloff: 0.45
-        Fire:
-          color: [0.14, 0.06, 0.025]
-          intensity: 1.4
-          spread_radius: 4
-          spread_falloff: 0.3

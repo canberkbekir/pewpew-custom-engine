@@ -9,6 +9,7 @@
 #include <future>
 #include <chrono>
 #include <vector>
+#include <unordered_map>
 
 namespace CB
 {
@@ -39,44 +40,53 @@ namespace CB
 		glm::vec3 WorldPos;
 	};
 
-	// Snapshot of one entity's burn state for worker thread
+	// Single burn that needs work this frame (flat, cache-friendly)
+	struct BurnWorkItem
+	{
+		glm::ivec3 Coord;
+		ActiveBurn Burn;   // snapshot copy of this burn's state
+		bool NeedsTick;    // TickTimer expired
+		bool NeedsSpread;  // SpreadTimer expired
+		bool NeedsSoot;    // SootTimer expired
+	};
+
+	// Lightweight snapshot — flat work item vector instead of full burn map copy
 	struct SpreadSnapshot
 	{
 		uint64_t EntityUUID;
-		voxelizer::VoxelGrid Grid; // deep copy (read-only on worker)
-		VoxelBurnMap Burns; // deep copy
+		voxelizer::VoxelGrid Grid;              // deep copy only when grid generation changes
+		std::vector<BurnWorkItem> WorkItems;    // flat contiguous array of burns needing work
 		VoxelSubstanceProperties Substance;
-		float DeltaTime;
-		glm::mat4 WorldTransform = glm::mat4(1.0f); // entity-to-world
+		glm::mat4 WorldTransform = glm::mat4(1.0f);
 	};
 
-	// Results from one entity's spread tick
+	// Results from one entity's spread tick (stride-sized, no full burn state)
 	struct SpreadResult
 	{
 		uint64_t EntityUUID;
-		std::vector<VoxelDamageEvent> TickDamage; // burn tick damage to queue
-		std::vector<glm::ivec3> NewIgnitions; // neighbors to ignite
-		VoxelTintMap TintUpdates; // tint changes to merge
-		VoxelBurnMap UpdatedBurns; // new burn state
-		std::vector<glm::ivec3> Extinguished; // fires that expired
-		std::vector<CrossEntityIgnition> CrossIgnitions; // fire jumping to other entities
+		std::vector<VoxelDamageEvent> TickDamage;        // burn tick damage to queue
+		std::vector<glm::ivec3> NewIgnitions;            // neighbors to ignite
+		VoxelTintMap TintUpdates;                        // tint changes to merge
+		std::vector<CrossEntityIgnition> CrossIgnitions;  // fire jumping to other entities
 	};
 
 	class VoxelSpreadSystem
 	{
 	public:
-		static void OnUpdate(Scene* scene,Timestep ts);
+		static void OnUpdate(Scene* scene, Timestep ts);
 		static void Shutdown();
 	private:
-		// Main thread: apply previous frame's results, snapshot current state
+		// Main thread
 		static void CollectWorkerResults();
 		static void ApplyPendingResults(Scene* scene);
-		static std::vector<SpreadSnapshot> BuildSnapshots(Scene* scene,float dt);
+		static void AdvanceTimers(Scene* scene, float dt);
+		static std::vector<SpreadSnapshot> BuildSnapshots(Scene* scene);
 		static CrossEntityContext BuildCrossEntityContext(Scene* scene);
 
-		// Worker thread: process spread ticks (pure function, no shared state)
+		// Worker thread (pure functions, no shared state)
 		static std::vector<SpreadResult> ProcessSpreadTicks(
-			std::vector<SpreadSnapshot> snapshots, CrossEntityContext crossCtx);
+			std::vector<SpreadSnapshot> snapshots, CrossEntityContext crossCtx,
+			std::vector<uint64_t>& outDeferred);
 		static SpreadResult ProcessSingleEntity(const SpreadSnapshot& snap,
 			const CrossEntityContext& crossCtx);
 
@@ -85,6 +95,18 @@ namespace CB
 		static bool s_WorkerRunning;
 		static std::vector<SpreadResult> s_PendingResults;
 		static bool s_HasPendingResults;
+
+		// Stride / scheduling
+		static size_t s_StrideIndex;
+		static std::vector<uint64_t> s_DeferredEntities;
+
+		// Grid cache: avoids deep-copying grids every frame
+		struct CachedGrid
+		{
+			uint32_t Generation = UINT32_MAX;
+			voxelizer::VoxelGrid Grid;
+		};
+		static std::unordered_map<uint64_t, CachedGrid> s_GridCache;
 	};
 
 	// =========================================================================
@@ -93,7 +115,7 @@ namespace CB
 	class VoxelSpreadSystemAdapter : public ISystem
 	{
 	public:
-		void OnUpdate(Scene* scene,Timestep ts) override { VoxelSpreadSystem::OnUpdate(scene, ts); }
+		void OnUpdate(Scene* scene, Timestep ts) override { VoxelSpreadSystem::OnUpdate(scene, ts); }
 		void Shutdown() override { VoxelSpreadSystem::Shutdown(); }
 		const char* GetName() const override { return "VoxelSpreadSystem"; }
 		int GetPriority() const override { return 176; }

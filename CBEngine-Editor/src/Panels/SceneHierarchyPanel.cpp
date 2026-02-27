@@ -24,6 +24,7 @@
 
 #include "CBEngine/Components/DirectionalLightComponent.h"
 #include "CBEngine/Components/BlueprintInstanceComponent.h"
+#include "CBEngine/Scene/ComponentRegistry.h"
 
 namespace CB
 {
@@ -39,10 +40,19 @@ namespace CB
 		}
 	}
 
+	template <typename... Ts>
+	static void CopyComponentsFromList(Entity src, Entity dst, ComponentList<Ts...>)
+	{
+		(CopyComponentIfExists<Ts>(src, dst), ...);
+	}
+
 	static void CopyAllComponents(Entity src,Entity dst)
 	{
-		CopyComponentIfExists<TransformComponent>(src, dst);
-		CopyComponentIfExists<MeshRendererComponent>(src, dst);
+		CopyComponentsFromList(src, dst, SerializableComponents{});
+
+		// BlueprintInstanceComponent is intentionally excluded from
+		// SerializableComponents (handled manually by SceneSerializer)
+		CopyComponentIfExists<BlueprintInstanceComponent>(src, dst);
 	}
 
 	SceneHierarchyPanel::SceneHierarchyPanel(const Ref<Scene>& scene)

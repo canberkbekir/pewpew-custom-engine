@@ -34,6 +34,19 @@ namespace CB
 		ImGui::SameLine();
 		ImGui::Checkbox("Error", &m_ShowError);
 
+		// Category filter row
+		ImGui::Text("Category:");
+		ImGui::SameLine();
+		ImGui::Checkbox("General", &m_ShowGeneral);
+		ImGui::SameLine();
+		ImGui::Checkbox("Physics", &m_ShowPhysics);
+		ImGui::SameLine();
+		ImGui::Checkbox("Voxels", &m_ShowVoxels);
+		ImGui::SameLine();
+		ImGui::Checkbox("Scripting", &m_ShowScripting);
+		ImGui::SameLine();
+		ImGui::Checkbox("Rendering", &m_ShowRendering);
+
 		ImGui::Separator();
 
 		// Log output
@@ -72,7 +85,19 @@ namespace CB
 					break;
 				}
 
-				if (show) {
+				// Filter by category
+			if (show) {
+				switch (msg.Category) {
+				case LogCategory::General:   show = m_ShowGeneral;   break;
+				case LogCategory::Physics:   show = m_ShowPhysics;   break;
+				case LogCategory::Voxels:    show = m_ShowVoxels;    break;
+				case LogCategory::Scripting: show = m_ShowScripting; break;
+				case LogCategory::Rendering: show = m_ShowRendering; break;
+				default: break;
+				}
+			}
+
+			if (show) {
 					ImGui::PushStyleColor(ImGuiCol_Text, color);
 					ImGui::TextUnformatted(msg.Message.c_str());
 					ImGui::PopStyleColor();

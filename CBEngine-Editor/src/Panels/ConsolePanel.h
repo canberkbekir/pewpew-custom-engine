@@ -23,5 +23,12 @@ namespace CB
 		bool m_ShowInfo = true;
 		bool m_ShowWarn = true;
 		bool m_ShowError = true;
+
+		// Filter by category
+		bool m_ShowGeneral = true;
+		bool m_ShowPhysics = true;
+		bool m_ShowVoxels = true;
+		bool m_ShowScripting = true;
+		bool m_ShowRendering = true;
 	};
 }

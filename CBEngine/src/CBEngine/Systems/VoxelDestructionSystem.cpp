@@ -299,7 +299,7 @@ namespace CB
 
 			// Ignite the voxel if substance is flammable and this is Fire/Acid
 			if ((event.Type == VoxelDamageType::Fire || event.Type == VoxelDamageType::Acid)
-				&& sub.Flammable && sub.BurnDuration > 0.0f) {
+				&& sub.Flammable && sub.BurnDuration > 0.0f && !health.Charred) {
 				auto& burn = state.ActiveBurns[event.GridCoord];
 				if (burn.Timer <= 0.0f) // don't reset timer if already burning
 				{
@@ -389,6 +389,7 @@ namespace CB
 			// Remove from working grid
 			uint64_t remaining = VoxelSplitter::RemoveVoxels(
 				state.ModifiedGrid, state.ModifiedPaletteIndices, batch);
+			++state.GridGeneration;
 
 			// Cleanup tint and burn entries for removed voxels
 			for (const auto& coord : batch) {
@@ -498,9 +499,10 @@ namespace CB
 		if (entity.HasComponent<DestructibleVoxelComponent>())
 			origDV = entity.GetComponent<DestructibleVoxelComponent>();
 
-		// Save tint and burn data before erasing state
+		// Save tint, burn, and damage data before erasing state
 		VoxelTintMap savedTintMap = std::move(state.TintMap);
 		VoxelBurnMap savedBurns = std::move(state.ActiveBurns);
+		VoxelDamageMap savedDamageMap = std::move(state.DamageMap);
 
 		scene->DestroyEntity(entity);
 		s_EntityStates.erase(entityUUID);
@@ -603,6 +605,13 @@ namespace CB
 				glm::ivec3 localCoord = sourceCoord - frag.MinCoord;
 				if (frag.Grid.IsValidCoord(localCoord) && frag.Grid.IsFilled(localCoord))
 					fragState.ActiveBurns[localCoord] = burn;
+			}
+
+			// Transfer damage map (carries Charred flag to prevent re-ignition)
+			for (const auto& [sourceCoord, health] : savedDamageMap) {
+				glm::ivec3 localCoord = sourceCoord - frag.MinCoord;
+				if (frag.Grid.IsValidCoord(localCoord) && frag.Grid.IsFilled(localCoord))
+					fragState.DamageMap[localCoord] = health;
 			}
 
 			++spawned;
@@ -801,6 +810,14 @@ namespace CB
 				chunkBurns[c] = burnIt->second;
 		}
 
+		// Build chunk damage map (carries Charred flag to prevent re-ignition)
+		VoxelDamageMap chunkDamageMap;
+		for (const auto& c : cluster.Coords) {
+			auto dmgIt = state.DamageMap.find(c);
+			if (dmgIt != state.DamageMap.end())
+				chunkDamageMap[c] = dmgIt->second;
+		}
+
 		// Remove cluster voxels from the working grid
 		VoxelSplitter::RemoveVoxels(state.ModifiedGrid, state.ModifiedPaletteIndices,
 		                            cluster.Coords);
@@ -898,6 +915,7 @@ namespace CB
 		chunkState.GridInitialized = true;
 		chunkState.TintMap = std::move(chunkTintMap);
 		chunkState.ActiveBurns = std::move(chunkBurns);
+		chunkState.DamageMap = std::move(chunkDamageMap);
 
 		CB_CORE_TRACE("  Spawned collapse chunk: {0} voxels, mass={1:.1f}",
 		              cluster.VoxelCount, rb.Mass);

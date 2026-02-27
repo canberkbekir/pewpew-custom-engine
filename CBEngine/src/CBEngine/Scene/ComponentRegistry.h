@@ -28,7 +28,10 @@ namespace CB
 		ScriptComponent,
 		GameManagerComponent,
 		AudioSourceComponent,
-		HingeJointComponent
+		HingeJointComponent,
+		HingeChainComponent,
+		DestructibleVoxelComponent,
+		VoxelAnchorComponent
 	>;
 
 	// NOTE: BlueprintInstanceComponent is NOT in SerializableComponents.

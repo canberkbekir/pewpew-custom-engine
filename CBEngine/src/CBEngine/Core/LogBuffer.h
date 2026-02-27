@@ -18,11 +18,22 @@ namespace CB
 		Critical
 	};
 
+	enum class LogCategory : uint8_t
+	{
+		General,
+		Physics,
+		Voxels,
+		Scripting,
+		Rendering,
+		Count
+	};
+
 	struct LogMessage
 	{
 		String Message;
 		LogLevel Level;
 		String LoggerName;
+		LogCategory Category = LogCategory::General;
 	};
 
 	class LogBuffer
@@ -34,12 +45,13 @@ namespace CB
 			return instance;
 		}
 
-		void AddMessage(const String& message,LogLevel level,const String& loggerName)
+		void AddMessage(const String& message, LogLevel level, const String& loggerName,
+			LogCategory category = LogCategory::General)
 		{
 			std::lock_guard<std::mutex> lock(m_Mutex);
-			m_Messages.push_back({message, level, loggerName});
+			m_Messages.push_back({message, level, loggerName, category});
 
-			// Keep max 1000 messages
+			// Keep max 5000 messages
 			if (m_Messages.size() > 5000)
 				m_Messages.erase(m_Messages.begin());
 		}

@@ -127,6 +127,7 @@ namespace CB
 		float MaxHealth = 100.0f; // cached from substance at first damage
 		uint8_t FractureStage = 0; // 0=intact 1=cracked 2=breaking 3=critical 4=destroyed
 		bool Burning = false;
+		bool Charred = false; // true once a burn has fully completed — prevents re-ignition
 		float FireTimer = 0.0f; // counts down while burning
 	};
 

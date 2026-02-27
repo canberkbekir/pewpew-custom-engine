@@ -99,6 +99,9 @@ namespace CB
 		// clean up s_EntityStates when an entity is destroyed externally.
 		// -----------------------------------------------------------------
 		static void OnEntityDestroyed(uint64_t uuid);
+
+		// Mark an entity for tint-only mesh rebuild (used by VoxelSpreadSystem)
+		static void MarkTintDirty(uint64_t entityUUID) { s_TintDirtyEntities.push_back(entityUUID); }
 	private:
 		static void ProcessDamageQueue(Scene* scene);
 		static void ProcessPendingRemovals(Scene* scene);
