@@ -14,7 +14,6 @@ using ImGuiID = unsigned int;
 #include "Panels/ContentBrowserPanel.h"
 #include "Panels/MeshImportPanel.h"
 #include "Panels/VoxelTextureEditorPanel.h"
-#include "Panels/GameViewportPanel.h"
 #include "Panels/SubstanceEditorPanel.h"
 
 #include <queue>
@@ -80,7 +79,6 @@ namespace CB
 		ContentBrowserPanel m_ContentBrowserPanel;
 		MeshImportPanel m_MeshImportPanel;
 		VoxelTextureEditorPanel m_VoxelTextureEditorPanel;
-		GameViewportPanel m_GameViewportPanel;
 		SubstanceEditorPanel m_SubstanceEditorPanel;
 
 		// Pending import queue (thread-safe, for FileWatcher callback)

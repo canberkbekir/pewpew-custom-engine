@@ -145,9 +145,6 @@ namespace CB
 		// Update viewport (handles rendering)
 		m_ViewportPanel.OnUpdate(ts);
 
-		// Update game viewport
-		m_GameViewportPanel.OnUpdate(ts);
-
 		// Update import preview panel
 		m_MeshImportPanel.OnUpdate(ts);
 
@@ -223,7 +220,6 @@ namespace CB
 		m_ContentBrowserPanel.OnImGuiRender();
 		m_MeshImportPanel.OnImGuiRender();
 		m_VoxelTextureEditorPanel.OnImGuiRender();
-		m_GameViewportPanel.OnImGuiRender();
 		m_SubstanceEditorPanel.OnImGuiRender();
 
 		EndDockspace();
@@ -291,7 +287,6 @@ namespace CB
 				ImGui::MenuItem("Scene Hierarchy", nullptr, m_SceneHierarchyPanel.GetVisiblePtr());
 				ImGui::MenuItem("Properties", nullptr, m_PropertiesPanel.GetVisiblePtr());
 				ImGui::MenuItem("Viewport", nullptr, m_ViewportPanel.GetVisiblePtr());
-				ImGui::MenuItem("Game", nullptr, m_GameViewportPanel.GetVisiblePtr());
 				ImGui::MenuItem("Console", nullptr, m_ConsolePanel.GetVisiblePtr());
 				ImGui::MenuItem("Content Browser", nullptr, m_ContentBrowserPanel.GetVisiblePtr());
 				ImGui::Separator();
@@ -575,7 +570,6 @@ namespace CB
 		// Dock windows to their designated areas
 		ImGui::DockBuilderDockWindow("Scene Hierarchy", dock_left_id);
 		ImGui::DockBuilderDockWindow("Viewport", dock_main_id);
-		ImGui::DockBuilderDockWindow("Game", dock_main_id);
 		ImGui::DockBuilderDockWindow("Properties", dock_right_id);
 
 		// Dock Content Browser and Console to the bottom (they will be tabbed)
