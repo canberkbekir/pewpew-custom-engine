@@ -15,9 +15,9 @@
 #include "CBEngine/Physics/VoxelSplitter.h"
 #include "CBEngine/Physics/VoxelCollisionShapeGenerator.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
-#include "CBEngine/Utils/VoxelizerAPI.h"
-#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
-#include "CBEngine/Voxel/Destruction/VoxelStructuralIntegrity.h"
+#include "CBEngine/Voxel/VoxelizerAPI.h"
+#include "CBEngine/Voxel/Substance/SubstanceRegistry.h"
+#include "CBEngine/Voxel/Substance/VoxelStructuralIntegrity.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
 #include "CBEngine/Debug/Instrumentor.h"
 

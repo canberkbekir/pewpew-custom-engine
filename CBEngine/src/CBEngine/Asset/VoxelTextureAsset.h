@@ -5,7 +5,7 @@
 #include "CBEngine/Core/UUID.h"
 #include "CBEngine/Utils/VoxelMaterialType.h"
 #include "CBEngine/Utils/VoxelPalette.h"
-#include "CBEngine/Voxel/Destruction/SubstanceID.h"
+#include "CBEngine/Voxel/Substance/SubstanceID.h"
 
 #include <glm/glm.hpp>
 #include <unordered_map>

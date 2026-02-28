@@ -1,6 +1,6 @@
 #pragma once
 #include "Panel.h"
-#include "CBEngine/Voxel/Destruction/SubstanceID.h"
+#include "CBEngine/Voxel/Substance/SubstanceID.h"
 
 #include <string>
 

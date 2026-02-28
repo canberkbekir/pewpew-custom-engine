@@ -13,7 +13,7 @@
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
-#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
+#include "CBEngine/Voxel/Substance/SubstanceRegistry.h"
 
 // Forward declaration — forces the linker to include ComponentRegistrations.obj
 // from CBEngine.lib (MSVC dead-strips objects with no referenced symbols).

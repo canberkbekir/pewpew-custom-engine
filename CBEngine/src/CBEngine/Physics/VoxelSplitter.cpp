@@ -1,6 +1,6 @@
 #include "cbpch.h"
 #include "VoxelSplitter.h"
-#include "CBEngine/Voxel/Destruction/VoxelTintTypes.h" // VoxelCoordHash
+#include "CBEngine/Voxel/Substance/VoxelTintTypes.h" // VoxelCoordHash
 
 namespace CB
 {

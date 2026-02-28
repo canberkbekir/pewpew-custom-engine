@@ -8,7 +8,7 @@
 #include "CBEngine/Debug/Instrumentor.h"
 #include "CBEngine/Renderer/Core/Renderer3D.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
-#include "CBEngine/Utils/VoxelizerAPI.h"
+#include "CBEngine/Voxel/VoxelizerAPI.h"
 
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/constants.hpp>

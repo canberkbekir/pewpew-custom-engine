@@ -3,7 +3,7 @@
 #include "imgui.h"
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Components/DestructibleVoxelComponent.h"
-#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
+#include "CBEngine/Voxel/Substance/SubstanceRegistry.h"
 #include "../ComponentCard.h"
 
 namespace CB

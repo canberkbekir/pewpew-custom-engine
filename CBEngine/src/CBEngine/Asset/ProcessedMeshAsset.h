@@ -5,7 +5,7 @@
 #include "CBEngine/Core/String.h"
 #include "CBEngine/Core/UUID.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
-#include "CBEngine/Utils/VoxelizerAPI.h"
+#include "CBEngine/Voxel/VoxelizerAPI.h"
 #include "CBEngine/Utils/VoxelPalette.h"
 
 #include <Voxelizer.h>

@@ -7,8 +7,8 @@
 #include "CBEngine/Renderer/Resources/Texture.h"
 #include "CBEngine/Renderer/Camera/Camera.h"
 
-#include "VoxelPalette.h"
-#include "CBEngine/Voxel/Destruction/VoxelTintTypes.h"
+#include "CBEngine/Utils/VoxelPalette.h"
+#include "CBEngine/Voxel/Substance/VoxelTintTypes.h"
 
 #include <Voxelizer.h>
 #include <unordered_map>

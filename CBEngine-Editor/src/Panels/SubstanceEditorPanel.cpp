@@ -1,6 +1,6 @@
 #include "SubstanceEditorPanel.h"
-#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
-#include "CBEngine/Voxel/Destruction/SubstancePropertySchema.h"
+#include "CBEngine/Voxel/Substance/SubstanceRegistry.h"
+#include "CBEngine/Voxel/Substance/SubstancePropertySchema.h"
 #include "../Widgets/SubstanceEditorUtils.h"
 
 #include <imgui.h>

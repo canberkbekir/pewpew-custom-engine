@@ -2,9 +2,10 @@
 
 #include "ISystem.h"
 #include "CBEngine/Core/TimeStep.h"
-#include "CBEngine/Voxel/Destruction/VoxelDamageMap.h"
-#include "CBEngine/Voxel/Destruction/VoxelSubstance.h"
-#include "CBEngine/Voxel/Destruction/HeatOctree.h"
+#include "CBEngine/Voxel/Substance/VoxelDamageMap.h"
+#include "CBEngine/Voxel/Substance/EntityDestructionState.h"
+#include "CBEngine/Voxel/Substance/VoxelSubstance.h"
+#include "CBEngine/Voxel/Substance/HeatOctree.h"
 
 #include <glm/glm.hpp>
 #include <future>

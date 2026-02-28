@@ -156,7 +156,6 @@ project "ImGui"
 	filter "configurations:Debug"
 		runtime "Debug"
 		symbols "on"
-		files { "CBEngine/vendor/imgui/imgui_demo.cpp" }
 	filter "configurations:Release"
 		runtime "Release"
 		optimize "on"
@@ -454,6 +453,13 @@ project "Sandbox"
 
     links { "CBEngine" }
 
+    defines
+    {
+        "YAML_CPP_STATIC_DEFINE",
+        "JPH_DISABLE_CUSTOM_ALLOCATOR",
+        "JPH_CROSS_PLATFORM_DETERMINISTIC"
+    }
+
     filter "system:windows"
 	    systemversion "latest"
         buildoptions { "/utf-8" }
@@ -545,6 +551,13 @@ project "CBEngine-Editor"
     }
 
     links { "CBEngine" }
+
+    defines
+    {
+        "YAML_CPP_STATIC_DEFINE",
+        "JPH_DISABLE_CUSTOM_ALLOCATOR",
+        "JPH_CROSS_PLATFORM_DETERMINISTIC"
+    }
 
     filter "system:windows"
 	    systemversion "latest"

@@ -5,10 +5,10 @@
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
-#include "CBEngine/Utils/VoxelizerAPI.h"
+#include "CBEngine/Voxel/VoxelizerAPI.h"
 #include "CBEngine/Utils/VoxelMaterialType.h"
 #include "CBEngine/Asset/VoxelTextureAsset.h"
-#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
+#include "CBEngine/Voxel/Substance/SubstanceRegistry.h"
 #include "../AssetPicker.h"
 #include "../ComponentCard.h"
 

@@ -9,9 +9,9 @@
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "CBEngine/Asset/AssetManager.h"
-#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
-#include "CBEngine/Voxel/Destruction/VoxelTintTypes.h"
-#include "CBEngine/Voxel/Destruction/HeatOctree.h"
+#include "CBEngine/Voxel/Substance/SubstanceRegistry.h"
+#include "CBEngine/Voxel/Substance/VoxelTintTypes.h"
+#include "CBEngine/Voxel/Substance/HeatOctree.h"
 
 #include "CBEngine/Debug/Instrumentor.h"
 

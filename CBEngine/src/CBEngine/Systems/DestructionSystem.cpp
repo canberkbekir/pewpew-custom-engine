@@ -12,7 +12,7 @@
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
-#include "CBEngine/Utils/VoxelizerAPI.h"
+#include "CBEngine/Voxel/VoxelizerAPI.h"
 #include "CBEngine/Debug/Instrumentor.h"
 
 namespace CB

@@ -1,5 +1,482 @@
 Scene: Game
 Entities:
+  - Entity: 18130206231666088106
+    TagComponent:
+      Tag: voxel test
+    TransformComponent:
+      Position: [-22.264921, 0.30796725, -1.6532292]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 5428517137321186404
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    DestructibleVoxelComponent:
+      Enabled: true
+      ReceivePhysicsImpact: true
+      PhysicsImpactThreshold: 10
+      PhysicsImpactMultiplier: 1
+      StructuralIntegrityEnabled: true
+      Anchor: 0
+      SubstanceOverride: Wood
+      HealthMultiplier: 1
+      ResistanceMultiplier: 1
+      FragmentSpawnDistance: 30
+      StructuralCheckDistance: 50
+      MaxFragmentsPerObject: 20
+      MaxDestructionsPerFrame: 30
+      FragmentLifetime: 5
+  - Entity: 16711518766113526192
+    TagComponent:
+      Tag: voxel test
+    TransformComponent:
+      Position: [-12.7815275, 0.3079753, -2.2649782]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 5428517137321186404
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    DestructibleVoxelComponent:
+      Enabled: true
+      ReceivePhysicsImpact: true
+      PhysicsImpactThreshold: 10
+      PhysicsImpactMultiplier: 1
+      StructuralIntegrityEnabled: true
+      Anchor: 0
+      SubstanceOverride: Wood
+      HealthMultiplier: 1
+      ResistanceMultiplier: 1
+      FragmentSpawnDistance: 30
+      StructuralCheckDistance: 50
+      MaxFragmentsPerObject: 20
+      MaxDestructionsPerFrame: 30
+      FragmentLifetime: 5
+  - Entity: 1539687035209230805
+    TagComponent:
+      Tag: voxel test
+    TransformComponent:
+      Position: [-16.285347, 0.3079676, -3.2187104]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 5428517137321186404
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    DestructibleVoxelComponent:
+      Enabled: true
+      ReceivePhysicsImpact: true
+      PhysicsImpactThreshold: 10
+      PhysicsImpactMultiplier: 1
+      StructuralIntegrityEnabled: true
+      Anchor: 0
+      SubstanceOverride: Wood
+      HealthMultiplier: 1
+      ResistanceMultiplier: 1
+      FragmentSpawnDistance: 30
+      StructuralCheckDistance: 50
+      MaxFragmentsPerObject: 20
+      MaxDestructionsPerFrame: 30
+      FragmentLifetime: 5
+  - Entity: 11044917361371040571
+    TagComponent:
+      Tag: voxel test
+    TransformComponent:
+      Position: [-17.199106, 0.31431568, 2.4732072]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 5428517137321186404
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    DestructibleVoxelComponent:
+      Enabled: true
+      ReceivePhysicsImpact: true
+      PhysicsImpactThreshold: 10
+      PhysicsImpactMultiplier: 1
+      StructuralIntegrityEnabled: true
+      Anchor: 0
+      SubstanceOverride: Wood
+      HealthMultiplier: 1
+      ResistanceMultiplier: 1
+      FragmentSpawnDistance: 30
+      StructuralCheckDistance: 50
+      MaxFragmentsPerObject: 20
+      MaxDestructionsPerFrame: 30
+      FragmentLifetime: 5
+  - Entity: 5276832840233583268
+    TagComponent:
+      Tag: voxel test
+    TransformComponent:
+      Position: [-4.7773156, 0.3079725, -8.1066265]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 5428517137321186404
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    DestructibleVoxelComponent:
+      Enabled: true
+      ReceivePhysicsImpact: true
+      PhysicsImpactThreshold: 10
+      PhysicsImpactMultiplier: 1
+      StructuralIntegrityEnabled: true
+      Anchor: 0
+      SubstanceOverride: Wood
+      HealthMultiplier: 1
+      ResistanceMultiplier: 1
+      FragmentSpawnDistance: 30
+      StructuralCheckDistance: 50
+      MaxFragmentsPerObject: 20
+      MaxDestructionsPerFrame: 30
+      FragmentLifetime: 5
+  - Entity: 6665755757270400329
+    TagComponent:
+      Tag: voxel test
+    TransformComponent:
+      Position: [-7.5742655, 0.30798253, -7.751062]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 5428517137321186404
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    DestructibleVoxelComponent:
+      Enabled: true
+      ReceivePhysicsImpact: true
+      PhysicsImpactThreshold: 10
+      PhysicsImpactMultiplier: 1
+      StructuralIntegrityEnabled: true
+      Anchor: 0
+      SubstanceOverride: Wood
+      HealthMultiplier: 1
+      ResistanceMultiplier: 1
+      FragmentSpawnDistance: 30
+      StructuralCheckDistance: 50
+      MaxFragmentsPerObject: 20
+      MaxDestructionsPerFrame: 30
+      FragmentLifetime: 5
+  - Entity: 3784075422341540465
+    TagComponent:
+      Tag: voxel test
+    TransformComponent:
+      Position: [-24.525684, 0.30797493, -5.4990373]
+      Rotation: [-3.1415925, 1.0975952, -3.1415925]
+      Scale: [0.01, 0.01, 0.01]
+      Parent: 829200245983299509
+    VoxelRendererComponent:
+      VoxelMeshUUID: 16725038486124727391
+      VoxelTextureUUID: 5428517137321186404
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 3
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    DestructibleVoxelComponent:
+      Enabled: true
+      ReceivePhysicsImpact: true
+      PhysicsImpactThreshold: 10
+      PhysicsImpactMultiplier: 1
+      StructuralIntegrityEnabled: true
+      Anchor: 0
+      SubstanceOverride: Wood
+      HealthMultiplier: 1
+      ResistanceMultiplier: 1
+      FragmentSpawnDistance: 30
+      StructuralCheckDistance: 50
+      MaxFragmentsPerObject: 20
+      MaxDestructionsPerFrame: 30
+      FragmentLifetime: 5
+  - Entity: 829200245983299509
+    TagComponent:
+      Tag: Level
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+  - Entity: 1541552290480289154
+    TagComponent:
+      Tag: Floor
+    TransformComponent:
+      Position: [-20.193623, 9.563025, 0]
+      Rotation: [0, 0, 0]
+      Scale: [10, 0.1, 10]
+      Parent: 829200245983299509
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 16386137795130594256
+    TagComponent:
+      Tag: Floor
+    TransformComponent:
+      Position: [-20.193623, -10.254806, -10.053282]
+      Rotation: [1.5707964, -0, 0]
+      Scale: [10, 0.1, 10]
+      Parent: 829200245983299509
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 2227294649032338747
+    TagComponent:
+      Tag: Floor
+    TransformComponent:
+      Position: [-20.193623, -10.254806, 9.7913685]
+      Rotation: [1.5707964, -0, 0]
+      Scale: [10, 0.1, 10]
+      Parent: 829200245983299509
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 10266550128129624826
+    TagComponent:
+      Tag: Floor
+    TransformComponent:
+      Position: [-30.09752, -10.22887, 0]
+      Rotation: [0, 0, -1.5707964]
+      Scale: [10, 0.1, 10]
+      Parent: 829200245983299509
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 8481020281793183263
+    TagComponent:
+      Tag: Floor
+    TransformComponent:
+      Position: [-9.954405, -10.22887, 0]
+      Rotation: [0, 0, -1.5707964]
+      Scale: [10, 0.1, 10]
+      Parent: 829200245983299509
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 462853992641381167
+    TagComponent:
+      Tag: Floor
+    TransformComponent:
+      Position: [-20.193623, -2.4412265, 0]
+      Rotation: [0, 0, 0]
+      Scale: [10, 0.1, 10]
+      Parent: 829200245983299509
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
   - Entity: 10467415672658071835
     TagComponent:
       Tag: Player
@@ -234,7 +711,7 @@ Entities:
     TagComponent:
       Tag: voxel test
     TransformComponent:
-      Position: [-5.8223586, 0.3079722, -2.6984038]
+      Position: [-20.31222, 0.3079672, 3.5792866]
       Rotation: [-3.1415925, 1.0975952, -3.1415925]
       Scale: [0.01, 0.01, 0.01]
       Parent: 829200245983299509
@@ -278,6 +755,7 @@ Entities:
       StructuralCheckDistance: 50
       MaxFragmentsPerObject: 20
       MaxDestructionsPerFrame: 30
+      FragmentLifetime: 5
   - Entity: 10370022810352722993
     TagComponent:
       Tag: GameManager
@@ -957,107 +1435,3 @@ Entities:
       BlueprintAssetUUID: 7446544307240529023
       BlueprintPath: ""
       OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 829200245983299509
-    TagComponent:
-      Tag: Level
-    TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Parent: 0
-  - Entity: 837241534850283062
-    TagComponent:
-      Tag: voxel test
-    TransformComponent:
-      Position: [-1.7585746, 0.30797988, -4.2286444]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 829200245983299509
-    VoxelRendererComponent:
-      VoxelMeshUUID: 16725038486124727391
-      VoxelTextureUUID: 5428517137321186404
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 3
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    DestructibleVoxelComponent:
-      Enabled: true
-      ReceivePhysicsImpact: true
-      PhysicsImpactThreshold: 10
-      PhysicsImpactMultiplier: 1
-      StructuralIntegrityEnabled: true
-      Anchor: 0
-      SubstanceOverride: Wood
-      HealthMultiplier: 1
-      ResistanceMultiplier: 1
-      FragmentSpawnDistance: 30
-      StructuralCheckDistance: 50
-      MaxFragmentsPerObject: 20
-      MaxDestructionsPerFrame: 30
-  - Entity: 17731435958093541498
-    TagComponent:
-      Tag: voxel test
-    TransformComponent:
-      Position: [-3.9166365, 0.3079722, -3.8086643]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 829200245983299509
-    VoxelRendererComponent:
-      VoxelMeshUUID: 16725038486124727391
-      VoxelTextureUUID: 5428517137321186404
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 3
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    DestructibleVoxelComponent:
-      Enabled: true
-      ReceivePhysicsImpact: true
-      PhysicsImpactThreshold: 10
-      PhysicsImpactMultiplier: 1
-      StructuralIntegrityEnabled: true
-      Anchor: 0
-      SubstanceOverride: Wood
-      HealthMultiplier: 1
-      ResistanceMultiplier: 1
-      FragmentSpawnDistance: 30
-      StructuralCheckDistance: 50
-      MaxFragmentsPerObject: 20
-      MaxDestructionsPerFrame: 30

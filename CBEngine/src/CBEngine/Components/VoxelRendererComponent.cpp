@@ -3,7 +3,7 @@
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "CBEngine/Asset/VoxelTextureAsset.h"
-#include "CBEngine/Utils/VoxelizerAPI.h"
+#include "CBEngine/Voxel/VoxelizerAPI.h"
 
 #include <yaml-cpp/yaml.h>
 

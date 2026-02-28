@@ -38,7 +38,7 @@
 #include "CBEngine/Renderer/Resources/Material.h"
 #include "CBEngine/Systems/VoxelDestructionSystem.h"
 #include "CBEngine/Systems/VoxelSpreadSystem.h"
-#include "CBEngine/Voxel/Destruction/VoxelSubstance.h"
+#include "CBEngine/Voxel/Substance/VoxelSubstance.h"
 #include "CBEngine/Components/DestructibleVoxelComponent.h"
 
 #include <Jolt/Physics/Body/BodyInterface.h>

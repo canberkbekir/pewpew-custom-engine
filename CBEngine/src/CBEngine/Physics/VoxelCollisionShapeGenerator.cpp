@@ -1,6 +1,6 @@
 #include "cbpch.h"
 #include "VoxelCollisionShapeGenerator.h"
-#include "CBEngine/Voxel/Destruction/VoxelTintTypes.h" // VoxelCoordHash
+#include "CBEngine/Voxel/Substance/VoxelTintTypes.h" // VoxelCoordHash
 
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>

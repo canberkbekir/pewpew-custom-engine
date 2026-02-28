@@ -4,7 +4,7 @@
 #include "CBEngine/Core/String.h"
 #include "CBEngine/Math/CoreMath.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
-#include "VoxelizerAPI.h"
+#include "CBEngine/Voxel/VoxelizerAPI.h"
 #include "VoxelPalette.h"
 
 #include <future>

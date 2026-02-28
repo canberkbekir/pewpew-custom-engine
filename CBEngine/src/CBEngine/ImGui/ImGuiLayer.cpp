@@ -108,7 +108,9 @@ namespace CB
 	{
 		CB_PROFILE_FUNCTION();
 
+		#ifdef CB_DEBUG
 		static bool show = false;
 		if (show) { ImGui::ShowDemoWindow(&show); }
+		#endif
 	}
 }

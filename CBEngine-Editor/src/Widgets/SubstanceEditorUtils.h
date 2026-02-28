@@ -1,8 +1,8 @@
 #pragma once
 
-#include "CBEngine/Voxel/Destruction/SubstancePropertyMeta.h"
-#include "CBEngine/Voxel/Destruction/SubstancePropertySchema.h"
-#include "CBEngine/Voxel/Destruction/VoxelSubstance.h"
+#include "CBEngine/Voxel/Substance/SubstancePropertyMeta.h"
+#include "CBEngine/Voxel/Substance/SubstancePropertySchema.h"
+#include "CBEngine/Voxel/Substance/VoxelSubstance.h"
 
 #include <imgui.h>
 #include <glm/glm.hpp>

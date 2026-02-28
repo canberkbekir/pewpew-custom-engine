@@ -13,7 +13,7 @@
 #include "CBEngine/Asset/VoxelTextureAsset.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "CBEngine/Utils/VoxelMaterialType.h"
-#include "CBEngine/Voxel/Destruction/SubstanceID.h"
+#include "CBEngine/Voxel/Substance/SubstanceID.h"
 
 #include <set>
 

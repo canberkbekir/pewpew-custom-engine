@@ -3,12 +3,12 @@
 #include <imgui.h>
 
 #include "CBEngine/Core/Log.h"
-#include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
+#include "CBEngine/Voxel/Substance/SubstanceRegistry.h"
 #include "CBEngine/Renderer/Core/RenderCommand.h"
 #include "CBEngine/Renderer/Core/Renderer3D.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Renderer/Resources/Material.h"
-#include "CBEngine/Utils/VoxelizerAPI.h"
+#include "CBEngine/Voxel/VoxelizerAPI.h"
 #include "../Widgets/AssetPicker.h"
 
 #include <glm/gtc/matrix_transform.hpp>

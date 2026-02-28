@@ -51,7 +51,7 @@
 // -----------------------------------
 
 // ---Utils---------------------------
-#include "CBEngine/Utils/VoxelizerAPI.h"
+#include "CBEngine/Voxel/VoxelizerAPI.h"
 // -----------------------------------
 
 // ---Scene---------------------------
