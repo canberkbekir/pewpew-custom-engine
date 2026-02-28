@@ -35,7 +35,7 @@ namespace CB
 	                        const Ref<Texture2D>& paletteColorTex,
 	                        const Ref<Texture2D>& paletteMaterialTex)
 	{
-		CB_PROFILE_FUNCTION();
+		CB_PROFILE_SCOPE_CAT("Renderer3D::Submit", "Rendering");
 		using namespace ShaderUniforms;
 
 		shader->Bind();

@@ -38,12 +38,30 @@ namespace CB
 		                             std::vector<uint8_t>& paletteIndices,
 		                             const std::vector<glm::ivec3>& coordsToRemove);
 
+		/// Remove specific voxels using a pre-built filled index map (avoids O(W*H*D) rescan).
+		/// Returns the updated voxel count.
+		static uint64_t RemoveVoxels(voxelizer::VoxelGrid& grid,
+		                             std::vector<uint8_t>& paletteIndices,
+		                             const std::vector<glm::ivec3>& coordsToRemove,
+		                             const std::unordered_map<uint64_t, size_t>& filledIndexMap);
+
 		/// Find connected components via 6-connected BFS flood fill.
 		/// Returns a vector of VoxelFragment, one per connected component.
 		/// If the grid is fully connected, returns a single fragment.
 		static std::vector<VoxelFragment> FindConnectedComponents(
 			const voxelizer::VoxelGrid& grid,
 			const std::vector<uint8_t>& paletteIndices);
+
+		/// Sparse overload: iterates only filledCoords instead of entire grid volume.
+		static std::vector<VoxelFragment> FindConnectedComponents(
+			const voxelizer::VoxelGrid& grid,
+			const std::vector<uint8_t>& paletteIndices,
+			const std::vector<glm::ivec3>& filledCoords);
+
+		/// Build a mapping from filled-voxel linear index to palette index position.
+		static std::unordered_map<uint64_t, size_t> BuildFilledIndexMap(
+			const voxelizer::VoxelGrid& grid);
+
 	private:
 		/// Extract a tight-fitting sub-grid for one connected component.
 		static VoxelFragment ExtractComponent(
@@ -51,8 +69,11 @@ namespace CB
 			const std::vector<uint8_t>& sourcePaletteIndices,
 			const std::vector<glm::ivec3>& componentCoords);
 
-		/// Build a mapping from filled-voxel linear index to palette index position.
-		static std::unordered_map<uint64_t, size_t> BuildFilledIndexMap(
-			const voxelizer::VoxelGrid& grid);
+		/// Extract with pre-built filled index map (avoids rebuilding per fragment).
+		static VoxelFragment ExtractComponent(
+			const voxelizer::VoxelGrid& sourceGrid,
+			const std::vector<uint8_t>& sourcePaletteIndices,
+			const std::vector<glm::ivec3>& componentCoords,
+			const std::unordered_map<uint64_t, size_t>& sourceFilledMap);
 	};
 }

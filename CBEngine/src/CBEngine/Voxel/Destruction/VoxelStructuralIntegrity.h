@@ -54,6 +54,13 @@ namespace CB
 			const std::vector<glm::ivec3>& anchorCoords,
 			int maxIterations = 0);
 
+		/// Sparse overload: iterates filledCoords instead of entire grid volume.
+		static std::vector<CollapseCluster> FindUnsupportedClusters(
+			const voxelizer::VoxelGrid& grid,
+			const std::vector<glm::ivec3>& anchorCoords,
+			int maxIterations,
+			const std::vector<glm::ivec3>& filledCoords);
+
 		// -----------------------------------------------------------------
 		// ComputeBottomFaceAnchors
 		//

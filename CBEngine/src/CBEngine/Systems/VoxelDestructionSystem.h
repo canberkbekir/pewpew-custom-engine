@@ -113,7 +113,8 @@ namespace CB
 		// Spawn a physics-simulated collapsed chunk from a set of voxel coords
 		static void SpawnCollapsedChunk(Scene* scene,uint64_t sourceEntityUUID,
 		                                const struct CollapseCluster& cluster,
-		                                EntityDestructionState& state);
+		                                EntityDestructionState& state,
+		                                const std::unordered_map<uint64_t, size_t>& sourceFilledMap);
 
 		// Compute effective damage given type, substance, and component multipliers
 		static float ResolveEffectiveDamage(float raw,VoxelDamageType type,

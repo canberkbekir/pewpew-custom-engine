@@ -19,7 +19,7 @@ namespace CB
 	void RendererSystem::OnUpdate(Scene* scene,const Camera& camera,const Vector3& cameraPosition,
 	                              const Ref<Shader>& defaultShader,const Ref<Material>& defaultMaterial)
 	{
-		CB_PROFILE_FUNCTION();
+		CB_PROFILE_SCOPE_CAT("RendererSystem::OnUpdate", "Rendering");
 
 		if (!scene)
 			return;
@@ -35,7 +35,7 @@ namespace CB
 
 	void RendererSystem::SubmitLights(Scene* scene)
 	{
-		CB_PROFILE_FUNCTION();
+		CB_PROFILE_SCOPE_CAT("RendererSystem::SubmitLights", "Rendering");
 
 		auto& registry = scene->GetRegistry();
 
@@ -61,7 +61,7 @@ namespace CB
 	void RendererSystem::SubmitMeshes(Scene* scene,const Ref<Shader>& defaultShader,
 	                                  const Ref<Material>& defaultMaterial)
 	{
-		CB_PROFILE_FUNCTION();
+		CB_PROFILE_SCOPE_CAT("RendererSystem::SubmitMeshes", "Rendering");
 
 		auto& registry = scene->GetRegistry();
 
@@ -87,7 +87,7 @@ namespace CB
 	void RendererSystem::SubmitVoxels(Scene* scene,const Ref<Shader>& defaultShader,
 	                                  const Ref<Material>& defaultMaterial)
 	{
-		CB_PROFILE_FUNCTION();
+		CB_PROFILE_SCOPE_CAT("RendererSystem::SubmitVoxels", "Rendering");
 
 		auto& registry = scene->GetRegistry();
 
@@ -95,16 +95,25 @@ namespace CB
 		if (!voxelShader)
 			voxelShader = defaultShader;
 
-		// Batch key: entities sharing the same vmesh UUID + palette textures
+		// Batch key: entities sharing the same vmesh UUID + same mesh pointer.
+		// Destroyed/tinted entities get their own mesh copy, so they must not
+		// share a batch with entities still using the original mesh.
 		struct BatchKey
 		{
 			uint64_t VoxelMeshUUID;
-			bool operator==(const BatchKey& other) const { return VoxelMeshUUID == other.VoxelMeshUUID; }
+			const Mesh* MeshPtr; // distinguish original vs cloned/rebuilt meshes
+			bool operator==(const BatchKey& other) const {
+				return VoxelMeshUUID == other.VoxelMeshUUID && MeshPtr == other.MeshPtr;
+			}
 		};
 
 		struct BatchKeyHash
 		{
-			size_t operator()(const BatchKey& key) const { return std::hash<uint64_t>()(key.VoxelMeshUUID); }
+			size_t operator()(const BatchKey& key) const {
+				size_t h = std::hash<uint64_t>()(key.VoxelMeshUUID);
+				h ^= std::hash<const void*>()(key.MeshPtr) + 0x9e3779b9 + (h << 6) + (h >> 2);
+				return h;
+			}
 		};
 
 		struct BatchEntry
@@ -129,7 +138,7 @@ namespace CB
 
 			// Only batch palette-based voxel entities
 			if (vr.HasPalette && vr.PaletteColorTexture && vr.PaletteMaterialTexture && vr.VoxelMeshUUID.IsValid()) {
-				BatchKey key{(vr.VoxelMeshUUID)};
+				BatchKey key{vr.VoxelMeshUUID, vr.MeshAsset.get()};
 				auto& batch = batches[key];
 				if (!batch.MeshAsset) {
 					batch.MeshAsset = vr.MeshAsset;

@@ -248,6 +248,15 @@ namespace CB
 		                                           const std::vector<uint8_t>& paletteIndices,
 		                                           const VoxelTintMap* tintMap = nullptr);
 
+		/// @brief Fast recolor of an existing palette mesh — updates only vertex colors
+		/// via SetSubData without rebuilding geometry or creating new GL objects.
+		/// Grid must be unchanged since the mesh was built.
+		/// @return true if recolor succeeded, false if full rebuild is needed
+		static bool RecolorPaletteMesh(Ref<Mesh>& mesh,
+		                               const voxelizer::VoxelGrid& grid,
+		                               const std::vector<uint8_t>& paletteIndices,
+		                               const VoxelTintMap& tintMap);
+
 		// ============ QUERY METHODS ============
 
 		/// @brief Get world-space positions of all filled voxels

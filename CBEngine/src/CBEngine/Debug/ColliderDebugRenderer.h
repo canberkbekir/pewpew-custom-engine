@@ -40,9 +40,11 @@ namespace CB
 		static void DrawLines(const std::vector<Vector3>& vertices,
 		                      const Mat4& transform,const Camera& camera,const Vector3& color,
 		                      bool disableDepthTest = true);
-	private:
+		/// Draw a wireframe box at offset with given halfExtents, transformed by worldTransform.
 		static void DrawWireBox(const Vector3& halfExtents,const Vector3& offset,
 		                        const Mat4& worldTransform,const Camera& camera,const Vector3& color);
+
+	private:
 		static void DrawWireSphere(float radius,const Vector3& offset,
 		                           const Mat4& worldTransform,const Camera& camera,const Vector3& color);
 		static void DrawWireCapsule(float radius,float halfHeight,const Vector3& offset,

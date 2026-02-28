@@ -110,6 +110,7 @@ namespace CB
 				m_ObjectLayerPairFilter->EnableCollision(static_cast<JPH::ObjectLayer>(i),
 				                                         static_cast<JPH::ObjectLayer>(j));
 
+
 		// Broad-phase vs object layer filter
 		m_ObjectVsBroadPhaseLayerFilter = CreateScope<JPH::ObjectVsBroadPhaseLayerFilterTable>(
 			*m_BroadPhaseLayerInterface, BroadPhaseLayers::NUM_LAYERS,

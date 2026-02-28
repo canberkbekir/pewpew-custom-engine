@@ -980,60 +980,82 @@ namespace CB
 	                                                  const std::vector<uint8_t>& paletteIndices,
 	                                                  const VoxelTintMap* tintMap)
 	{
-		CB_PROFILE_FUNCTION();
+		CB_PROFILE_SCOPE_CAT("VoxelizerAPI::CreatePaletteMeshFromGrid", "Voxel");
 
 		if (!s_Initialized)
 			Init();
 
-		auto filledCoords = grid.GetFilledCoords();
-
-		if (filledCoords.size() != paletteIndices.size()) {
+		const uint64_t filledCount = grid.CountFilled();
+		if (filledCount != paletteIndices.size()) {
 			CB_CORE_ERROR("VoxelizerAPI: Palette index count mismatch! {0} voxels, {1} indices",
-			              filledCoords.size(), paletteIndices.size());
+			              filledCount, paletteIndices.size());
 			return nullptr;
 		}
 
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
-		vertices.reserve(filledCoords.size() * 24);
-		indices.reserve(filledCoords.size() * 36);
+		// Most voxels expose ~3 faces on average (interior culling)
+		vertices.reserve(filledCount * 12);  // ~3 faces * 4 verts
+		indices.reserve(filledCount * 18);   // ~3 faces * 6 indices
 
-		glm::vec3 voxelSize = grid.voxelSize;
+		const glm::vec3 voxelSize = grid.voxelSize;
+		const glm::vec3 origin = grid.origin;
+		const int sizeX = grid.size.x, sizeY = grid.size.y, sizeZ = grid.size.z;
+		const int strideYZ = sizeY * sizeZ;
 
-		for (size_t i = 0; i < filledCoords.size(); ++i) {
-			const auto& coord = filledCoords[i];
-			float palIdx = paletteIndices[i];
+		// Iterate the bit-packed data directly — no GetFilledCoords allocation
+		size_t paletteIdx = 0;
+		for (int x = 0; x < sizeX; ++x) {
+			for (int y = 0; y < sizeY; ++y) {
+				for (int z = 0; z < sizeZ; ++z) {
+					const uint64_t linearIdx = static_cast<uint64_t>(x) * strideYZ
+					                         + static_cast<uint64_t>(y) * sizeZ + z;
+					if (!(grid.data[linearIdx >> 6] & (uint64_t(1) << (linearIdx & 63))))
+						continue;
 
-			glm::vec3 center = grid.VoxelCenterToWorld(coord);
+					const float palIdx = paletteIndices[paletteIdx++];
+					const glm::ivec3 coord(x, y, z);
+					const glm::vec3 center = origin + (glm::vec3(coord) + 0.5f) * voxelSize;
 
-			// Emit only visible faces (neighbor culling)
-			for (int face = 0; face < 6; ++face) {
-				if (!ShouldEmitFace(grid, coord, face))
-					continue;
-
-				uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
-				uint32_t faceVertStart = face * 4;
-
-				for (int fv = 0; fv < 4; ++fv) {
-					Vertex v = s_UnitCubeVertices[faceVertStart + fv];
-					v.Position = center + Vector3(v.Position) * voxelSize;
+					// Tint lookup: once per voxel, not per vertex
 					Vector3 tintColor(1.0f);
 					if (tintMap) {
 						auto it = tintMap->find(coord);
 						if (it != tintMap->end())
 							tintColor = glm::mix(Vector3(1.0f), Vector3(it->second.Color), it->second.Intensity);
 					}
-					v.Color = tintColor;
-					v.PaletteIndex = palIdx;
-					vertices.push_back(v);
-				}
 
-				indices.push_back(baseVertex + 0);
-				indices.push_back(baseVertex + 1);
-				indices.push_back(baseVertex + 2);
-				indices.push_back(baseVertex + 2);
-				indices.push_back(baseVertex + 3);
-				indices.push_back(baseVertex + 0);
+					// Check 6 faces with inlined neighbor test
+					for (int face = 0; face < 6; ++face) {
+						const glm::ivec3& dir = s_FaceDirections[face];
+						int nx = x + dir.x, ny = y + dir.y, nz = z + dir.z;
+						bool neighborFilled = false;
+						if (nx >= 0 && nx < sizeX && ny >= 0 && ny < sizeY && nz >= 0 && nz < sizeZ) {
+							uint64_t nIdx = static_cast<uint64_t>(nx) * strideYZ
+							              + static_cast<uint64_t>(ny) * sizeZ + nz;
+							neighborFilled = (grid.data[nIdx >> 6] & (uint64_t(1) << (nIdx & 63))) != 0;
+						}
+						if (neighborFilled) continue;
+
+						uint32_t baseVertex = static_cast<uint32_t>(vertices.size());
+						uint32_t faceVertStart = face * 4;
+
+						for (int fv = 0; fv < 4; ++fv) {
+							Vertex v = s_UnitCubeVertices[faceVertStart + fv];
+							v.Position = center + Vector3(v.Position) * voxelSize;
+							v.Color = tintColor;
+							v.PaletteIndex = palIdx;
+							vertices.push_back(v);
+						}
+
+						indices.push_back(baseVertex + 0);
+						indices.push_back(baseVertex + 1);
+						indices.push_back(baseVertex + 2);
+						indices.push_back(baseVertex + 2);
+						indices.push_back(baseVertex + 3);
+						indices.push_back(baseVertex + 0);
+					}
+				}
 			}
 		}
 
@@ -1042,7 +1064,72 @@ namespace CB
 			return nullptr;
 		}
 
-		return CreateRef<Mesh>(vertices, indices);
+		return CreateRef<Mesh>(vertices, indices, true);
+	}
+
+	// =========================================================================
+	// RecolorPaletteMesh — fast vertex-color-only update (no geometry rebuild)
+	// =========================================================================
+	bool VoxelizerAPI::RecolorPaletteMesh(Ref<Mesh>& mesh,
+	                                      const voxelizer::VoxelGrid& grid,
+	                                      const std::vector<uint8_t>& paletteIndices,
+	                                      const VoxelTintMap& tintMap)
+	{
+		CB_PROFILE_SCOPE_CAT("VoxelizerAPI::RecolorPaletteMesh", "Voxel");
+
+		if (!mesh || !mesh->HasCPUData()) return false;
+
+		auto& vertices = mesh->GetMutableVertices();
+		if (vertices.empty()) return false;
+
+		const int sizeX = grid.size.x, sizeY = grid.size.y, sizeZ = grid.size.z;
+		const int strideYZ = sizeY * sizeZ;
+
+		// Walk the grid in the same order as CreatePaletteMeshFromGrid,
+		// matching each visible face to its 4 consecutive vertices.
+		size_t vertIdx = 0;
+		for (int x = 0; x < sizeX; ++x) {
+			for (int y = 0; y < sizeY; ++y) {
+				for (int z = 0; z < sizeZ; ++z) {
+					const uint64_t linearIdx = static_cast<uint64_t>(x) * strideYZ
+					                         + static_cast<uint64_t>(y) * sizeZ + z;
+					if (!(grid.data[linearIdx >> 6] & (uint64_t(1) << (linearIdx & 63))))
+						continue;
+
+					const glm::ivec3 coord(x, y, z);
+
+					// Compute tint color for this voxel
+					Vector3 tintColor(1.0f);
+					auto it = tintMap.find(coord);
+					if (it != tintMap.end())
+						tintColor = glm::mix(Vector3(1.0f), Vector3(it->second.Color), it->second.Intensity);
+
+					// Check same 6 faces in same order as CreatePaletteMeshFromGrid
+					for (int face = 0; face < 6; ++face) {
+						const glm::ivec3& dir = s_FaceDirections[face];
+						int nx = x + dir.x, ny = y + dir.y, nz = z + dir.z;
+						bool neighborFilled = false;
+						if (nx >= 0 && nx < sizeX && ny >= 0 && ny < sizeY && nz >= 0 && nz < sizeZ) {
+							uint64_t nIdx = static_cast<uint64_t>(nx) * strideYZ
+							              + static_cast<uint64_t>(ny) * sizeZ + nz;
+							neighborFilled = (grid.data[nIdx >> 6] & (uint64_t(1) << (nIdx & 63))) != 0;
+						}
+						if (neighborFilled) continue;
+
+						// This face has 4 consecutive vertices — update their colors
+						if (vertIdx + 3 >= vertices.size()) return false; // mismatch guard
+						vertices[vertIdx].Color = tintColor;
+						vertices[vertIdx + 1].Color = tintColor;
+						vertices[vertIdx + 2].Color = tintColor;
+						vertices[vertIdx + 3].Color = tintColor;
+						vertIdx += 4;
+					}
+				}
+			}
+		}
+
+		mesh->UploadVertexData();
+		return true;
 	}
 
 	// ============================================================================

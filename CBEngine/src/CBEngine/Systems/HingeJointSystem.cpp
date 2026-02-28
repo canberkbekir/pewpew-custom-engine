@@ -19,6 +19,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/constants.hpp>
+#include "CBEngine/Debug/Instrumentor.h"
 
 namespace CB
 {
@@ -26,6 +27,7 @@ namespace CB
 
 	void HingeJointSystem::OnUpdate(Scene* scene,Timestep ts)
 	{
+		CB_PROFILE_SCOPE_CAT("HingeJointSystem::OnUpdate", "Physics");
 		if (!scene) return;
 		PhysicsWorld* world = scene->GetPhysicsWorld();
 		if (!world) return;

@@ -19,6 +19,7 @@
 #include "CBEngine/Voxel/Destruction/SubstanceRegistry.h"
 #include "CBEngine/Voxel/Destruction/VoxelStructuralIntegrity.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
+#include "CBEngine/Debug/Instrumentor.h"
 
 #include <glm/glm.hpp>
 #include <algorithm>
@@ -49,6 +50,16 @@ namespace CB
 	static SubstanceID ResolveSubstanceID(const DestructibleVoxelComponent& dv)
 	{
 		return dv.SubstanceOverride.empty() ? SubstanceID(kDefaultSubstanceID) : dv.SubstanceOverride;
+	}
+
+	// Helper: get or rebuild the cached filled index map for an entity state
+	static const std::unordered_map<uint64_t, size_t>& GetOrBuildFilledIndexMap(EntityDestructionState& state)
+	{
+		if (state.CachedMapGeneration != state.GridGeneration) {
+			state.CachedFilledIndexMap = VoxelSplitter::BuildFilledIndexMap(state.ModifiedGrid);
+			state.CachedMapGeneration = state.GridGeneration;
+		}
+		return state.CachedFilledIndexMap;
 	}
 
 	// =========================================================================
@@ -98,10 +109,23 @@ namespace CB
 	// =========================================================================
 	void VoxelDestructionSystem::OnUpdate(Scene* scene,Timestep ts)
 	{
-		ProcessDamageQueue(scene);
-		ProcessPendingRemovals(scene);
-		ProcessStructuralIntegrity(scene);
-		ProcessDirtyMeshes(scene);
+		CB_PROFILE_SCOPE_CAT("VoxelDestructionSystem::OnUpdate", "Voxel");
+		{
+			CB_PROFILE_SCOPE_CAT("VoxelDestruction::ProcessDamageQueue", "Voxel");
+			ProcessDamageQueue(scene);
+		}
+		{
+			CB_PROFILE_SCOPE_CAT("VoxelDestruction::ProcessPendingRemovals", "Voxel");
+			ProcessPendingRemovals(scene);
+		}
+		{
+			CB_PROFILE_SCOPE_CAT("VoxelDestruction::ProcessStructuralIntegrity", "Voxel");
+			ProcessStructuralIntegrity(scene);
+		}
+		{
+			CB_PROFILE_SCOPE_CAT("VoxelDestruction::ProcessDirtyMeshes", "Voxel");
+			ProcessDirtyMeshes(scene);
+		}
 	}
 
 	// =========================================================================
@@ -171,6 +195,9 @@ namespace CB
 		state.ModifiedGrid = vmesh->GridData;
 		state.ModifiedPaletteIndices = vmesh->PaletteIndices;
 		state.GridInitialized = true;
+
+		// Initialize sparse filled coords list
+		state.FilledCoords = state.ModifiedGrid.GetFilledCoords();
 		return true;
 	}
 
@@ -343,12 +370,16 @@ namespace CB
 	// =========================================================================
 	void VoxelDestructionSystem::ProcessPendingRemovals(Scene* scene)
 	{
+		static constexpr int kMaxMeshRebuildsPerFrame = 2;
+
 		// Collect entity UUIDs that have pending removals this frame
 		std::vector<uint64_t> toDo;
 		for (auto& [uuid, state] : s_EntityStates) {
 			if (!state.PendingRemoval.empty())
 				toDo.push_back(uuid);
 		}
+
+		int meshRebuilds = 0;
 
 		for (uint64_t uuid : toDo) {
 			auto it = s_EntityStates.find(uuid);
@@ -386,10 +417,20 @@ namespace CB
 					state.PendingRemoval.begin() + budget);
 			}
 
-			// Remove from working grid
+			// Remove from working grid using cached filled index map
+			const auto& filledMap = GetOrBuildFilledIndexMap(state);
 			uint64_t remaining = VoxelSplitter::RemoveVoxels(
-				state.ModifiedGrid, state.ModifiedPaletteIndices, batch);
+				state.ModifiedGrid, state.ModifiedPaletteIndices, batch, filledMap);
 			++state.GridGeneration;
+
+			// Incrementally update FilledCoords — remove the destroyed coords
+			{
+				std::unordered_set<glm::ivec3, VoxelCoordHash> removedSet(batch.begin(), batch.end());
+				auto& fc = state.FilledCoords;
+				fc.erase(std::remove_if(fc.begin(), fc.end(),
+					[&](const glm::ivec3& c) { return removedSet.count(c) > 0; }),
+					fc.end());
+			}
 
 			// Cleanup tint and burn entries for removed voxels
 			for (const auto& coord : batch) {
@@ -405,9 +446,19 @@ namespace CB
 				continue;
 			}
 
+			// Mesh rebuild budget — defer remaining entities to next frame
+			if (meshRebuilds >= kMaxMeshRebuildsPerFrame) {
+				state.MeshDirty = true;
+				VoxelDestructionSystem::MarkTintDirty(uuid);
+				if (dvComp.StructuralIntegrityEnabled)
+					s_StructuralCheckQueue.push_back(uuid);
+				continue;
+			}
+
 			// Rebuild mesh in-place (no fragmentation check yet — structural
 			// integrity below handles splitting unsupported parts)
 			RebuildOrFragment(scene, uuid, state);
+			meshRebuilds++;
 
 			// Queue for structural integrity check
 			if (dvComp.StructuralIntegrityEnabled)
@@ -433,7 +484,7 @@ namespace CB
 		auto& transform = entity.GetComponent<TransformComponent>();
 
 		auto fragments = VoxelSplitter::FindConnectedComponents(
-			state.ModifiedGrid, state.ModifiedPaletteIndices);
+			state.ModifiedGrid, state.ModifiedPaletteIndices, state.FilledCoords);
 
 		if (fragments.size() <= 1) {
 			// Single connected piece — update the entity's mesh in-place
@@ -447,19 +498,18 @@ namespace CB
 			if (newMesh) {
 				vr.MeshAsset = newMesh;
 				state.MeshDirty = false;
+				state.LastMeshRebuildGeneration = state.GridGeneration;
 
 				if (auto* physWorld = scene->GetPhysicsWorld())
 					physWorld->GetShapeCache().Invalidate(vr.VoxelMeshUUID);
 
 				if (entity.HasComponent<ColliderComponent>()) {
 					auto& col = entity.GetComponent<ColliderComponent>();
-					// Regenerate collision shape from the MODIFIED grid so that
-					// the physics body matches the current voxel state. Without
-					// this, entities whose VoxelMeshUUID is unset (collapsed chunks,
-					// fragments) would fall back to a tiny default Box shape,
-					// making upper voxels unreachable by raycasts/contacts.
-					auto compoundShape = VoxelCollisionShapeGenerator::GenerateFromGrid(
-						state.ModifiedGrid);
+					// Regenerate collision shape using sparse merge
+					auto mergedBoxes = VoxelCollisionShapeGenerator::GreedyMerge(
+						state.ModifiedGrid, state.FilledCoords);
+					auto compoundShape = VoxelCollisionShapeGenerator::CreateCompoundShape(
+						state.ModifiedGrid, mergedBoxes);
 					if (compoundShape)
 						col.RuntimeShape = compoundShape;
 					col.ShapeDirty = true;
@@ -499,10 +549,11 @@ namespace CB
 		if (entity.HasComponent<DestructibleVoxelComponent>())
 			origDV = entity.GetComponent<DestructibleVoxelComponent>();
 
-		// Save tint, burn, and damage data before erasing state
+		// Save tint, burn, damage, and heat data before erasing state
 		VoxelTintMap savedTintMap = std::move(state.TintMap);
 		VoxelBurnMap savedBurns = std::move(state.ActiveBurns);
 		VoxelDamageMap savedDamageMap = std::move(state.DamageMap);
+		auto savedPerVoxelHeat = std::move(state.PerVoxelHeat);
 
 		scene->DestroyEntity(entity);
 		s_EntityStates.erase(entityUUID);
@@ -598,6 +649,7 @@ namespace CB
 			fragState.ModifiedGrid = frag.Grid;
 			fragState.ModifiedPaletteIndices = frag.PaletteIndices;
 			fragState.GridInitialized = true;
+			fragState.FilledCoords = fragState.ModifiedGrid.GetFilledCoords();
 			fragState.TintMap = std::move(fragTintMap);
 
 			// Transfer active burns to fragment
@@ -612,6 +664,13 @@ namespace CB
 				glm::ivec3 localCoord = sourceCoord - frag.MinCoord;
 				if (frag.Grid.IsValidCoord(localCoord) && frag.Grid.IsFilled(localCoord))
 					fragState.DamageMap[localCoord] = health;
+			}
+
+			// Transfer per-voxel heat
+			for (const auto& [sourceCoord, heat] : savedPerVoxelHeat) {
+				glm::ivec3 localCoord = sourceCoord - frag.MinCoord;
+				if (frag.Grid.IsValidCoord(localCoord) && frag.Grid.IsFilled(localCoord))
+					fragState.PerVoxelHeat[localCoord] = heat;
 			}
 
 			++spawned;
@@ -692,7 +751,7 @@ namespace CB
 			// BFS budget: limit iterations to avoid frame stalls
 			constexpr int BFS_BUDGET = 50000;
 			auto clusters = VoxelStructuralIntegrity::FindUnsupportedClusters(
-				state.ModifiedGrid, anchors, BFS_BUDGET);
+				state.ModifiedGrid, anchors, BFS_BUDGET, state.FilledCoords);
 
 			if (clusters.empty())
 				continue;
@@ -711,13 +770,16 @@ namespace CB
 			std::sort(clusters.begin(), clusters.end(),
 			          [](const CollapseCluster& a,const CollapseCluster& b) { return a.VoxelCount > b.VoxelCount; });
 
+			// Build filled index map once for all chunks in this entity
+			const auto& cachedMap = GetOrBuildFilledIndexMap(state);
+
 			int maxChunks = dvComp.MaxFragmentsPerObject;
 			int chunkCount = 0;
 			for (const auto& cluster : clusters) {
 				if (chunkCount >= maxChunks) {
 					// Remove excess cluster voxels from grid (they vanish as "dust")
 					VoxelSplitter::RemoveVoxels(state.ModifiedGrid, state.ModifiedPaletteIndices,
-					                            cluster.Coords);
+					                            cluster.Coords, cachedMap);
 					for (const auto& c : cluster.Coords) {
 						state.DamageMap.erase(c);
 						state.TintMap.erase(c);
@@ -725,9 +787,22 @@ namespace CB
 					}
 					continue;
 				}
-				SpawnCollapsedChunk(scene, uuid, cluster, state);
+				SpawnCollapsedChunk(scene, uuid, cluster, state, cachedMap);
 				++chunkCount;
 			}
+
+			// Update FilledCoords after all cluster removals
+			{
+				std::unordered_set<glm::ivec3, VoxelCoordHash> allRemoved;
+				for (const auto& cluster : clusters)
+					for (const auto& c : cluster.Coords)
+						allRemoved.insert(c);
+				auto& fc = state.FilledCoords;
+				fc.erase(std::remove_if(fc.begin(), fc.end(),
+					[&](const glm::ivec3& c) { return allRemoved.count(c) > 0; }),
+					fc.end());
+			}
+			++state.GridGeneration;
 
 			// Rebuild the remaining mesh after removing collapsed voxels
 			uint64_t remaining = state.ModifiedGrid.CountFilled();
@@ -744,7 +819,8 @@ namespace CB
 	// =========================================================================
 	void VoxelDestructionSystem::SpawnCollapsedChunk(Scene* scene,uint64_t sourceEntityUUID,
 	                                                 const CollapseCluster& cluster,
-	                                                 EntityDestructionState& state)
+	                                                 EntityDestructionState& state,
+	                                                 const std::unordered_map<uint64_t, size_t>& sourceFilledMap)
 	{
 		Entity sourceEntity = scene->GetEntityByUUID(UUID(sourceEntityUUID));
 		if (!sourceEntity)
@@ -755,16 +831,6 @@ namespace CB
 			return;
 
 		auto& vr = sourceEntity.GetComponent<VoxelRendererComponent>();
-
-		// Build source filled-index map BEFORE RemoveVoxels erases data
-		std::unordered_map<uint64_t, size_t> sourceFilledMap;
-		if (!state.ModifiedPaletteIndices.empty()) {
-			size_t filledIdx = 0;
-			for (uint64_t i = 0; i < state.ModifiedGrid.totalVoxels; ++i) {
-				if (state.ModifiedGrid.IsFilled(i))
-					sourceFilledMap[i] = filledIdx++;
-			}
-		}
 
 		// Build tempGrid for the collapsed chunk (BEFORE palette extraction and RemoveVoxels)
 		voxelizer::VoxelGrid tempGrid;
@@ -818,15 +884,24 @@ namespace CB
 				chunkDamageMap[c] = dmgIt->second;
 		}
 
-		// Remove cluster voxels from the working grid
-		VoxelSplitter::RemoveVoxels(state.ModifiedGrid, state.ModifiedPaletteIndices,
-		                            cluster.Coords);
+		// Build chunk per-voxel heat map
+		std::unordered_map<glm::ivec3, float, VoxelCoordHash> chunkPerVoxelHeat;
+		for (const auto& c : cluster.Coords) {
+			auto heatIt = state.PerVoxelHeat.find(c);
+			if (heatIt != state.PerVoxelHeat.end())
+				chunkPerVoxelHeat[c] = heatIt->second;
+		}
 
-		// Also remove from damage map, tint map, and active burns
+		// Remove cluster voxels from the working grid (using pre-built map)
+		VoxelSplitter::RemoveVoxels(state.ModifiedGrid, state.ModifiedPaletteIndices,
+		                            cluster.Coords, sourceFilledMap);
+
+		// Also remove from damage map, tint map, active burns, and per-voxel heat
 		for (const auto& c : cluster.Coords) {
 			state.DamageMap.erase(c);
 			state.TintMap.erase(c);
 			state.ActiveBurns.erase(c);
+			state.PerVoxelHeat.erase(c);
 		}
 
 		// Build mesh from the temporary grid, using palette data if available
@@ -913,16 +988,18 @@ namespace CB
 		chunkState.ModifiedGrid = tempGrid;
 		chunkState.ModifiedPaletteIndices = chunkPaletteIndices;
 		chunkState.GridInitialized = true;
+		chunkState.FilledCoords = chunkState.ModifiedGrid.GetFilledCoords();
 		chunkState.TintMap = std::move(chunkTintMap);
 		chunkState.ActiveBurns = std::move(chunkBurns);
 		chunkState.DamageMap = std::move(chunkDamageMap);
+		chunkState.PerVoxelHeat = std::move(chunkPerVoxelHeat);
 
 		CB_CORE_TRACE("  Spawned collapse chunk: {0} voxels, mass={1:.1f}",
 		              cluster.VoxelCount, rb.Mass);
 	}
 
 	// =========================================================================
-	// ProcessDirtyMeshes — rebuild entities with tint-only changes (no voxel deaths)
+	// ProcessDirtyMeshes — rebuild or recolor entities with tint/structural changes
 	// =========================================================================
 	void VoxelDestructionSystem::ProcessDirtyMeshes(Scene* scene)
 	{
@@ -934,6 +1011,10 @@ namespace CB
 			std::unique(s_TintDirtyEntities.begin(), s_TintDirtyEntities.end()),
 			s_TintDirtyEntities.end());
 
+		int fullRebuilds = 0;
+		static constexpr int kMaxFullRebuildsPerFrame = 2;
+		std::vector<uint64_t> deferred;
+
 		for (uint64_t uuid : s_TintDirtyEntities) {
 			auto it = s_EntityStates.find(uuid);
 			if (it == s_EntityStates.end()) continue;
@@ -944,6 +1025,31 @@ namespace CB
 			if (!entity || !entity.HasComponent<VoxelRendererComponent>()) continue;
 
 			auto& vr = entity.GetComponent<VoxelRendererComponent>();
+
+			// Fast path: if grid hasn't changed (tint-only), recolor existing mesh via SetSubData
+			bool gridChanged = (state.GridGeneration != state.LastMeshRebuildGeneration);
+			if (!gridChanged && vr.MeshAsset && !state.ModifiedPaletteIndices.empty()) {
+				// Clone mesh if shared — RecolorPaletteMesh modifies vertices in-place,
+				// so duplicated entities sharing the same Ref<Mesh> would see each other's tints.
+				if (vr.MeshAsset.use_count() > 1) {
+					vr.MeshAsset = CreateRef<Mesh>(
+						vr.MeshAsset->GetVertices(), vr.MeshAsset->GetIndices(), true);
+				}
+				if (VoxelizerAPI::RecolorPaletteMesh(
+						vr.MeshAsset, state.ModifiedGrid,
+						state.ModifiedPaletteIndices, state.TintMap)) {
+					state.MeshDirty = false;
+					continue;
+				}
+				// Recolor failed (vertex mismatch) — fall through to full rebuild
+			}
+
+			// Full rebuild — throttled to avoid frame spikes
+			if (fullRebuilds >= kMaxFullRebuildsPerFrame) {
+				deferred.push_back(uuid);
+				continue;
+			}
+
 			Ref<Mesh> newMesh;
 			if (!state.ModifiedPaletteIndices.empty())
 				newMesh = VoxelizerAPI::CreatePaletteMeshFromGrid(
@@ -953,9 +1059,15 @@ namespace CB
 
 			if (newMesh) vr.MeshAsset = newMesh;
 			state.MeshDirty = false;
+			state.LastMeshRebuildGeneration = state.GridGeneration;
+			fullRebuilds++;
 		}
 
 		s_TintDirtyEntities.clear();
+
+		// Carry deferred entities to next frame
+		if (!deferred.empty())
+			s_TintDirtyEntities = std::move(deferred);
 	}
 
 	// =========================================================================

@@ -197,11 +197,11 @@ namespace CB
 		CB_PROFILE_FUNCTION();
 
 		{
-			CB_PROFILE_SCOPE("WindowsWindow::PollEvents");
+			CB_PROFILE_SCOPE_CAT("WindowsWindow::PollEvents", "Rendering");
 			glfwPollEvents();
 		}
 		{
-			CB_PROFILE_SCOPE("WindowsWindow::SwapBuffers");
+			CB_PROFILE_SCOPE_CAT("WindowsWindow::SwapBuffers", "Rendering");
 			m_Context->SwapBuffers();
 		}
 	}

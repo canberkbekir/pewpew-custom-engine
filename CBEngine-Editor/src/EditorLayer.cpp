@@ -31,6 +31,16 @@ namespace CB
 		// Initialize SceneManager with default empty scene
 		SceneManager::Init();
 
+		// Initialize play mode manager
+		m_PlayManager.Init();
+
+		// Load play mode icons
+		m_PlayButtonIcon = Texture2D::Create("resources/icons/play_btn.png");
+		m_PauseButtonIcon = Texture2D::Create("resources/icons/pause_btn.png");
+		m_StopButtonIcon = Texture2D::Create("resources/icons/stop_btn.png");
+		m_ResumeButtonIcon = Texture2D::Create("resources/icons/resume_btn.png");
+		m_NextFrameButtonIcon = Texture2D::Create("resources/icons/next_frame_btn.png");
+
 		// Start file watcher for hot reload
 		m_FileWatcher = CreateScope<FileWatcher>("assets", [](const FileWatcherEvent& event)
 		{
@@ -70,6 +80,12 @@ namespace CB
 	void EditorLayer::OnDetach()
 	{
 		CB_PROFILE_FUNCTION();
+
+		// Stop play mode if active
+		if (m_PlayManager.IsSimulating())
+			m_PlayManager.Stop(m_ViewportPanel.GetCameraController());
+
+		m_PlayManager.Shutdown();
 
 		if (m_FileWatcher) { m_FileWatcher->Stop(); }
 
@@ -147,6 +163,9 @@ namespace CB
 
 		DrawMenuBar();
 
+		// Main toolbar (Play/Stop/Eject controls)
+		RenderMainToolbar();
+
 		// Create DockSpace below the menu bar
 		{
 			ImGuiIO& io = ImGui::GetIO();
@@ -181,13 +200,16 @@ namespace CB
 				else if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_O))
 					OpenScene();
 				else if (ImGui::IsKeyPressed(ImGuiKey_F5)) {
-					Ref<Scene> scene = SceneManager::GetActiveScene();
-					if (scene) {
-						if (scene->IsPhysicsInitialized())
-							scene->ShutdownPhysics();
-						else
-							scene->InitPhysics();
-					}
+					if (m_PlayManager.IsSimulating())
+						m_PlayManager.Stop(m_ViewportPanel.GetCameraController());
+					else
+						m_PlayManager.Play(m_ViewportPanel.GetCameraController());
+				}
+				else if (ImGui::IsKeyPressed(ImGuiKey_F8)) {
+					if (m_PlayManager.GetState() == EditorPlayState::Play)
+						m_PlayManager.Eject(m_ViewportPanel.GetCameraController());
+					else if (m_PlayManager.GetState() == EditorPlayState::Ejected)
+						m_PlayManager.ResumePlay();
 				}
 			}
 		}
@@ -281,12 +303,23 @@ namespace CB
 			if (ImGui::BeginMenu("Physics")) {
 				Ref<Scene> scene = SceneManager::GetActiveScene();
 				if (scene) {
-					bool simulating = scene->IsPhysicsInitialized();
+					bool simulating = m_PlayManager.IsSimulating();
 					if (ImGui::MenuItem(simulating ? "Stop Simulation" : "Start Simulation", "F5")) {
 						if (simulating)
-							scene->ShutdownPhysics();
+							m_PlayManager.Stop(m_ViewportPanel.GetCameraController());
 						else
-							scene->InitPhysics();
+							m_PlayManager.Play(m_ViewportPanel.GetCameraController());
+					}
+					if (simulating) {
+						auto state = m_PlayManager.GetState();
+						if (state == EditorPlayState::Play) {
+							if (ImGui::MenuItem("Eject", "F8"))
+								m_PlayManager.Eject(m_ViewportPanel.GetCameraController());
+						}
+						else if (state == EditorPlayState::Ejected) {
+							if (ImGui::MenuItem("Resume Play", "F8"))
+								m_PlayManager.ResumePlay();
+						}
 					}
 				}
 				else { ImGui::TextDisabled("No active scene"); }
@@ -303,6 +336,162 @@ namespace CB
 
 			ImGui::EndMenuBar();
 		}
+	}
+
+	void EditorLayer::RenderMainToolbar()
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 4.0f));
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.14f, 1.0f));
+
+		float toolbarHeight = 36.0f;
+		ImGui::BeginChild("##MainToolbar", ImVec2(0, toolbarHeight), false,
+			ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+		float btnSize = toolbarHeight - 10.0f;
+		float contentY = (toolbarHeight - btnSize) * 0.5f;
+
+		// --- Left section: Save buttons ---
+		ImGui::SetCursorPos(ImVec2(8.0f, contentY));
+
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.15f, 0.15f, 0.5f));
+
+		if (ImGui::Button("Save", ImVec2(50, btnSize)))
+			SaveScene();
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Save Scene (Ctrl+S)");
+
+		ImGui::SameLine();
+		if (ImGui::Button("Save As", ImVec2(60, btnSize)))
+			SaveSceneAs();
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Save Scene As (Ctrl+Shift+S)");
+
+		// --- Center section: Play controls ---
+		auto state = m_PlayManager.GetState();
+		Ref<Scene> scene = SceneManager::GetActiveScene();
+		bool paused = scene && scene->IsPhysicsPaused();
+
+		// Calculate center position
+		float centerBtnsWidth;
+		if (state == EditorPlayState::Edit)
+			centerBtnsWidth = btnSize; // just Play
+		else
+			centerBtnsWidth = btnSize * 4 + 12.0f; // Stop + Pause/Resume + Step + Eject/Resume
+
+		float windowWidth = ImGui::GetWindowWidth();
+		float centerStartX = (windowWidth - centerBtnsWidth) * 0.5f;
+		ImGui::SameLine(centerStartX);
+
+		if (state == EditorPlayState::Edit)
+		{
+			// Play button
+			if (ImGui::ImageButton("##tb_play",
+				(ImTextureID)static_cast<uintptr_t>(m_PlayButtonIcon->GetRendererID()),
+				ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0)))
+			{
+				if (scene) m_PlayManager.Play(m_ViewportPanel.GetCameraController());
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Play (F5)");
+		}
+		else
+		{
+			// Stop button (red tint)
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.15f, 0.15f, 0.3f));
+			if (ImGui::ImageButton("##tb_stop",
+				(ImTextureID)static_cast<uintptr_t>(m_StopButtonIcon->GetRendererID()),
+				ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0)))
+			{
+				m_PlayManager.Stop(m_ViewportPanel.GetCameraController());
+			}
+			ImGui::PopStyleColor();
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Stop (F5)");
+
+			ImGui::SameLine(0.0f, 4.0f);
+
+			// Pause/Resume button
+			if (paused)
+			{
+				if (ImGui::ImageButton("##tb_resume",
+					(ImTextureID)static_cast<uintptr_t>(m_ResumeButtonIcon->GetRendererID()),
+					ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0)))
+				{
+					scene->ResumePhysics();
+				}
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Resume Simulation");
+			}
+			else
+			{
+				if (ImGui::ImageButton("##tb_pause",
+					(ImTextureID)static_cast<uintptr_t>(m_PauseButtonIcon->GetRendererID()),
+					ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0)))
+				{
+					if (scene) scene->PausePhysics();
+				}
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pause Simulation");
+			}
+
+			ImGui::SameLine(0.0f, 4.0f);
+
+			// Step frame button
+			bool canStep = paused;
+			if (!canStep) ImGui::BeginDisabled();
+			if (ImGui::ImageButton("##tb_step",
+				(ImTextureID)static_cast<uintptr_t>(m_NextFrameButtonIcon->GetRendererID()),
+				ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0)))
+			{
+				if (canStep && scene) scene->StepOneFrame();
+			}
+			if (!canStep) ImGui::EndDisabled();
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+				ImGui::SetTooltip("Step One Frame (only when paused)");
+
+			ImGui::SameLine(0.0f, 4.0f);
+
+			// Eject / Resume Play button
+			if (state == EditorPlayState::Play)
+			{
+				if (ImGui::Button("Eject", ImVec2(btnSize + 20, btnSize)))
+					m_PlayManager.Eject(m_ViewportPanel.GetCameraController());
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Eject to editor camera (F8)");
+			}
+			else if (state == EditorPlayState::Ejected)
+			{
+				if (ImGui::ImageButton("##tb_possess",
+					(ImTextureID)static_cast<uintptr_t>(m_PlayButtonIcon->GetRendererID()),
+					ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0)))
+				{
+					m_PlayManager.ResumePlay();
+				}
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Resume Play - possess player camera (F8)");
+			}
+		}
+
+		ImGui::PopStyleColor(3); // Button colors
+
+		// --- Right section: State indicator ---
+		const char* stateText = "Edit";
+		ImVec4 stateColor = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+		if (state == EditorPlayState::Play)
+		{
+			stateText = "Playing";
+			stateColor = ImVec4(0.2f, 0.8f, 0.2f, 1.0f);
+		}
+		else if (state == EditorPlayState::Ejected)
+		{
+			stateText = "Ejected";
+			stateColor = ImVec4(0.9f, 0.7f, 0.1f, 1.0f);
+		}
+
+		ImVec2 textSize = ImGui::CalcTextSize(stateText);
+		ImGui::SameLine(windowWidth - textSize.x - 16.0f);
+		ImGui::SetCursorPosY((toolbarHeight - textSize.y) * 0.5f);
+		ImGui::TextColored(stateColor, "%s", stateText);
+
+		ImGui::EndChild();
+		ImGui::Separator();
+
+		ImGui::PopStyleColor(); // ChildBg
+		ImGui::PopStyleVar();   // WindowPadding
 	}
 
 	void EditorLayer::BeginDockspace()

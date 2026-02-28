@@ -58,6 +58,15 @@ namespace CB
 			m_Indices.shrink_to_fit();
 		}
 
+		// Update vertex data in-place via SetSubData (same vertex count required).
+		// Updates the retained CPU vertices and re-uploads to the GPU buffer.
+		void UpdateVertexData(const std::vector<Vertex>& vertices);
+
+		// Mutable access to retained vertices for in-place recoloring.
+		// Call UploadVertexData() after modifying to push changes to GPU.
+		std::vector<Vertex>& GetMutableVertices() { return m_Vertices; }
+		void UploadVertexData();
+
 		bool Reload() override;
 
 		static AssetType GetStaticType() { return AssetType::Mesh; }

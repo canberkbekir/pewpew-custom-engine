@@ -24,6 +24,10 @@ namespace CB
 		/// Returns a list of merged boxes in voxel coordinates.
 		static std::vector<MergedBox> GreedyMerge(const voxelizer::VoxelGrid& grid);
 
+		/// Sparse overload: iterates only filledCoords instead of entire grid volume.
+		static std::vector<MergedBox> GreedyMerge(const voxelizer::VoxelGrid& grid,
+		                                           const std::vector<glm::ivec3>& filledCoords);
+
 		/// Create a Jolt StaticCompoundShape from merged boxes.
 		static JPH::RefConst<JPH::Shape> CreateCompoundShape(
 			const voxelizer::VoxelGrid& grid,

@@ -27,5 +27,6 @@ namespace CB
 		static void RegisterSceneManagement(sol::state& lua); // Phase 6: Scene management
 		static void RegisterHingeJoint(sol::state& lua); // HingeJoint constraint API
 		static void RegisterVoxelDestruction(sol::state& lua); // VoxelQuery + VoxelDamage + DamageType
+		static void RegisterHeat(sol::state& lua); // Heat octree query/inject API
 	};
 }

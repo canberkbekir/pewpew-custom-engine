@@ -43,6 +43,15 @@ PlayerMovement = {
         RaycastRange     = Float(100.0, 1.0, 500.0),
         RaycastDamageRadius = Float(0.3, 0.0, 5.0), -- 0 = single voxel, >0 = crater
 
+        -- Flamethrower (beam mode)
+        FlameBlueprint     = BlueprintRef(),   -- drag BP_FlameBeam.blueprint here
+        FlameBeamLength    = Float(20.0, 1.0, 200.0),   -- max beam range
+        FlameBeamWidth     = Float(0.15, 0.01, 2.0),    -- visual beam thickness
+        FlameHeatPerSecond = Float(800.0, 0.0, 5000.0), -- heat injected along beam per second
+        FlameDamagePerSec  = Float(15.0, 0.0, 200.0),   -- fire damage per second at hit point
+        FlameDamageRadius  = Float(0.3, 0.0, 3.0),      -- damage area at hit point (0 = single voxel)
+        FlameHeatPoints    = Int(5, 1, 20),              -- heat injection points along beam
+
         -- Drag the Camera entity here (used for aim direction + muzzle position).
         Camera           = EntityRef(),
     }
@@ -97,9 +106,15 @@ function PlayerMovement:OnCreate()
     self.cam           = nil
     self.pitchNode     = nil
 
-    -- Damage type (switchable with 1/2/3 keys)
+    -- Damage type (switchable with 1/2/3/4 keys)
     self._currentDamageType = DamageType.Impact
     self._damageTypeName    = "Impact"
+    self._useFlamethrower   = false
+    self._flameCooldown     = 0.0
+
+    -- Beam entity (lazy-spawned on first fire, reused)
+    self._beamEntity = nil
+    self._beamActive = false
 
     self.rb = entity:GetComponent(RigidBody)
     if not self.rb then
@@ -250,26 +265,47 @@ function PlayerMovement:OnUpdate(dt)
         self.isGrounded = false
     end
 
-    -- ── Damage type switch (1/2/3) ─────────────────────────────────────────────
+    -- ── Weapon/Damage type switch (1/2/3/4) ────────────────────────────────────
     if Input.IsKeyJustPressed(Key.Num1) then
         self._currentDamageType = DamageType.Impact
         self._damageTypeName    = "Impact"
+        self._useFlamethrower   = false
         Log.Info("Damage type: Impact")
     elseif Input.IsKeyJustPressed(Key.Num2) then
         self._currentDamageType = DamageType.Fire
         self._damageTypeName    = "Fire"
+        self._useFlamethrower   = false
         Log.Info("Damage type: Fire")
     elseif Input.IsKeyJustPressed(Key.Num3) then
         self._currentDamageType = DamageType.Explosion
         self._damageTypeName    = "Explosion"
+        self._useFlamethrower   = false
         Log.Info("Damage type: Explosion")
+    elseif Input.IsKeyJustPressed(Key.Num4) then
+        self._useFlamethrower   = true
+        self._damageTypeName    = "Flamethrower"
+        Log.Info("Weapon: Flamethrower")
     end
 
-    -- ── Shoot ─────────────────────────────────────────────────────────────────
-    self._fireCooldown = Math.Max(0.0, self._fireCooldown - dt)
-    if Input.IsKeyPressed(Key.MouseLeft) and self._fireCooldown <= 0.0 then
-        self:Shoot()
-        self._fireCooldown = self.FireRate
+    -- ── Shoot / Flamethrower ─────────────────────────────────────────────────
+    self._fireCooldown  = Math.Max(0.0, self._fireCooldown - dt)
+
+    if Input.IsKeyPressed(Key.MouseLeft) then
+        if self._useFlamethrower then
+            -- Flamethrower beam: continuous while held
+            self:UpdateFlameBeam(dt)
+        elseif self._fireCooldown <= 0.0 then
+            self:Shoot()
+            self._fireCooldown = self.FireRate
+        end
+    else
+        -- Hide beam when not firing
+        if self._beamActive then
+            self._beamActive = false
+            if self._beamEntity and self._beamEntity:IsValid() then
+                self._beamEntity:SetVisible(false)
+            end
+        end
     end
 end
 
@@ -341,5 +377,86 @@ function PlayerMovement:Shoot()
         local bullet = entities[1]
         bullet:SetPosition(spawnPos)
         bullet:LookAt(spawnPos + fireDir * 100)
+    end
+end
+
+-- ── Flamethrower (Beam Mode) ──────────────────────────────────────────────────
+
+function PlayerMovement:UpdateFlameBeam(dt)
+    -- Determine origin and direction
+    local spawnPos, fireDir
+    if self.BulletPoint and self.BulletPoint:IsValid() then
+        spawnPos = self.BulletPoint:GetWorldPosition()
+        fireDir  = self.BulletPoint:GetForward()
+    elseif self.cam and self.cam:IsValid() then
+        spawnPos = self.cam:GetWorldPosition()
+        fireDir  = self.cam:GetForward()
+    else
+        spawnPos = self._entity:GetWorldPosition()
+        fireDir  = self._entity:GetForward()
+    end
+
+    -- Raycast to find hit point (or use max beam length)
+    local beamLength = self.FlameBeamLength
+    local hitPoint   = nil
+    local hitEntity  = nil
+
+    local hit = Physic.Raycast(self._scene, spawnPos, fireDir, beamLength, Layer.All, self._entity)
+    if hit and hit.point then
+        local diff = hit.point - spawnPos
+        beamLength = diff:Length()
+        hitPoint   = hit.point
+        hitEntity  = hit:GetEntity(self._scene)
+    end
+
+    -- Lazy-spawn beam entity on first use
+    if not self._beamEntity or not self._beamEntity:IsValid() then
+        if self.FlameBlueprint and self.FlameBlueprint:IsValid() then
+            local entities = self._scene:Instantiate(self.FlameBlueprint)
+            if entities and #entities > 0 then
+                self._beamEntity = entities[1]
+            end
+        end
+        if not self._beamEntity then
+            Log.Warn("PlayerMovement: no FlameBlueprint assigned (drag BP_FlameBeam)")
+            return
+        end
+    end
+
+    -- Position beam: centered between spawn and end, oriented along fireDir
+    local beamEnd    = spawnPos + fireDir * beamLength
+    local beamCenter = spawnPos + fireDir * (beamLength * 0.5)
+    self._beamEntity:SetPosition(beamCenter)
+    self._beamEntity:LookAt(beamEnd)
+    self._beamEntity:SetScale(Vector3(self.FlameBeamWidth, self.FlameBeamWidth, beamLength))
+    self._beamEntity:SetVisible(true)
+    self._beamActive = true
+
+    -- Inject heat at multiple points along the beam
+    local heatPerPoint = self.FlameHeatPerSecond / Math.Max(self.FlameHeatPoints, 1)
+    for i = 0, self.FlameHeatPoints - 1 do
+        local t = (i + 0.5) / self.FlameHeatPoints
+        local p = spawnPos + fireDir * (beamLength * t)
+        Heat.Inject(self._scene, p, heatPerPoint)
+    end
+
+    -- Apply fire damage at hit point
+    if hitPoint then
+        if self.FlameDamageRadius > 0 then
+            VoxelDamage.ApplySphere(self._scene, hitPoint, self.FlameDamageRadius, {
+                type   = DamageType.Fire,
+                amount = self.FlameDamagePerSec * dt,
+            })
+        elseif hitEntity and hitEntity:IsValid() then
+            local entityID = hitEntity:GetUUID()
+            if entityID then
+                VoxelDamage.ApplyAtWorldPos(self._scene, entityID, hitPoint, {
+                    type      = DamageType.Fire,
+                    amount    = self.FlameDamagePerSec * dt,
+                    origin    = hitPoint,
+                    direction = fireDir,
+                })
+            end
+        end
     end
 end

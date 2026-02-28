@@ -1,5 +1,6 @@
 #include "cbpch.h"
 #include "VoxelCollisionShapeGenerator.h"
+#include "CBEngine/Voxel/Destruction/VoxelTintTypes.h" // VoxelCoordHash
 
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/StaticCompoundShape.h>
@@ -81,6 +82,84 @@ namespace CB
 					result.push_back({{x, y, z}, {maxX, maxY, maxZ}});
 				}
 			}
+		}
+
+		return result;
+	}
+
+	// =========================================================================
+	// GreedyMerge — sparse overload using filledCoords
+	// Iterates only filled voxels as starting points instead of entire volume
+	// =========================================================================
+	std::vector<MergedBox> VoxelCollisionShapeGenerator::GreedyMerge(
+		const voxelizer::VoxelGrid& grid,
+		const std::vector<glm::ivec3>& filledCoords)
+	{
+		std::vector<MergedBox> result;
+
+		const int sizeX = grid.size.x;
+		const int sizeY = grid.size.y;
+		const int sizeZ = grid.size.z;
+
+		// Build a set for O(1) filled+unvisited checks
+		std::unordered_set<glm::ivec3, VoxelCoordHash> remaining(filledCoords.begin(), filledCoords.end());
+
+		// Sort filledCoords for deterministic merge order (z, y, x)
+		std::vector<glm::ivec3> sorted = filledCoords;
+		std::sort(sorted.begin(), sorted.end(), [](const glm::ivec3& a, const glm::ivec3& b) {
+			if (a.z != b.z) return a.z < b.z;
+			if (a.y != b.y) return a.y < b.y;
+			return a.x < b.x;
+		});
+
+		for (const auto& start : sorted) {
+			if (remaining.find(start) == remaining.end())
+				continue; // already merged
+
+			int x = start.x, y = start.y, z = start.z;
+			int maxX = x, maxY = y, maxZ = z;
+
+			// Extend along X
+			while (maxX + 1 < sizeX && remaining.count({maxX + 1, y, z}))
+				maxX++;
+
+			// Extend along Y — check full X row
+			bool canExtendY = true;
+			while (canExtendY && maxY + 1 < sizeY) {
+				for (int ix = x; ix <= maxX; ix++) {
+					if (!remaining.count({ix, maxY + 1, z})) {
+						canExtendY = false;
+						break;
+					}
+				}
+				if (canExtendY)
+					maxY++;
+			}
+
+			// Extend along Z — check full XY plane
+			bool canExtendZ = true;
+			while (canExtendZ && maxZ + 1 < sizeZ) {
+				for (int iy = y; iy <= maxY; iy++) {
+					for (int ix = x; ix <= maxX; ix++) {
+						if (!remaining.count({ix, iy, maxZ + 1})) {
+							canExtendZ = false;
+							break;
+						}
+					}
+					if (!canExtendZ)
+						break;
+				}
+				if (canExtendZ)
+					maxZ++;
+			}
+
+			// Mark all voxels in this box as visited
+			for (int iz = z; iz <= maxZ; iz++)
+				for (int iy = y; iy <= maxY; iy++)
+					for (int ix = x; ix <= maxX; ix++)
+						remaining.erase({ix, iy, iz});
+
+			result.push_back({{x, y, z}, {maxX, maxY, maxZ}});
 		}
 
 		return result;

@@ -27,25 +27,25 @@ namespace CB
 
 		Vector3 position = m_Camera.GetPosition();
 
-		if (Input::IsKeyPressed(CB_KEY_W))
+		if (Input::IsKeyPressedRaw(CB_KEY_W))
 			position += m_Camera.GetForwardDirection() * (m_MoveSpeed * deltaTime);
-		if (Input::IsKeyPressed(CB_KEY_S))
+		if (Input::IsKeyPressedRaw(CB_KEY_S))
 			position -= m_Camera.GetForwardDirection() * (m_MoveSpeed * deltaTime);
 
-		if (Input::IsKeyPressed(CB_KEY_D))
+		if (Input::IsKeyPressedRaw(CB_KEY_D))
 			position += m_Camera.GetRightDirection() * (m_MoveSpeed * deltaTime);
-		if (Input::IsKeyPressed(CB_KEY_A))
+		if (Input::IsKeyPressedRaw(CB_KEY_A))
 			position -= m_Camera.GetRightDirection() * (m_MoveSpeed * deltaTime);
 
-		if (Input::IsKeyPressed(CB_KEY_E))
+		if (Input::IsKeyPressedRaw(CB_KEY_E))
 			position += m_Camera.GetUpDirection() * (m_MoveSpeed * deltaTime);
-		if (Input::IsKeyPressed(CB_KEY_Q))
+		if (Input::IsKeyPressedRaw(CB_KEY_Q))
 			position -= m_Camera.GetUpDirection() * (m_MoveSpeed * deltaTime);
 
 		m_Camera.SetPosition(position);
 
 
-		if (m_RotationEnabled && Input::IsMouseButtonPressed(CB_MOUSE_BUTTON_2)) {
+		if (m_RotationEnabled && Input::IsMouseButtonPressedRaw(CB_MOUSE_BUTTON_2)) {
 			auto [mx, my] = Input::GetMousePosition();
 			const float x = mx;
 			const float y = my;

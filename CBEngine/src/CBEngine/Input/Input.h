@@ -15,21 +15,30 @@ namespace CB
 		// Called once per frame before layer updates to snapshot previous state
 		static void Update() { s_Instance->UpdateImpl(); }
 
-		static bool IsKeyPressed(int keycode) { return s_Instance->IsKeyPressedImpl(keycode); }
-		// Returns true only on the first frame the key is pressed (no repeat)
-		static bool IsKeyJustPressed(int keycode) { return s_Instance->IsKeyJustPressedImpl(keycode); }
-		// Returns true on the frame the key is released
-		static bool IsKeyJustReleased(int keycode) { return s_Instance->IsKeyJustReleasedImpl(keycode); }
+		// Block game-level input queries (keys, mouse buttons, deltas return false/zero).
+		// Editor-level input (events, ImGui) is unaffected.
+		static void SetGameInputBlocked(bool blocked) { s_GameInputBlocked = blocked; }
+		static bool IsGameInputBlocked() { return s_GameInputBlocked; }
 
-		static bool IsMouseButtonPressed(int button) { return s_Instance->IsMouseButtonPressedImpl(button); }
+		static bool IsKeyPressed(int keycode) { return !s_GameInputBlocked && s_Instance->IsKeyPressedImpl(keycode); }
+		// Returns true only on the first frame the key is pressed (no repeat)
+		static bool IsKeyJustPressed(int keycode) { return !s_GameInputBlocked && s_Instance->IsKeyJustPressedImpl(keycode); }
+		// Returns true on the frame the key is released
+		static bool IsKeyJustReleased(int keycode) { return !s_GameInputBlocked && s_Instance->IsKeyJustReleasedImpl(keycode); }
+
+		static bool IsMouseButtonPressed(int button) { return !s_GameInputBlocked && s_Instance->IsMouseButtonPressedImpl(button); }
+
+		// Raw input queries — bypass game input block. Use for editor-level controls (e.g. editor camera).
+		static bool IsKeyPressedRaw(int keycode) { return s_Instance->IsKeyPressedImpl(keycode); }
+		static bool IsMouseButtonPressedRaw(int button) { return s_Instance->IsMouseButtonPressedImpl(button); }
 		static std::pair<float, float> GetMousePosition() { return s_Instance->GetMousePositionImpl(); }
 		static float GetMouseX() { return s_Instance->GetMouseXImpl(); }
 		static float GetMouseY() { return s_Instance->GetMouseYImpl(); }
 		// Returns raw (dx, dy) mouse movement since last frame. Zero on first frame.
 		// When cursor is locked, uses GLFW_RAW_MOUSE_MOTION (no OS acceleration).
-		static std::pair<float, float> GetMouseDelta() { return s_Instance->GetMouseDeltaImpl(); }
+		static std::pair<float, float> GetMouseDelta() { return s_GameInputBlocked ? std::pair<float,float>{0,0} : s_Instance->GetMouseDeltaImpl(); }
 		// Returns (scrollX, scrollY) mouse wheel delta this frame.
-		static std::pair<float, float> GetMouseScrollDelta() { return s_Instance->GetMouseScrollDeltaImpl(); }
+		static std::pair<float, float> GetMouseScrollDelta() { return s_GameInputBlocked ? std::pair<float,float>{0,0} : s_Instance->GetMouseScrollDeltaImpl(); }
 
 		// Lock/hide the cursor for FPS-style mouse capture.
 		// Enabling also activates raw mouse motion if the platform supports it.
@@ -77,5 +86,6 @@ namespace CB
 		}
 	private:
 		static Scope<Input> s_Instance;
+		static inline bool s_GameInputBlocked = false;
 	};
 }

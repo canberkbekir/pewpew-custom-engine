@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <queue>
 #include <cmath>
+#include <intrin.h> // __popcnt64
 
 namespace voxelizer {
 
@@ -126,10 +127,8 @@ bool VoxelGrid::IsValidCoord(const glm::ivec3& coord) const
 uint64_t VoxelGrid::CountFilled() const
 {
     uint64_t count = 0;
-    for (uint64_t i = 0; i < totalVoxels; ++i)
-    {
-        if (IsFilled(i)) ++count;
-    }
+    for (size_t i = 0; i < data.size(); ++i)
+        count += __popcnt64(data[i]);
     return count;
 }
 

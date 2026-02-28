@@ -18,6 +18,7 @@ namespace CB
 	struct ProfileResult
 	{
 		std::string Name;
+		const char* Category = "General"; // Physics, Rendering, Voxel, Scene, Script, Editor
 		FloatingPointMicroseconds Start;
 		std::chrono::microseconds ElapsedTime;
 		std::thread::id ThreadID;
@@ -67,11 +68,15 @@ namespace CB
 			// Store in current frame scopes for UI
 			m_CurrentFrameScopes.push_back(result);
 
+			// Capture into recording buffer
+			if (m_Recording)
+				m_RecordedScopes.push_back(result);
+
 			std::stringstream json;
 
 			json << std::setprecision(3) << std::fixed;
 			json << ",{";
-			json << "\"cat\":\"function\",";
+			json << "\"cat\":\"" << result.Category << "\",";
 			json << "\"dur\":" << (result.ElapsedTime.count()) << ',';
 			json << "\"name\":\"" << result.Name << "\",";
 			json << "\"ph\":\"X\",";
@@ -105,6 +110,12 @@ namespace CB
 
 			// Copy current frame scopes for UI access
 			m_LastFrameScopes = m_CurrentFrameScopes;
+
+			// Track frame times during recording
+			if (m_Recording) {
+				m_RecordedFrameTimes.push_back(elapsed);
+				m_RecordedFrameCount++;
+			}
 		}
 
 		float GetFPS() const { return m_LastFrameTime > 0.0f ? 1000.0f / m_LastFrameTime : 0.0f; }
@@ -116,6 +127,65 @@ namespace CB
 		const std::array<float, FRAME_HISTORY_SIZE>& GetFrameTimeHistory() const { return m_FrameTimeHistory; }
 
 		size_t GetFrameTimeIndex() const { return m_FrameTimeIndex; }
+
+		// --- Recording API ---
+		void StartRecording()
+		{
+			std::lock_guard lock(m_Mutex);
+			m_RecordedScopes.clear();
+			m_RecordedFrameTimes.clear();
+			m_RecordStartTime = std::chrono::steady_clock::now();
+			m_Recording = true;
+			m_RecordedFrameCount = 0;
+		}
+
+		void StopRecording()
+		{
+			std::lock_guard lock(m_Mutex);
+			m_Recording = false;
+			auto now = std::chrono::steady_clock::now();
+			m_RecordDurationMs = std::chrono::duration<float, std::milli>(now - m_RecordStartTime).count();
+		}
+
+		bool IsRecording() const { return m_Recording; }
+
+		float GetRecordDurationMs() const { return m_RecordDurationMs; }
+
+		uint32_t GetRecordedFrameCount() const { return m_RecordedFrameCount; }
+
+		const std::vector<ProfileResult>& GetRecordedScopes() const { return m_RecordedScopes; }
+
+		const std::vector<float>& GetRecordedFrameTimes() const { return m_RecordedFrameTimes; }
+
+		bool ExportRecording(const std::string& filepath) const
+		{
+			std::ofstream out(filepath);
+			if (!out.is_open())
+				return false;
+
+			out << "{\"otherData\": {},\"traceEvents\":[{}";
+			out << std::setprecision(3) << std::fixed;
+
+			// Rebase timestamps relative to recording start
+			auto recordStartUs = FloatingPointMicroseconds{m_RecordStartTime.time_since_epoch()};
+
+			for (const auto& r : m_RecordedScopes) {
+				double relativeStartUs = r.Start.count() - recordStartUs.count();
+				out << ",{";
+				out << "\"cat\":\"" << r.Category << "\",";
+				out << "\"dur\":" << r.ElapsedTime.count() << ',';
+				out << "\"name\":\"" << r.Name << "\",";
+				out << "\"ph\":\"X\",";
+				out << "\"pid\":0,";
+				out << "\"tid\":" << r.ThreadID << ",";
+				out << "\"ts\":" << relativeStartUs;
+				out << "}";
+			}
+
+			out << "]}";
+			out.close();
+			return true;
+		}
 
 		static Instrumentor& Get()
 		{
@@ -161,13 +231,21 @@ namespace CB
 		std::array<float, FRAME_HISTORY_SIZE> m_FrameTimeHistory;
 		size_t m_FrameTimeIndex = 0;
 		float m_LastFrameTime = 0.0f;
+
+		// Recording state
+		bool m_Recording = false;
+		std::chrono::time_point<std::chrono::steady_clock> m_RecordStartTime;
+		float m_RecordDurationMs = 0.0f;
+		uint32_t m_RecordedFrameCount = 0;
+		std::vector<ProfileResult> m_RecordedScopes;
+		std::vector<float> m_RecordedFrameTimes;
 	};
 
 	class InstrumentationTimer
 	{
 	public:
-		InstrumentationTimer(const char* name)
-			: m_Name(name), m_Stopped(false) { m_StartTimepoint = std::chrono::steady_clock::now(); }
+		InstrumentationTimer(const char* name, const char* category = "General")
+			: m_Name(name), m_Category(category), m_Stopped(false) { m_StartTimepoint = std::chrono::steady_clock::now(); }
 
 		~InstrumentationTimer()
 		{
@@ -182,12 +260,13 @@ namespace CB
 			auto elapsedTime = std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint).time_since_epoch()
 			- std::chrono::time_point_cast<std::chrono::microseconds>(m_StartTimepoint).time_since_epoch();
 
-			Instrumentor::Get().WriteProfile({m_Name, highResStart, elapsedTime, std::this_thread::get_id()});
+			Instrumentor::Get().WriteProfile({m_Name, m_Category, highResStart, elapsedTime, std::this_thread::get_id()});
 
 			m_Stopped = true;
 		}
 	private:
 		const char* m_Name;
+		const char* m_Category;
 		std::chrono::time_point<std::chrono::steady_clock> m_StartTimepoint;
 		bool m_Stopped;
 	};
@@ -250,6 +329,10 @@ namespace CB
 											   ::CB::InstrumentationTimer timer##line(fixedName##line.Data)
 #define CB_PROFILE_SCOPE_LINE(name, line) CB_PROFILE_SCOPE_LINE2(name, line)
 #define CB_PROFILE_SCOPE(name) CB_PROFILE_SCOPE_LINE(name, __LINE__)
+#define CB_PROFILE_SCOPE_CAT_LINE2(name, cat, line) constexpr auto fixedName##line = ::CB::InstrumentorUtils::CleanupOutputString(name, "__cdecl ");\
+											   ::CB::InstrumentationTimer timer##line(fixedName##line.Data, cat)
+#define CB_PROFILE_SCOPE_CAT_LINE(name, cat, line) CB_PROFILE_SCOPE_CAT_LINE2(name, cat, line)
+#define CB_PROFILE_SCOPE_CAT(name, cat) CB_PROFILE_SCOPE_CAT_LINE(name, cat, __LINE__)
 #define CB_PROFILE_FUNCTION() CB_PROFILE_SCOPE(CB_FUNC_SIG)
 #define CB_PROFILE_BEGIN_FRAME() ::CB::Instrumentor::Get().BeginFrame()
 #define CB_PROFILE_END_FRAME() ::CB::Instrumentor::Get().EndFrame()
@@ -257,6 +340,7 @@ namespace CB
 #define CB_PROFILE_BEGIN_SESSION(name, filepath)
 #define CB_PROFILE_END_SESSION()
 #define CB_PROFILE_SCOPE(name)
+#define CB_PROFILE_SCOPE_CAT(name, cat)
 #define CB_PROFILE_FUNCTION()
 #define CB_PROFILE_BEGIN_FRAME()
 #define CB_PROFILE_END_FRAME()

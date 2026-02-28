@@ -4,6 +4,7 @@
 #include "CBEngine/Core/TimeStep.h"
 #include "CBEngine/Voxel/Destruction/VoxelDamageMap.h"
 #include "CBEngine/Voxel/Destruction/VoxelSubstance.h"
+#include "CBEngine/Voxel/Destruction/HeatOctree.h"
 
 #include <glm/glm.hpp>
 #include <future>
@@ -75,6 +76,14 @@ namespace CB
 	public:
 		static void OnUpdate(Scene* scene, Timestep ts);
 		static void Shutdown();
+
+		// Toggle between octree heat system and old neighbor-based spread
+		static bool s_UseOctreeHeat;
+
+		// Access for debug visualization and Lua API
+		static const HeatOctree& GetHeatOctree() { return s_HeatOctree; }
+		static HeatOctree& GetMutableHeatOctree() { return s_HeatOctree; }
+
 	private:
 		// Main thread
 		static void CollectWorkerResults();
@@ -82,6 +91,16 @@ namespace CB
 		static void AdvanceTimers(Scene* scene, float dt);
 		static std::vector<SpreadSnapshot> BuildSnapshots(Scene* scene);
 		static CrossEntityContext BuildCrossEntityContext(Scene* scene);
+
+		// Per-voxel heat conduction (intra-entity Noita-style fire)
+		static void ConductEntityHeat(Scene* scene, float dt);
+
+		// Octree heat system
+		static void UpdateHeatOctree(Scene* scene, float dt);
+		static void ProcessIgnitionsFromHeat(Scene* scene);
+		static HeatOctree s_HeatOctree;
+		static int s_IgnitionCooldown;
+		static float s_MinIgnitionTemp; // cached min ignition temp across substances
 
 		// Worker thread (pure functions, no shared state)
 		static std::vector<SpreadResult> ProcessSpreadTicks(

@@ -6,6 +6,7 @@
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Renderer/Core/Framebuffer.h"
 #include "CBEngine/Renderer/Camera/PerspectiveCameraController.h"
+#include "CBEngine/Renderer/Camera/PerspectiveCamera.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Renderer/Resources/Shader.h"
 #include "CBEngine/Renderer/Resources/Material.h"
@@ -22,15 +23,18 @@ namespace CB
 		void OnUpdate(Timestep ts);
 		void OnImGuiRender() override;
 		void OnEvent(Event& e) override;
+		PerspectiveCameraController& GetCameraController() { return m_CameraController; }
+
 	private:
 		void RenderToolbar();
-		void RenderPlayButtonInTabBar();
 		void RenderStatsOverlay();
+		bool FindPrimarySceneCamera();
 		void RenderScene();
 		void RenderGizmo();
 
 		void HandleEntityPicking();
 		void DrawEntityColliders(Entity entity,bool recurseChildren = true);
+		void DrawHeatView();
 
 		// Rendering
 		Ref<Framebuffer> m_Framebuffer;
@@ -39,6 +43,8 @@ namespace CB
 
 		// Camera
 		PerspectiveCameraController m_CameraController;
+		PerspectiveCamera m_PlayCamera;
+		bool m_HasPlayCamera = false;
 
 		// Viewport state
 		Vector2 m_ViewportSize = {1280.0f, 720.0f};
@@ -51,6 +57,7 @@ namespace CB
 		bool m_ShowStats = true;
 		bool m_ShowGrid = true;
 		bool m_ShowCameras = true;
+		bool m_ShowHeatView = false;
 
 		// Gizmo state
 		ImGuizmo::OPERATION m_GizmoOperation = ImGuizmo::TRANSLATE;
@@ -59,11 +66,6 @@ namespace CB
 		//Icons
 		ImVec2 m_IconSize = {20.f, 20.f};
 		Ref<Texture2D> m_WireframeButtonIcon;
-		Ref<Texture2D> m_PlayButtonIcon;
-		Ref<Texture2D> m_ResumeButtonIcon;
-		Ref<Texture2D> m_PauseButtonIcon;
-		Ref<Texture2D> m_StopButtonIcon;
-		Ref<Texture2D> m_NextFrameButtonIcon;
 
 	};
 }

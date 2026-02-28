@@ -76,6 +76,23 @@ namespace CB
 				"World units — how far fire can jump to another mesh",
 				Float, DragFloat, 0.0f, 5.0f, 0.05f, "Flammable"),
 
+			// --- Thermal (Heat Octree) ---
+			CB_SUBSTANCE_PROP(HeatConductivity, "heat_conductivity", "Heat Conductivity", "Thermal",
+				"0-1 — how well this substance conducts heat (metal=0.9, wood=0.4, stone=0.1)",
+				Float, SliderFloat, 0.0f, 1.0f, 0.0f),
+			CB_SUBSTANCE_PROP_COND(BurnHeatOutput, "burn_heat_output", "Burn Heat Output", "Thermal",
+				"Heat per second emitted while burning",
+				Float, DragFloat, 0.0f, 1000.0f, 1.0f, "Flammable"),
+			CB_SUBSTANCE_PROP_COND(HeatDecayRate, "heat_decay_rate", "Heat Decay Rate", "Thermal",
+				"Heat per second lost in empty space around this substance",
+				Float, DragFloat, 0.0f, 100.0f, 0.1f, "Flammable"),
+			CB_SUBSTANCE_PROP_COND(HeatAcceleration, "heat_acceleration", "Heat Acceleration", "Thermal",
+				"Ramp-up multiplier (0.2=smolder, 2.0=flash fire)",
+				Float, DragFloat, 0.0f, 5.0f, 0.05f, "Flammable"),
+			CB_SUBSTANCE_PROP(InternalConductionRate, "internal_conduction_rate", "Internal Conduction Rate", "Thermal",
+				"Per-voxel heat transfer rate within an entity (0=disabled, 0.5=wood, 0.9=metal)",
+				Float, SliderFloat, 0.0f, 1.0f, 0.0f),
+
 			// --- Burn Stages (Custom widget, enabled by Flammable) ---
 			CB_SUBSTANCE_PROP_CUSTOM("burn_stages", "Burn Stage Tints", "Environmental",
 				"Visual color progression when on fire: Normal > Burning > Charred > Collapse", "Flammable"),

@@ -162,4 +162,36 @@ namespace CB
 		// 3. Group unsupported voxels into connected components
 		return GroupIntoComponents(unsupported, grid);
 	}
+
+	// =========================================================================
+	// FindUnsupportedClusters — sparse overload using filledCoords
+	// Replaces O(W*H*D) triple loop with O(filledCoords.size()) iteration
+	// =========================================================================
+	std::vector<CollapseCluster> VoxelStructuralIntegrity::FindUnsupportedClusters(
+		const voxelizer::VoxelGrid& grid,
+		const std::vector<glm::ivec3>& anchorCoords,
+		int maxIterations,
+		const std::vector<glm::ivec3>& filledCoords)
+	{
+		if (anchorCoords.empty()) {
+			// No anchors = everything is unsupported
+			return GroupIntoComponents(filledCoords, grid);
+		}
+
+		// 1. Flood-fill from anchors to find all grounded voxels
+		auto grounded = FloodFillFromSeeds(grid, anchorCoords, maxIterations);
+
+		// 2. Find all filled voxels NOT in the grounded set — iterate sparse list only
+		std::vector<glm::ivec3> unsupported;
+		for (const auto& coord : filledCoords) {
+			if (grounded.find(coord) == grounded.end())
+				unsupported.push_back(coord);
+		}
+
+		if (unsupported.empty())
+			return {};
+
+		// 3. Group unsupported voxels into connected components
+		return GroupIntoComponents(unsupported, grid);
+	}
 }

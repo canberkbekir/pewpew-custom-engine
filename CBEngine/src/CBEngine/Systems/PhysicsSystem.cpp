@@ -13,6 +13,7 @@
 #include "CBEngine/Physics/CollisionShapeCache.h"
 #include "CBEngine/Systems/DestructionSystem.h"
 #include "CBEngine/Systems/VoxelDestructionSystem.h"
+#include "CBEngine/Debug/Instrumentor.h"
 #include "CBEngine/Components/DestructibleVoxelComponent.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
 #include "CBEngine/Asset/AssetManager.h"
@@ -405,17 +406,33 @@ namespace CB
 
 	void PhysicsSystem::OnUpdate(Scene* scene,PhysicsWorld* world,Timestep ts)
 	{
+		CB_PROFILE_SCOPE_CAT("PhysicsSystem::OnUpdate", "Physics");
 		if (!world)
 			return;
 
 		// 1.7: Flush collision events at the start of the update
-		FlushCollisionEvents(scene, world);
-		FlushTriggerEvents(scene, world);
+		{
+			CB_PROFILE_SCOPE_CAT("PhysicsSystem::FlushEvents", "Physics");
+			FlushCollisionEvents(scene, world);
+			FlushTriggerEvents(scene, world);
+		}
 
-		SyncStaticColliders(scene, world);
-		SyncToPhysics(scene, world);
-		world->Step(ts);
-		SyncFromPhysics(scene, world);
+		{
+			CB_PROFILE_SCOPE_CAT("PhysicsSystem::SyncStaticColliders", "Physics");
+			SyncStaticColliders(scene, world);
+		}
+		{
+			CB_PROFILE_SCOPE_CAT("PhysicsSystem::SyncToPhysics", "Physics");
+			SyncToPhysics(scene, world);
+		}
+		{
+			CB_PROFILE_SCOPE_CAT("PhysicsWorld::Step", "Physics");
+			world->Step(ts);
+		}
+		{
+			CB_PROFILE_SCOPE_CAT("PhysicsSystem::SyncFromPhysics", "Physics");
+			SyncFromPhysics(scene, world);
+		}
 	}
 
 	void PhysicsSystem::SyncToPhysics(Scene* scene,PhysicsWorld* world)

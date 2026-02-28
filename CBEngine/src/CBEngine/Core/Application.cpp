@@ -98,7 +98,7 @@ namespace CB
 
 			if (!m_Minimized) {
 				{
-					CB_PROFILE_SCOPE("LayerStack OnUpdate");
+					CB_PROFILE_SCOPE_CAT("LayerStack OnUpdate", "Scene");
 					for (Layer* layer : m_LayerStack)
 						layer->OnUpdate(timestep);
 				}
@@ -106,7 +106,7 @@ namespace CB
 
 #ifdef CB_ENABLE_IMGUI
 			{
-				CB_PROFILE_SCOPE("LayerStack OnImGuiRender");
+				CB_PROFILE_SCOPE_CAT("LayerStack OnImGuiRender", "Editor");
 				m_ImGuiLayer->Begin();
 				for (Layer* layer : m_LayerStack)
 					layer->OnImGuiRender();

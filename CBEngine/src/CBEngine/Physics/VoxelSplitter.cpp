@@ -1,5 +1,6 @@
 #include "cbpch.h"
 #include "VoxelSplitter.h"
+#include "CBEngine/Voxel/Destruction/VoxelTintTypes.h" // VoxelCoordHash
 
 namespace CB
 {
@@ -224,6 +225,164 @@ namespace CB
 		// Pass 2: Build palette in LINEAR order (matching GetFilledCoords/CreatePaletteMeshFromGrid)
 		if (!sourcePaletteIndices.empty()) {
 			auto sourceFilledMap = BuildFilledIndexMap(sourceGrid);
+			for (uint64_t i = 0; i < fragment.Grid.totalVoxels; ++i) {
+				if (!fragment.Grid.IsFilled(i)) continue;
+				glm::ivec3 localCoord = fragment.Grid.IndexToCoord(i);
+				glm::ivec3 sourceCoord = localCoord + minC;
+				uint64_t srcIdx = sourceGrid.CoordToIndex(sourceCoord);
+				auto it = sourceFilledMap.find(srcIdx);
+				if (it != sourceFilledMap.end() && it->second < sourcePaletteIndices.size())
+					fragment.PaletteIndices.push_back(sourcePaletteIndices[it->second]);
+				else
+					fragment.PaletteIndices.push_back(0);
+			}
+		}
+
+		return fragment;
+	}
+
+	// =========================================================================
+	// RemoveVoxels — overload accepting pre-built filled index map
+	// =========================================================================
+	uint64_t VoxelSplitter::RemoveVoxels(voxelizer::VoxelGrid& grid,
+	                                     std::vector<uint8_t>& paletteIndices,
+	                                     const std::vector<glm::ivec3>& coordsToRemove,
+	                                     const std::unordered_map<uint64_t, size_t>& filledIndexMap)
+	{
+		if (coordsToRemove.empty())
+			return grid.CountFilled();
+
+		std::unordered_set<size_t> removedPaletteIndices;
+		for (const auto& coord : coordsToRemove) {
+			if (!grid.IsValidCoord(coord) || !grid.IsFilled(coord))
+				continue;
+
+			uint64_t idx = grid.CoordToIndex(coord);
+			auto it = filledIndexMap.find(idx);
+			if (it != filledIndexMap.end())
+				removedPaletteIndices.insert(it->second);
+
+			grid.Clear(coord.x, coord.y, coord.z);
+		}
+
+		if (!paletteIndices.empty()) {
+			std::vector<uint8_t> newPalette;
+			newPalette.reserve(paletteIndices.size() - removedPaletteIndices.size());
+			for (size_t i = 0; i < paletteIndices.size(); i++) {
+				if (removedPaletteIndices.find(i) == removedPaletteIndices.end())
+					newPalette.push_back(paletteIndices[i]);
+			}
+			paletteIndices = std::move(newPalette);
+		}
+
+		return grid.CountFilled();
+	}
+
+	// =========================================================================
+	// FindConnectedComponents — sparse overload using filledCoords
+	// Complexity: O(filled_voxels) instead of O(W*H*D)
+	// =========================================================================
+	std::vector<VoxelFragment> VoxelSplitter::FindConnectedComponents(
+		const voxelizer::VoxelGrid& grid,
+		const std::vector<uint8_t>& paletteIndices,
+		const std::vector<glm::ivec3>& filledCoords)
+	{
+		// 6-connected neighbors
+		static const glm::ivec3 neighbors[6] = {
+			{1, 0, 0}, {-1, 0, 0},
+			{0, 1, 0}, {0, -1, 0},
+			{0, 0, 1}, {0, 0, -1}
+		};
+
+		// Use hash set for visited tracking — only filled voxels, not entire volume
+		std::unordered_set<glm::ivec3, VoxelCoordHash> remaining(filledCoords.begin(), filledCoords.end());
+		std::vector<std::vector<glm::ivec3>> components;
+
+		while (!remaining.empty()) {
+			std::vector<glm::ivec3> component;
+			std::queue<glm::ivec3> queue;
+
+			auto startIt = remaining.begin();
+			glm::ivec3 start = *startIt;
+			remaining.erase(startIt);
+			queue.push(start);
+			component.push_back(start);
+
+			while (!queue.empty()) {
+				glm::ivec3 current = queue.front();
+				queue.pop();
+
+				for (const auto& offset : neighbors) {
+					glm::ivec3 neighbor = current + offset;
+					auto it = remaining.find(neighbor);
+					if (it != remaining.end()) {
+						remaining.erase(it);
+						queue.push(neighbor);
+						component.push_back(neighbor);
+					}
+				}
+			}
+
+			components.push_back(std::move(component));
+		}
+
+		// Build the source filled index map ONCE for all fragments
+		auto sourceFilledMap = BuildFilledIndexMap(grid);
+
+		std::vector<VoxelFragment> fragments;
+		fragments.reserve(components.size());
+		for (auto& coords : components)
+			fragments.push_back(ExtractComponent(grid, paletteIndices, coords, sourceFilledMap));
+
+		return fragments;
+	}
+
+	// =========================================================================
+	// ExtractComponent — overload with pre-built source filled index map
+	// =========================================================================
+	VoxelFragment VoxelSplitter::ExtractComponent(
+		const voxelizer::VoxelGrid& sourceGrid,
+		const std::vector<uint8_t>& sourcePaletteIndices,
+		const std::vector<glm::ivec3>& componentCoords,
+		const std::unordered_map<uint64_t, size_t>& sourceFilledMap)
+	{
+		VoxelFragment fragment;
+
+		if (componentCoords.empty())
+			return fragment;
+
+		// Find bounding box
+		glm::ivec3 minC = componentCoords[0];
+		glm::ivec3 maxC = componentCoords[0];
+		Vector3 comSum(0.0f);
+
+		for (const auto& coord : componentCoords) {
+			minC = glm::min(minC, coord);
+			maxC = glm::max(maxC, coord);
+			comSum += sourceGrid.VoxelCenterToWorld(coord);
+		}
+
+		fragment.MinCoord = minC;
+		fragment.VoxelCount = componentCoords.size();
+		fragment.CenterOfMass = comSum / static_cast<float>(componentCoords.size());
+
+		// Create tight-fitting sub-grid
+		glm::ivec3 subSize = maxC - minC + glm::ivec3(1);
+		fragment.Grid.size = subSize;
+		fragment.Grid.origin = sourceGrid.origin + glm::vec3(minC) * sourceGrid.voxelSize;
+		fragment.Grid.voxelSize = sourceGrid.voxelSize;
+		fragment.Grid.totalVoxels = static_cast<uint64_t>(subSize.x) * subSize.y * subSize.z;
+
+		// Allocate bit-packed storage
+		size_t numWords = (fragment.Grid.totalVoxels + 63) / 64;
+		fragment.Grid.data.resize(numWords, 0);
+
+		// Pass 1: Fill sub-grid
+		for (const auto& coord : componentCoords)
+			fragment.Grid.SetFilled(coord - minC);
+
+		// Pass 2: Build palette in LINEAR order using the pre-built map
+		if (!sourcePaletteIndices.empty()) {
 			for (uint64_t i = 0; i < fragment.Grid.totalVoxels; ++i) {
 				if (!fragment.Grid.IsFilled(i)) continue;
 				glm::ivec3 localCoord = fragment.Grid.IndexToCoord(i);

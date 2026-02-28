@@ -13,6 +13,7 @@
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/ProcessedMeshAsset.h"
 #include "CBEngine/Utils/VoxelizerAPI.h"
+#include "CBEngine/Debug/Instrumentor.h"
 
 namespace CB
 {
@@ -25,6 +26,7 @@ namespace CB
 
 	void DestructionSystem::OnUpdate(Scene* scene,Timestep ts)
 	{
+		CB_PROFILE_SCOPE_CAT("DestructionSystem::OnUpdate", "Voxel");
 		if (s_PendingRequests.empty())
 			return;
 

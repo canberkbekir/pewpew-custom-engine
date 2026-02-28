@@ -2,11 +2,13 @@
 #include "TransformSystem.h"
 
 #include "CBEngine/Scene/Entity.h"
+#include "CBEngine/Debug/Instrumentor.h"
 
 namespace CB
 {
 	void TransformSystem::OnUpdate(Scene* scene,Timestep ts)
 	{
+		CB_PROFILE_SCOPE_CAT("TransformSystem::OnUpdate", "Scene");
 		auto view = scene->GetRegistry().view<TransformComponent>();
 
 		for (auto entity : view) {

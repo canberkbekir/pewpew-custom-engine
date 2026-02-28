@@ -37,6 +37,7 @@
 #include "CBEngine/Core/Application.h"
 #include "CBEngine/Renderer/Resources/Material.h"
 #include "CBEngine/Systems/VoxelDestructionSystem.h"
+#include "CBEngine/Systems/VoxelSpreadSystem.h"
 #include "CBEngine/Voxel/Destruction/VoxelSubstance.h"
 #include "CBEngine/Components/DestructibleVoxelComponent.h"
 
@@ -62,6 +63,7 @@ namespace CB
 		RegisterSceneManagement(lua); // Phase 6: Scene management
 		RegisterHingeJoint(lua); // HingeJoint constraint API
 		RegisterVoxelDestruction(lua); // VoxelQuery + VoxelDamage + DamageType
+		RegisterHeat(lua); // Heat octree query/inject API
 	}
 
 	void LuaBindings::RegisterMath(sol::state& lua)
@@ -3317,6 +3319,144 @@ end
 		vd["GetSubstance"] = [parseGridCoord](Scene* scene,uint64_t entityID,sol::table gridCoord) -> std::string
 		{
 			return VoxelDestructionSystem::GetSubstanceName(entityID, parseGridCoord(gridCoord), scene);
+		};
+	}
+
+	// =========================================================================
+	// Heat — octree heat field query/inject API
+	// =========================================================================
+	void LuaBindings::RegisterHeat(sol::state& lua)
+	{
+		auto heat = lua.create_named_table("Heat");
+
+		// Heat.QueryAt(scene, worldPos) → float temperature
+		// Returns the heat value at a world position from the octree.
+		heat["QueryAt"] = [](Scene* /*scene*/, const Vector3& worldPos) -> float
+		{
+			const auto& octree = VoxelSpreadSystem::GetHeatOctree();
+			if (!octree.IsInitialized()) return 0.0f;
+			return octree.QueryHeat(glm::vec3(worldPos.x, worldPos.y, worldPos.z));
+		};
+
+		// Heat.QuerySphere(scene, origin, radius) → table of { Center, HalfSize, Heat }
+		// Returns all hot cells overlapping a sphere.
+		heat["QuerySphere"] = [](Scene* /*scene*/, const Vector3& origin, float radius,
+			sol::this_state L) -> sol::table
+		{
+			sol::state_view lua(L);
+			sol::table results = lua.create_table();
+
+			const auto& octree = VoxelSpreadSystem::GetHeatOctree();
+			if (!octree.IsInitialized()) return results;
+
+			// Query all cells with any heat, then filter by distance
+			std::vector<HeatOctree::HotCell> hotCells;
+			octree.QueryHotCells(0.01f, hotCells);
+
+			glm::vec3 o(origin.x, origin.y, origin.z);
+			int idx = 1;
+			for (const auto& cell : hotCells)
+			{
+				float dist = glm::length(cell.Center - o);
+				if (dist > radius + cell.HalfSize) continue;
+
+				sol::table entry = lua.create_table();
+				entry["Center"] = Vector3(cell.Center.x, cell.Center.y, cell.Center.z);
+				entry["HalfSize"] = cell.HalfSize;
+				entry["Heat"] = cell.Heat;
+				entry["Distance"] = dist;
+				results[idx++] = entry;
+			}
+			return results;
+		};
+
+		// Heat.QueryBox(scene, center, halfExtents) → table of { Center, HalfSize, Heat }
+		// Returns all hot cells overlapping an AABB.
+		heat["QueryBox"] = [](Scene* /*scene*/, const Vector3& center, const Vector3& halfExtents,
+			sol::this_state L) -> sol::table
+		{
+			sol::state_view lua(L);
+			sol::table results = lua.create_table();
+
+			const auto& octree = VoxelSpreadSystem::GetHeatOctree();
+			if (!octree.IsInitialized()) return results;
+
+			std::vector<HeatOctree::HotCell> hotCells;
+			octree.QueryHotCells(0.01f, hotCells);
+
+			glm::vec3 bmin(center.x - halfExtents.x, center.y - halfExtents.y, center.z - halfExtents.z);
+			glm::vec3 bmax(center.x + halfExtents.x, center.y + halfExtents.y, center.z + halfExtents.z);
+
+			int idx = 1;
+			for (const auto& cell : hotCells)
+			{
+				glm::vec3 cmin = cell.Center - glm::vec3(cell.HalfSize);
+				glm::vec3 cmax = cell.Center + glm::vec3(cell.HalfSize);
+				if (cmax.x < bmin.x || cmin.x > bmax.x) continue;
+				if (cmax.y < bmin.y || cmin.y > bmax.y) continue;
+				if (cmax.z < bmin.z || cmin.z > bmax.z) continue;
+
+				sol::table entry = lua.create_table();
+				entry["Center"] = Vector3(cell.Center.x, cell.Center.y, cell.Center.z);
+				entry["HalfSize"] = cell.HalfSize;
+				entry["Heat"] = cell.Heat;
+				results[idx++] = entry;
+			}
+			return results;
+		};
+
+		// Heat.Inject(scene, worldPos, heatPerSecond) → void
+		// Injects heat at a world position into the octree.
+		// heatPerSecond is the source's power level — the cell will be heated up to this value max.
+		heat["Inject"] = [](Scene* /*scene*/, const Vector3& worldPos, float heatPerSecond)
+		{
+			auto& octree = VoxelSpreadSystem::GetMutableHeatOctree();
+			if (!octree.IsInitialized()) return;
+
+			std::vector<HeatSourceInfo> sources;
+			// Rate = heatPerSecond (injected per second), MaxTemperature = heatPerSecond (cap)
+			sources.push_back({ glm::vec3(worldPos.x, worldPos.y, worldPos.z), heatPerSecond, heatPerSecond, 1.0f });
+			octree.InjectHeat(sources, 1.0f); // dt=1 so heatPerSecond is added directly
+		};
+
+		// Heat.GetNodeCount() → int
+		heat["GetNodeCount"] = []() -> int
+		{
+			const auto& octree = VoxelSpreadSystem::GetHeatOctree();
+			return octree.IsInitialized() ? octree.GetNodeCount() : 0;
+		};
+
+		// Heat.GetLeafCount() → int
+		heat["GetLeafCount"] = []() -> int
+		{
+			const auto& octree = VoxelSpreadSystem::GetHeatOctree();
+			return octree.IsInitialized() ? octree.GetLeafCount() : 0;
+		};
+
+		// Heat.IsEnabled() → bool
+		heat["IsEnabled"] = []() -> bool
+		{
+			return VoxelSpreadSystem::s_UseOctreeHeat;
+		};
+
+		// Heat.SetEnabled(enabled) → void
+		heat["SetEnabled"] = [](bool enabled)
+		{
+			VoxelSpreadSystem::s_UseOctreeHeat = enabled;
+		};
+
+		// Heat.GetMax(scene) → float
+		// Returns the highest heat value in the entire octree (useful for UI gauges).
+		heat["GetMax"] = [](Scene* /*scene*/) -> float
+		{
+			const auto& octree = VoxelSpreadSystem::GetHeatOctree();
+			if (!octree.IsInitialized()) return 0.0f;
+			std::vector<HeatOctree::HotCell> cells;
+			octree.QueryHotCells(0.01f, cells);
+			float maxHeat = 0.0f;
+			for (const auto& c : cells)
+				maxHeat = glm::max(maxHeat, c.Heat);
+			return maxHeat;
 		};
 	}
 }

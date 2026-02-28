@@ -1,164 +1,215 @@
 substances:
   Glass:
-    display_color: [0.3, 0.8, 0.9]
+    display_color: [0.85, 0.92, 0.95]
     pbr_defaults:
-      metallic: 0.05
-      roughness: 0.05
+      metallic: 0.04
+      roughness: 0.02
       emission: 0
     properties:
-      mass_per_voxel: 0.004
-      health: 15
-      hardness: 3
-      explosion_resistance: 0.03
-      slice_resistance: 0.02
-      tensile_strength: 6
-      impact_threshold: 1.2
+      # Soda-lime glass: ~2500 kg/m3, brittle, shatters easily
+      mass_per_voxel: 0.025        # ~2500 kg/m3 at voxel scale
+      health: 20
+      hardness: 55                 # Mohs ~5.5, hard but brittle
+      explosion_resistance: 0.05   # shatters from blast pressure
+      slice_resistance: 0.15       # can be scored/cut with diamond
+      tensile_strength: 8          # very low — glass fails in tension
+      impact_threshold: 3.0        # small force shatters it
       fracture_behavior: SHATTER
-      fracture_threshold: 0.85
-      fragment_count: 24
+      fracture_threshold: 0.9      # shows no warning, then explodes
+      fragment_count: 18
+      fragments_have_physics: true
+      flammable: false
+      ignition_temperature: 0
+      burn_duration: 0
+      propagates_damage: false
+      damage_spread_factor: 0.15
+      soot_resistance: 0.85        # smooth surface, soot wipes off
+      soot_color: [0.12, 0.12, 0.12]
+      cross_entity_spread_radius: 0.1
+      # Thermal: glass is a poor conductor (~1 W/mK vs metal ~50-400)
+      heat_conductivity: 0.08
+      internal_conduction_rate: 0.05
+
+  Marble:
+    display_color: [0.92, 0.90, 0.87]
+    pbr_defaults:
+      metallic: 0
+      roughness: 0.35
+      emission: 0
+    properties:
+      # Marble: ~2700 kg/m3, metamorphic rock, softer than granite
+      mass_per_voxel: 0.027
+      health: 120
+      hardness: 35                 # Mohs 3-4, softer than most stone
+      explosion_resistance: 0.45   # cracks from blast but doesn't pulverize
+      slice_resistance: 0.55       # can be carved/chiseled
+      tensile_strength: 45         # moderate — fails along crystal planes
+      impact_threshold: 15
+      fracture_behavior: CHIP
+      fracture_threshold: 0.35
+      fragment_count: 8
+      fragments_have_physics: true
+      flammable: false
+      ignition_temperature: 0
+      burn_duration: 0
+      propagates_damage: false
+      damage_spread_factor: 0.3
+      soot_resistance: 0.45        # porous surface absorbs soot
+      soot_color: [0.2, 0.18, 0.16]
+      cross_entity_spread_radius: 0.3
+      # Thermal: marble ~2.5 W/mK, moderate conductor
+      heat_conductivity: 0.2
+      internal_conduction_rate: 0.15
+      damage_tints:
+        Explosion:
+          color: [0.22, 0.18, 0.15]
+          intensity: 0.6
+          spread_radius: 1
+          spread_falloff: 0.4
+
+  Metal:
+    display_color: [0.78, 0.78, 0.82]
+    pbr_defaults:
+      metallic: 1
+      roughness: 0.3
+      emission: 0
+    properties:
+      # Steel: ~7800 kg/m3, extremely tough, ductile
+      mass_per_voxel: 0.078
+      health: 300
+      hardness: 92                 # very hard, resists scratching
+      explosion_resistance: 0.75   # deforms but doesn't shatter
+      slice_resistance: 0.98       # nearly impossible to cut without tools
+      tensile_strength: 500        # steel has excellent tensile strength
+      impact_threshold: 80         # takes a lot of force to dent
+      fracture_behavior: CHIP      # metal deforms, chips fly off
+      fracture_threshold: 0.08     # shows damage very late
+      fragment_count: 2
+      fragments_have_physics: true
+      flammable: false
+      ignition_temperature: 0
+      burn_duration: 0
+      propagates_damage: false
+      damage_spread_factor: 0.1
+      soot_resistance: 0.9         # smooth, non-porous
+      soot_color: [0.1, 0.1, 0.1]
+      cross_entity_spread_radius: 0.2
+      # Thermal: steel ~50 W/mK, excellent conductor — heat passes right through
+      heat_conductivity: 0.92
+      internal_conduction_rate: 0.9
+      damage_tints:
+        Explosion:
+          color: [0.15, 0.1, 0.08]
+          intensity: 0.5
+          spread_radius: 1
+          spread_falloff: 0.5
+        Fire:
+          color: [0.2, 0.15, 0.1]
+          intensity: 0.3
+          spread_radius: 2
+          spread_falloff: 0.6
+
+  Stone:
+    display_color: [0.52, 0.50, 0.48]
+    pbr_defaults:
+      metallic: 0
+      roughness: 0.85
+      emission: 0
+    properties:
+      # Granite: ~2700 kg/m3, igneous rock, very hard and durable
+      mass_per_voxel: 0.027
+      health: 160
+      hardness: 70                 # Mohs 6-7, hard
+      explosion_resistance: 0.55   # cracks along grain boundaries
+      slice_resistance: 0.9        # very hard to cut
+      tensile_strength: 55         # moderate — stone is strong in compression, weak in tension
+      impact_threshold: 20
+      fracture_behavior: CHIP
+      fracture_threshold: 0.25
+      fragment_count: 7
       fragments_have_physics: true
       flammable: false
       ignition_temperature: 0
       burn_duration: 0
       propagates_damage: false
       damage_spread_factor: 0.2
-      soot_resistance: 0.9
-      soot_color: [0.15, 0.15, 0.15]
-      cross_entity_spread_radius: 0.2
-  Marble:
-    display_color: [0.9, 0.88, 0.85]
-    pbr_defaults:
-      metallic: 0
-      roughness: 0.45
-      emission: 0
-    properties:
-      mass_per_voxel: 0.052
-      health: 140
-      hardness: 82
-      explosion_resistance: 0.6
-      slice_resistance: 0.88
-      tensile_strength: 90
-      impact_threshold: 22
-      fracture_behavior: CHIP
-      fracture_threshold: 0.28
-      fragment_count: 9
-      fragments_have_physics: true
-      flammable: false
-      ignition_temperature: 0
-      burn_duration: 0
-      propagates_damage: false
-      damage_spread_factor: 0.35
-      soot_resistance: 0.6
-      soot_color: [0.18, 0.17, 0.16]
-      cross_entity_spread_radius: 0.4
-  Metal:
-    display_color: [0.75, 0.75, 0.8]
-    pbr_defaults:
-      metallic: 1
-      roughness: 0.25
-      emission: 0
-    properties:
-      mass_per_voxel: 0.085
-      health: 220
-      hardness: 97
-      explosion_resistance: 0.9
-      slice_resistance: 0.995
-      tensile_strength: 420
-      impact_threshold: 65
-      fracture_behavior: CHIP
-      fracture_threshold: 0.12
-      fragment_count: 3
-      fragments_have_physics: true
-      flammable: false
-      ignition_temperature: 0
-      burn_duration: 0
-      propagates_damage: false
-      damage_spread_factor: 0.25
-      soot_resistance: 0.95
-      soot_color: [0.12, 0.12, 0.12]
+      soot_resistance: 0.4         # rough surface traps soot
+      soot_color: [0.18, 0.16, 0.13]
       cross_entity_spread_radius: 0.3
-  Stone:
-    display_color: [0.5, 0.5, 0.5]
-    pbr_defaults:
-      metallic: 0
-      roughness: 0.85
-      emission: 0
-    properties:
-      mass_per_voxel: 0.032
-      health: 110
-      hardness: 78
-      explosion_resistance: 0.65
-      slice_resistance: 0.92
-      tensile_strength: 60
-      impact_threshold: 13
-      fracture_behavior: CHIP
-      fracture_threshold: 0.32
-      fragment_count: 10
-      fragments_have_physics: true
-      flammable: false
-      ignition_temperature: 0
-      burn_duration: 0
-      propagates_damage: false
-      damage_spread_factor: 0.4
-      soot_resistance: 0.55
-      soot_color: [0.2, 0.18, 0.15]
-      cross_entity_spread_radius: 0.45
+      # Thermal: granite ~2.5 W/mK, poor conductor
+      heat_conductivity: 0.12
+      internal_conduction_rate: 0.1
       damage_tints:
         Fire:
-          color: [0.25, 0.25, 0.25]
-          intensity: 0.4
-          spread_radius: 1
-          spread_falloff: 0.35
-        Explosion:
-          color: [0.18, 0.12, 0.1]
-          intensity: 0.85
-          spread_radius: 2
-          spread_falloff: 0.55
-  Wood:
-    display_color: [0.55, 0.35, 0.15]
-    pbr_defaults:
-      metallic: 0
-      roughness: 0.75
-      emission: 0
-    properties:
-      mass_per_voxel: 0.014
-      health: 85
-      hardness: 22
-      explosion_resistance: 0.18
-      slice_resistance: 0.28
-      tensile_strength: 65
-      impact_threshold: 8
-      fracture_behavior: CRACK
-      fracture_threshold: 0.6
-      fragment_count: 4
-      fragments_have_physics: true
-      flammable: true
-      ignition_temperature: 260
-      burn_duration: 22
-      propagates_damage: true
-      damage_spread_factor: 0.6
-      soot_resistance: 0.25
-      soot_color: [0.1, 0.08, 0.06]
-      cross_entity_spread_radius: 0.8
-      burn_stages:
-        tints:
-          # Normal (clean / untreated)
-          - [ 0.85, 1.00, 0.80 ]   # pale toxic green 
-          # Acid reacting (early corrosion)
-          - [ 0.35, 1.00, 0.25 ]   # neon acid green 
-          # Heavy corrosion
-          - [ 0.10, 0.35, 0.10 ]   # dark corrosive green 
-          # Structural collapse / residue
-          - [ 0.03, 0.05, 0.03 ]   # near-black green sludge
-        thresholds: [ 0.15, 0.45, 0.8 ]
-      damage_tints:
-        Fire:
-          color: [0.14, 0.06, 0.025]
-          intensity: 1.4
+          color: [0.3, 0.25, 0.2]
+          intensity: 0.35
           spread_radius: 1
           spread_falloff: 0.3
-        Acid:
-          color: [0.22, 0.5, 0.14]
-          intensity: 0.8
+        Explosion:
+          color: [0.2, 0.15, 0.1]
+          intensity: 0.75
+          spread_radius: 2
+          spread_falloff: 0.5
+
+  Wood:
+    display_color: [0.55, 0.36, 0.18]
+    pbr_defaults:
+      metallic: 0
+      roughness: 0.7
+      emission: 0
+    properties:
+      # Oak wood: ~700 kg/m3, flammable, moderate strength, splits along grain
+      mass_per_voxel: 0.007
+      health: 60
+      hardness: 18                 # Mohs ~2, soft — dents from impacts
+      explosion_resistance: 0.12   # splinters from blasts
+      slice_resistance: 0.2        # splits easily along grain
+      tensile_strength: 80         # surprisingly strong along grain direction
+      impact_threshold: 5          # low threshold, wood dents easily
+      fracture_behavior: CRACK
+      fracture_threshold: 0.5      # visible cracks appear at half health
+      fragment_count: 5
+      fragments_have_physics: true
+      # Fire: oak ignites at ~300C, burns 15-30 min depending on thickness
+      flammable: true
+      ignition_temperature: 300    # ~300C autoignition for oak
+      burn_duration: 18            # moderate burn time
+      propagates_damage: true
+      damage_spread_factor: 0.55   # fire spreads readily through wood
+      soot_resistance: 0.15        # porous grain absorbs soot easily
+      soot_color: [0.08, 0.06, 0.04]
+      cross_entity_spread_radius: 0.6
+      # Thermal: wood ~0.15 W/mK, very poor conductor (insulator)
+      heat_conductivity: 0.08
+      internal_conduction_rate: 0.5
+      # Fire output: wood burns hot (~600C flame), moderate ramp
+      burn_heat_output: 150        # substantial heat output
+      heat_decay_rate: 8           # heat lingers around burning wood
+      heat_acceleration: 0.8       # takes a moment to get going
+      burn_stages:
+        tints:
+          # Normal — natural wood color
+          - [ 1.0, 1.0, 1.0 ]
+          # Burning — darkening, orange glow at edges
+          - [ 0.9, 0.35, 0.08 ]
+          # Charred — deep black-brown char
+          - [ 0.12, 0.06, 0.02 ]
+          # Collapse — white-grey ash
+          - [ 0.08, 0.08, 0.07 ]
+        thresholds: [ 0.1, 0.45, 0.82 ]
+      damage_tints:
+        Fire:
+          color: [0.12, 0.05, 0.02]
+          intensity: 1.2
           spread_radius: 1
+          spread_falloff: 0.3
+        Explosion:
+          color: [0.25, 0.15, 0.08]
+          intensity: 0.9
+          spread_radius: 2
           spread_falloff: 0.45
+        Acid:
+          color: [0.2, 0.45, 0.12]
+          intensity: 0.7
+          spread_radius: 1
+          spread_falloff: 0.4

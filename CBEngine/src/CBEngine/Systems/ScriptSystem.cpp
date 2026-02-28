@@ -5,6 +5,7 @@
 #include "CBEngine/Scene/Entity.h"
 #include "CBEngine/Components/ScriptComponent.h"
 #include "CBEngine/Scripting/ScriptEngine.h"
+#include "CBEngine/Debug/Instrumentor.h"
 
 namespace CB
 {
@@ -28,6 +29,7 @@ namespace CB
 
 	void ScriptSystem::OnUpdate(Scene* scene,Timestep ts)
 	{
+		CB_PROFILE_SCOPE_CAT("ScriptSystem::OnUpdate", "Script");
 		// Update Time table and frame counters for all scripts this frame
 		ScriptEngine::BeginFrame(ts);
 
@@ -67,6 +69,7 @@ namespace CB
 
 	void ScriptSystem::OnLateUpdate(Scene* scene,Timestep ts)
 	{
+		CB_PROFILE_SCOPE_CAT("ScriptSystem::OnLateUpdate", "Script");
 		auto view = scene->GetRegistry().view<ScriptComponent>();
 		for (auto entity : view) {
 			Entity e{entity, scene};

@@ -27,6 +27,7 @@ namespace CB
 		float SpreadTimer = 0.0f; // cooldown until next spread attempt
 		float TickTimer = 0.0f; // cooldown until next tick damage
 		float SootTimer = 0.0f; // cooldown until next soot application
+		float HeatRampFactor = 0.0f; // 0->1 ramp via HeatAcceleration (octree heat output scaling)
 	};
 
 	using VoxelBurnMap = std::unordered_map<glm::ivec3, ActiveBurn, VoxelCoordHash>;
@@ -62,5 +63,23 @@ namespace CB
 
 		// Active burns — voxels currently on fire/dissolving
 		VoxelBurnMap ActiveBurns;
+
+		// Per-voxel heat map — sparse, only voxels that have received heat
+		std::unordered_map<glm::ivec3, float, VoxelCoordHash> PerVoxelHeat;
+
+		// Heat frontier — burning voxels with at least one non-burning filled neighbor
+		// Rebuilt each frame by ConductEntityHeat; only these voxels do conduction work
+		std::vector<glm::ivec3> HeatFrontier;
+
+		// Grid generation at last full mesh rebuild — used to detect tint-only changes
+		uint32_t LastMeshRebuildGeneration = UINT32_MAX;
+
+		// Sparse filled coords list — maintained incrementally on voxel removal
+		std::vector<glm::ivec3> FilledCoords;
+
+		// Cached mapping: linear grid index → position in FilledCoords/palette
+		// Rebuilt when CachedMapGeneration != GridGeneration
+		std::unordered_map<uint64_t, size_t> CachedFilledIndexMap;
+		uint32_t CachedMapGeneration = UINT32_MAX;
 	};
 }

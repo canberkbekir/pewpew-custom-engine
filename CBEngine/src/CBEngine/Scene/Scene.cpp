@@ -22,6 +22,7 @@
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Events/SceneEvent.h"
 #include "CBEngine/Input/Input.h"
+#include "CBEngine/Debug/Instrumentor.h"
 
 namespace CB
 {
@@ -82,10 +83,17 @@ namespace CB
 
 	void Scene::UnregisterSystem(const char* name)
 	{
-		m_Systems.erase(
-			std::remove_if(m_Systems.begin(), m_Systems.end(),
-			               [name](const Scope<ISystem>& s) { return std::strcmp(s->GetName(), name) == 0; }),
-			m_Systems.end());
+		auto it = std::remove_if(m_Systems.begin(), m_Systems.end(),
+			[name](const Scope<ISystem>& s)
+			{
+				if (std::strcmp(s->GetName(), name) == 0)
+				{
+					s->Shutdown();
+					return true;
+				}
+				return false;
+			});
+		m_Systems.erase(it, m_Systems.end());
 	}
 
 	// ---- Component lifecycle signals ----
@@ -259,6 +267,7 @@ namespace CB
 		UnregisterSystem("PhysicsSystem");
 		UnregisterSystem("DestructionSystem");
 		UnregisterSystem("VoxelDestructionSystem");
+		UnregisterSystem("VoxelSpreadSystem");
 		UnregisterSystem("ScriptSystem");
 
 		// Destroy all hinge joint constraints before physics world shutdown
@@ -315,6 +324,7 @@ namespace CB
 
 	void Scene::OnUpdate(Timestep ts)
 	{
+		CB_PROFILE_SCOPE_CAT("Scene::OnUpdate", "Scene");
 		// 1. Process deferred destruction
 		ProcessDeferredDestroys();
 
@@ -356,6 +366,7 @@ namespace CB
 
 	void Scene::ProcessDeferredDestroys()
 	{
+		CB_PROFILE_SCOPE_CAT("Scene::ProcessDeferredDestroys", "Scene");
 		for (auto entity : m_DeferredDestroys) {
 			// Destroy physics bodies before removing entity from registry
 			if (m_PhysicsWorld) {

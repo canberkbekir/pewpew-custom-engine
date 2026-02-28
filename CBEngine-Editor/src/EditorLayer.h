@@ -2,6 +2,7 @@
 #include "CBEngine/Core/Layer.h"
 #include "CBEngine/FileWatcher/FileWatcher.h"
 #include "CBEngine/Renderer/Resources/Texture.h"
+#include "EditorPlayManager.h"
 
 using ImGuiID = unsigned int;
 
@@ -44,6 +45,7 @@ namespace CB
 		void BeginDockspace();
 		void EndDockspace();
 		void DrawMenuBar();
+		void RenderMainToolbar();
 		void SetupDefaultLayout(ImGuiID dockspace_id);
 
 		// Scene file operations
@@ -51,6 +53,16 @@ namespace CB
 		void OpenScene();
 		void SaveScene();
 		void SaveSceneAs();
+
+		// Play mode manager
+		EditorPlayManager m_PlayManager;
+
+		// Play mode icon textures
+		Ref<Texture2D> m_PlayButtonIcon;
+		Ref<Texture2D> m_PauseButtonIcon;
+		Ref<Texture2D> m_StopButtonIcon;
+		Ref<Texture2D> m_ResumeButtonIcon;
+		Ref<Texture2D> m_NextFrameButtonIcon;
 
 		// File Watcher for hot reload
 		Scope<FileWatcher> m_FileWatcher;

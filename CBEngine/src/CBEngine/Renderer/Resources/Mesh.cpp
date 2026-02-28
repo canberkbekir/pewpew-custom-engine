@@ -275,5 +275,24 @@ namespace CB
 		return false;
 	}
 
+	void Mesh::UpdateVertexData(const std::vector<Vertex>& vertices)
+	{
+		if (vertices.size() != m_VertexCount) return;
+
+		m_Vertices = vertices;
+		UploadVertexData();
+	}
+
+	void Mesh::UploadVertexData()
+	{
+		if (m_Vertices.empty() || !m_VertexArray) return;
+
+		auto& vbos = m_VertexArray->GetVertexBuffers();
+		if (vbos.empty()) return;
+
+		vbos[0]->SetSubData(m_Vertices.data(),
+			static_cast<uint32_t>(m_Vertices.size() * sizeof(Vertex)));
+	}
+
 	void Mesh::Bind() const { m_VertexArray->Bind(); }
 }

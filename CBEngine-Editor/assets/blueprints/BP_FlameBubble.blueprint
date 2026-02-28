@@ -1,0 +1,51 @@
+Blueprint: Sphere
+Entities:
+  - Entity: 8609551126063589718
+    TagComponent:
+      Tag: Sphere
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.5, 0.5, 0.5]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 2
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 0.3
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 1
+      HalfExtents: [0.5, 0.5, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\FlameBubble.lua
+          ClassName: FlameBubble
+          Fields:
+            - Name: Lifetime
+              Type: float
+              Value: 3
+            - Name: HeatPerSecond
+              Type: float
+              Value: 2000
+            - Name: FireDamage
+              Type: float
+              Value: 30

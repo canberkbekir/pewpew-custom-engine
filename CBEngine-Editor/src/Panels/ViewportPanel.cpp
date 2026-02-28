@@ -29,6 +29,8 @@
 #include "CBEngine/Selection/Selection.h"
 #include "CBEngine/Systems/RendererSystem.h"
 #include "CBEngine/Systems/VoxelDestructionSystem.h"
+#include "CBEngine/Systems/VoxelSpreadSystem.h"
+#include "../EditorPlayManager.h"
 
 namespace CB
 {
@@ -39,6 +41,7 @@ namespace CB
 	ViewportPanel::ViewportPanel()
 		: Panel("Viewport", true)
 		  , m_CameraController(45.0f, 1280.0f / 720.0f, 0.1f, 100.0f)
+		  , m_PlayCamera(45.0f, 16.0f / 9.0f, 0.1f, 100.0f)
 	{
 		// Create framebuffer with entity ID attachment for picking
 		FramebufferSpecification fbSpec;
@@ -60,11 +63,6 @@ namespace CB
 		m_DefaultMaterial->SetMetallic(0.0f);
 
 		m_WireframeButtonIcon = Texture2D::Create("resources/icons/wireframe_btn.png");
-		m_PlayButtonIcon = Texture2D::Create("resources/icons/play_btn.png");
-		m_PauseButtonIcon = Texture2D::Create("resources/icons/pause_btn.png");
-		m_StopButtonIcon = Texture2D::Create("resources/icons/stop_btn.png");
-		m_NextFrameButtonIcon = Texture2D::Create("resources/icons/next_frame_btn.png");
-		m_ResumeButtonIcon = Texture2D::Create("resources/icons/resume_btn.png");
 	}
 
 	//--------------------------------------------------------------------------
@@ -88,9 +86,15 @@ namespace CB
 			}
 		}
 
-		// Update camera only when focused and not using gizmo
-		if (m_Focused && !ImGuizmo::IsUsing())
+		bool useEditorCam = EditorPlayManager::Get().ShouldUseEditorCamera();
+
+		// Update editor camera only in Edit/Ejected mode
+		if (useEditorCam && m_Focused && !ImGuizmo::IsUsing())
 			m_CameraController.OnUpdate(ts);
+
+		// In Play mode, update play camera from primary CameraComponent
+		if (!useEditorCam)
+			m_HasPlayCamera = FindPrimarySceneCamera();
 
 		// Render to framebuffer (flush debug lines before expiring them)
 		m_Framebuffer->Bind();
@@ -113,12 +117,18 @@ namespace CB
 		// Wireframe mode
 		RenderCommand::SetWireframeMode(m_Wireframe);
 
+		// Choose camera based on play state
+		bool useEditorCam = EditorPlayManager::Get().ShouldUseEditorCamera();
+		const PerspectiveCamera& activeCamera = (useEditorCam || !m_HasPlayCamera)
+			? m_CameraController.GetCamera()
+			: m_PlayCamera;
+
 		// Render via RendererSystem
 		Ref<Scene> scene = SceneManager::GetActiveScene();
 		RendererSystem::OnUpdate(
 			scene.get(),
-			m_CameraController.GetCamera(),
-			m_CameraController.GetCamera().GetPosition(),
+			activeCamera,
+			activeCamera.GetPosition(),
 			m_DefaultShader,
 			m_DefaultMaterial
 		);
@@ -126,11 +136,11 @@ namespace CB
 		// Restore fill mode
 		RenderCommand::SetWireframeMode(false);
 
-		// Draw grid
-		if (m_ShowGrid && scene) { ColliderDebugRenderer::DrawGrid(m_CameraController.GetCamera()); }
+		// Draw grid (only in editor camera modes)
+		if (m_ShowGrid && scene && useEditorCam) { ColliderDebugRenderer::DrawGrid(activeCamera); }
 
-		// Draw collider wireframes
-		if (scene) {
+		// Draw collider wireframes (only in editor camera modes)
+		if (scene && useEditorCam) {
 			if (m_ShowColliders) {
 				// Show ALL colliders in the scene (no recursion since view covers all)
 				auto view = scene->GetRegistry().view<ColliderComponent, TransformComponent>();
@@ -163,13 +173,17 @@ namespace CB
 					ColliderDebugRenderer::DrawCameraFrustum(
 						camComp.FOV, aspect, camComp.NearClip,
 						std::min(camComp.FarClip, 20.0f), // Clamp far plane for visualization
-						worldTransform, m_CameraController.GetCamera(), frustumColor);
+						worldTransform, activeCamera, frustumColor);
 				}
 			}
 		}
 
+		// Draw heat octree visualization
+		if (m_ShowHeatView)
+			DrawHeatView();
+
 		// Flush debug draw lines (from Lua Debug.DrawLine/DrawRay)
-		DebugDraw::Flush(m_CameraController.GetCamera());
+		DebugDraw::Flush(activeCamera);
 	}
 
 	//--------------------------------------------------------------------------
@@ -187,9 +201,6 @@ namespace CB
 
 		m_Focused = ImGui::IsWindowFocused();
 		m_Hovered = ImGui::IsWindowHovered();
-
-		// Play/Stop buttons centered in the tab bar
-		RenderPlayButtonInTabBar();
 
 		// Toolbar
 		RenderToolbar();
@@ -293,11 +304,12 @@ namespace CB
 			ImGui::EndDragDropTarget();
 		}
 
-		// Entity picking (before gizmo so we can check ImGuizmo::IsOver)
-		HandleEntityPicking();
-
-		// Gizmo overlay
-		RenderGizmo();
+		// Entity picking and gizmos (only in editor camera modes)
+		if (EditorPlayManager::Get().ShouldShowGizmos())
+		{
+			HandleEntityPicking();
+			RenderGizmo();
+		}
 
 		// Keyboard shortcuts for gizmo modes (when viewport focused and not typing)
 		if (m_Focused && !ImGui::GetIO().WantTextInput) {
@@ -307,6 +319,67 @@ namespace CB
 				m_GizmoOperation = ImGuizmo::ROTATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_R))
 				m_GizmoOperation = ImGuizmo::SCALE;
+		}
+
+		// Heat view text overlay (screen-space temperature labels)
+		if (m_ShowHeatView)
+		{
+			ImVec2 imageMin = ImGui::GetItemRectMin();
+			ImVec2 imageSize = ImGui::GetItemRectSize();
+			bool useEditorCam2 = EditorPlayManager::Get().ShouldUseEditorCamera();
+			const auto& camera = (useEditorCam2 || !m_HasPlayCamera)
+				? m_CameraController.GetCamera()
+				: static_cast<const PerspectiveCamera&>(m_PlayCamera);
+			Mat4 vp = camera.GetViewProjectionMatrix();
+
+			// Query hot cells with low threshold to show all visible heat
+			std::vector<HeatOctree::HotCell> hotCells;
+			VoxelSpreadSystem::GetHeatOctree().QueryHotCells(1.0f, hotCells);
+
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+			int labelCount = 0;
+			static constexpr int kMaxLabels = 128;
+
+			for (const auto& cell : hotCells)
+			{
+				if (labelCount >= kMaxLabels) break;
+
+				// Project center to screen
+				glm::vec4 clip = vp * glm::vec4(cell.Center, 1.0f);
+				if (clip.w <= 0.0f) continue; // behind camera
+
+				glm::vec3 ndc = glm::vec3(clip) / clip.w;
+				if (ndc.x < -1.0f || ndc.x > 1.0f || ndc.y < -1.0f || ndc.y > 1.0f)
+					continue; // outside viewport
+
+				float screenX = imageMin.x + (ndc.x * 0.5f + 0.5f) * imageSize.x;
+				float screenY = imageMin.y + (1.0f - (ndc.y * 0.5f + 0.5f)) * imageSize.y;
+
+				// Heat color: black -> red -> orange -> yellow -> white
+				float t = glm::clamp(cell.Heat / 500.0f, 0.0f, 1.0f);
+				ImU32 textColor;
+				if (t < 0.25f) {
+					float s = t / 0.25f;
+					textColor = IM_COL32((int)(200 * s), 0, 0, 255);
+				} else if (t < 0.5f) {
+					float s = (t - 0.25f) / 0.25f;
+					textColor = IM_COL32(200 + (int)(55 * s), (int)(140 * s), 0, 255);
+				} else if (t < 0.75f) {
+					float s = (t - 0.5f) / 0.25f;
+					textColor = IM_COL32(255, 140 + (int)(115 * s), (int)(30 * s), 255);
+				} else {
+					float s = (t - 0.75f) / 0.25f;
+					textColor = IM_COL32(255, 255, 30 + (int)(225 * s), 255);
+				}
+
+				char label[32];
+				snprintf(label, sizeof(label), "%.0f", cell.Heat);
+
+				// Shadow for readability
+				drawList->AddText(ImVec2(screenX + 1, screenY + 1), IM_COL32(0, 0, 0, 180), label);
+				drawList->AddText(ImVec2(screenX, screenY), textColor, label);
+				labelCount++;
+			}
 		}
 
 		// Stats overlay
@@ -457,112 +530,15 @@ namespace CB
 		if (ImGui::Selectable("Stats", m_ShowStats, 0, ImVec2(40, 0)))
 			m_ShowStats = !m_ShowStats;
 
+		ImGui::SameLine();
+		if (ImGui::Selectable("Heat View", m_ShowHeatView, 0, ImVec2(65, 0)))
+			m_ShowHeatView = !m_ShowHeatView;
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Visualize heat octree cells with temperature colors");
+
 		ImGui::EndChild();
 		ImGui::Separator();
 
 		ImGui::PopStyleColor();
-		ImGui::PopStyleVar(2);
-	}
-
-	void ViewportPanel::RenderPlayButtonInTabBar()
-	{
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		if (!window->DockNode || !window->DockNode->TabBar)
-			return;
-
-		ImGuiTabBar* tabBar = window->DockNode->TabBar;
-		float tabBarHeight = tabBar->BarRect.GetHeight();
-		float btnSize = tabBarHeight - 6.0f;
-		if (btnSize < 8.0f) return;
-
-		Ref<Scene> scene = SceneManager::GetActiveScene();
-		bool simulating = scene && scene->IsPhysicsInitialized();
-		bool paused = scene && scene->IsPhysicsPaused();
-
-		float spacing = 4.0f;
-		int numBtns = simulating ? 3 : 1;
-		float totalW = numBtns * btnSize + (numBtns - 1) * spacing;
-
-		float centerX = (tabBar->BarRect.Min.x + tabBar->BarRect.Max.x) * 0.5f;
-		float startX = centerX - totalW * 0.5f;
-		float posY = tabBar->BarRect.Min.y;
-		float padY = (tabBarHeight - btnSize) * 0.5f;
-
-		ImGui::SetNextWindowPos(ImVec2(startX - 2.0f, posY), ImGuiCond_Always);
-		ImGui::SetNextWindowSize(ImVec2(totalW + 4.0f, tabBarHeight), ImGuiCond_Always);
-		ImGui::SetNextWindowBgAlpha(0.0f);
-
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.0f, padY));
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.305f, 0.31f, 0.5f));
-		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.15f, 0.1505f, 0.151f, 0.5f));
-
-		constexpr ImGuiWindowFlags overlayFlags =
-		ImGuiWindowFlags_NoDecoration |
-		ImGuiWindowFlags_NoDocking |
-		ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_NoFocusOnAppearing |
-		ImGuiWindowFlags_NoNav |
-		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoScrollbar |
-		ImGuiWindowFlags_NoScrollWithMouse;
-
-		if (ImGui::Begin("##VP_PlayBtns", nullptr, overlayFlags)) {
-			if (!simulating) {
-				if (ImGui::ImageButton("##tb_play",
-				                       (ImTextureID)static_cast<uintptr_t>(m_PlayButtonIcon->GetRendererID()),
-				                       ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0))) {
-					if (scene) scene->InitPhysics();
-				}
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Play (F5)");
-			}
-			else {
-				ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.6f, 0.15f, 0.15f, 0.3f));
-				if (ImGui::ImageButton("##tb_stop",
-				                       (ImTextureID)static_cast<uintptr_t>(m_StopButtonIcon->GetRendererID()),
-				                       ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0))) {
-					scene->ShutdownPhysics();
-				}
-				ImGui::PopStyleColor();
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Stop (F5)");
-
-				ImGui::SameLine(0.0f, spacing);
-
-				if (paused) {
-					if (ImGui::ImageButton("##tb_resume",
-					                       (ImTextureID)static_cast<uintptr_t>(m_ResumeButtonIcon->GetRendererID()),
-					                       ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0))) {
-						scene->ResumePhysics();
-					}
-					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Resume");
-				}
-				else {
-					if (ImGui::ImageButton("##tb_pause",
-					                       (ImTextureID)static_cast<uintptr_t>(m_PauseButtonIcon->GetRendererID()),
-					                       ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0))) {
-						scene->PausePhysics();
-					}
-					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pause");
-				}
-
-				ImGui::SameLine(0.0f, spacing);
-
-				bool canStep = paused;
-				if (!canStep) ImGui::BeginDisabled();
-				if (ImGui::ImageButton("##tb_step",
-				                       (ImTextureID)static_cast<uintptr_t>(m_NextFrameButtonIcon->GetRendererID()),
-				                       ImVec2(btnSize, btnSize), ImVec2(0, 1), ImVec2(1, 0))) {
-					if (canStep) scene->StepOneFrame();
-				}
-				if (!canStep) ImGui::EndDisabled();
-				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-					ImGui::SetTooltip("Step One Frame (only when paused)");
-			}
-		}
-		ImGui::End();
-
-		ImGui::PopStyleColor(3);
 		ImGui::PopStyleVar(2);
 	}
 
@@ -670,6 +646,56 @@ namespace CB
 		if (recurseChildren && entity.HasChildren()) {
 			for (Entity child : entity.GetChildren())
 				DrawEntityColliders(child, true);
+		}
+	}
+
+	//--------------------------------------------------------------------------
+	// Heat View Debug Visualization
+	//--------------------------------------------------------------------------
+
+	void ViewportPanel::DrawHeatView()
+	{
+		const auto& octree = VoxelSpreadSystem::GetHeatOctree();
+		if (!octree.IsInitialized()) return;
+
+		std::vector<HeatOctree::HotCell> hotCells;
+		octree.QueryHotCells(1.0f, hotCells);
+		if (hotCells.empty()) return;
+
+		bool useEdCam = EditorPlayManager::Get().ShouldUseEditorCamera();
+		const auto& camera = (useEdCam || !m_HasPlayCamera)
+			? m_CameraController.GetCamera()
+			: static_cast<const PerspectiveCamera&>(m_PlayCamera);
+		Mat4 identity = Mat4(1.0f);
+
+		// Cap to avoid drowning GPU with debug draws
+		int drawCount = 0;
+		static constexpr int kMaxBoxes = 256;
+
+		for (const auto& cell : hotCells)
+		{
+			if (drawCount >= kMaxBoxes) break;
+
+			// Heat color: dark red -> red -> orange -> yellow -> white
+			float t = glm::clamp(cell.Heat / 500.0f, 0.0f, 1.0f);
+			Vector3 color;
+			if (t < 0.25f) {
+				float s = t / 0.25f;
+				color = Vector3(0.6f * s, 0.0f, 0.0f);
+			} else if (t < 0.5f) {
+				float s = (t - 0.25f) / 0.25f;
+				color = Vector3(0.6f + 0.4f * s, 0.55f * s, 0.0f);
+			} else if (t < 0.75f) {
+				float s = (t - 0.5f) / 0.25f;
+				color = Vector3(1.0f, 0.55f + 0.45f * s, 0.1f * s);
+			} else {
+				float s = (t - 0.75f) / 0.25f;
+				color = Vector3(1.0f, 1.0f, 0.1f + 0.9f * s);
+			}
+
+			Vector3 halfExtents(cell.HalfSize);
+			ColliderDebugRenderer::DrawWireBox(halfExtents, cell.Center, identity, camera, color);
+			drawCount++;
 		}
 	}
 
@@ -814,11 +840,49 @@ namespace CB
 	}
 
 	//--------------------------------------------------------------------------
+	// Play Camera
+	//--------------------------------------------------------------------------
+
+	bool ViewportPanel::FindPrimarySceneCamera()
+	{
+		Ref<Scene> scene = SceneManager::GetActiveScene();
+		if (!scene)
+			return false;
+
+		auto view = scene->GetRegistry().view<TransformComponent, CameraComponent>();
+		for (auto entity : view)
+		{
+			auto& cam = view.get<CameraComponent>(entity);
+			if (!cam.Primary)
+				continue;
+
+			auto& tc = view.get<TransformComponent>(entity);
+			float aspect = m_ViewportSize.x / m_ViewportSize.y;
+			m_PlayCamera.SetProjection(cam.FOV, aspect, cam.NearClip, cam.FarClip);
+
+			Vector3 worldPos = tc.GetWorldPosition();
+			m_PlayCamera.SetPosition(worldPos);
+
+			Vector3 forward = glm::normalize(Vector3(tc.WorldMatrix[2]));
+			float pitch = glm::degrees(asin(glm::clamp(forward.y, -1.0f, 1.0f)));
+			float yaw = glm::degrees(atan2(forward.z, forward.x));
+			m_PlayCamera.SetRotation(pitch, yaw);
+
+			return true;
+		}
+		return false;
+	}
+
+	//--------------------------------------------------------------------------
 	// Events
 	//--------------------------------------------------------------------------
 
 	void ViewportPanel::OnEvent(Event& e)
 	{
+		// Don't process editor camera events during Play mode
+		if (!EditorPlayManager::Get().ShouldUseEditorCamera())
+			return;
+
 		if (m_Hovered) {
 			// Only block camera events when a gizmo is actually visible and hovered
 			if (Selection::HasEntitySelected() && ImGuizmo::IsOver())

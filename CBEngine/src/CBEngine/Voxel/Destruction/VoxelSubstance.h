@@ -96,6 +96,13 @@ namespace CB
 		float SootResistance = 0.5f; // 0 = absorbs soot easily, 1 = stays clean
 		Vector3 SootColor = {0.2f, 0.18f, 0.15f}; // dark gray-brown soot tint
 
+		// --- Thermal (Heat Octree) ---
+		float BurnHeatOutput = 100.0f;    // heat/sec while burning
+		float HeatConductivity = 0.5f;    // 0-1, ALL substances (metal=0.9, wood=0.4, stone=0.1)
+		float HeatDecayRate = 5.0f;       // heat/sec lost in empty space
+		float HeatAcceleration = 1.0f;    // ramp-up multiplier (0.2=smolder, 2.0=flash)
+		float InternalConductionRate = 0.0f; // per-voxel heat transfer rate (0=disabled, 0.5=wood, 0.9=metal)
+
 		// --- Cross-Entity Fire Spread ---
 		float CrossEntitySpreadRadius = 0.5f; // world units — how far fire jumps to another mesh
 
