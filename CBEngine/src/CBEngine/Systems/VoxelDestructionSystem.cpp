@@ -126,6 +126,21 @@ namespace CB
 			CB_PROFILE_SCOPE_CAT("VoxelDestruction::ProcessDirtyMeshes", "Voxel");
 			ProcessDirtyMeshes(scene);
 		}
+		// Despawn fragments whose TTL has expired
+		{
+			CB_PROFILE_SCOPE_CAT("VoxelDestruction::FragmentTTL", "Voxel");
+			std::vector<uint64_t> expired;
+			for (auto& [uuid, state] : s_EntityStates) {
+				if (state.FragmentTTL < 0.0f) continue;
+				state.FragmentTTL -= ts;
+				if (state.FragmentTTL <= 0.0f) expired.push_back(uuid);
+			}
+			for (uint64_t uuid : expired) {
+				Entity e = scene->GetEntityByUUID(UUID(uuid));
+				if (e) scene->DestroyEntity(e);
+				s_EntityStates.erase(uuid);
+			}
+		}
 	}
 
 	// =========================================================================
@@ -262,6 +277,14 @@ namespace CB
 					continue;
 			}
 
+			// Skip already-dead voxels waiting for deferred flush
+			{
+				auto charredIt = state.DamageMap.find(event.GridCoord);
+				if (charredIt != state.DamageMap.end() && charredIt->second.Charred
+					&& charredIt->second.CurrentHealth <= 0.0f)
+					continue;
+			}
+
 			// Fetch or create health entry for this coord
 			auto& health = state.DamageMap[event.GridCoord];
 			if (health.MaxHealth == 0.0f) {
@@ -351,8 +374,26 @@ namespace CB
 
 			// Queue for removal if fully dead
 			if (health.CurrentHealth <= 0.0f) {
-				state.PendingRemoval.push_back(event.GridCoord);
-				state.DamageMap.erase(event.GridCoord);
+				if (!health.Charred) { // skip if already dead (prevent duplicates)
+					health.Charred = true;
+					health.Burning = false;
+					state.ActiveBurns.erase(event.GridCoord);
+					state.PendingRemoval.push_back(event.GridCoord);
+
+					// Apply charred tint for immediate visual feedback
+					// (dead voxels stay in grid until flush — tint shows them as charred)
+					auto& tint = state.TintMap[event.GridCoord];
+					tint.Color = sub.BurnStageTints[3];
+					tint.Intensity = 1.0f;
+					state.MeshDirty = true;
+					s_TintDirtyEntities.push_back(event.EntityUUID);
+
+					// Track damage category for flush decision
+					if (event.Type == VoxelDamageType::Impact || event.Type == VoxelDamageType::Explosion) {
+						state.ForceImmediateRebuild = true;
+						state.HasInstantDamageSinceLastCC = true;
+					}
+				}
 
 				ScriptEngine::OnVoxelDestroyed(event.EntityUUID,
 				                               event.GridCoord.x, event.GridCoord.y, event.GridCoord.z);
@@ -366,101 +407,87 @@ namespace CB
 	}
 
 	// =========================================================================
-	// ProcessPendingRemovals — remove dead voxels and rebuild/split entities
+	// ProcessPendingRemovals — conditionally flush dead voxels and rebuild
+	//
+	// Deferred flush: fire/acid deaths accumulate in PendingRemoval while the
+	// charred tint provides immediate visual feedback.  Impact/Explosion sets
+	// ForceImmediateRebuild for instant geometry update.  Flush triggers:
+	//   1. ForceImmediateRebuild (impact/explosion)
+	//   2. FramesSinceLastFlush >= kFlushInterval
+	//   3. PendingRemoval.size() >= kFlushThreshold
 	// =========================================================================
 	void VoxelDestructionSystem::ProcessPendingRemovals(Scene* scene)
 	{
-		static constexpr int kMaxMeshRebuildsPerFrame = 2;
+		static constexpr uint32_t kFlushInterval = 10;   // frames between flushes
+		static constexpr size_t kFlushThreshold = 20;     // batch size trigger
+		static constexpr int kMaxRebuildsPerFrame = 2;
+		int rebuilds = 0;
 
-		// Collect entity UUIDs that have pending removals this frame
+		// Collect entity UUIDs that have pending removals
 		std::vector<uint64_t> toDo;
 		for (auto& [uuid, state] : s_EntityStates) {
 			if (!state.PendingRemoval.empty())
 				toDo.push_back(uuid);
 		}
 
-		int meshRebuilds = 0;
-
 		for (uint64_t uuid : toDo) {
 			auto it = s_EntityStates.find(uuid);
-			if (it == s_EntityStates.end())
-				continue;
+			if (it == s_EntityStates.end()) continue;
+			auto& state = it->second;
+			if (state.PendingRemoval.empty()) continue;
 
-			EntityDestructionState& state = it->second;
-			if (state.PendingRemoval.empty())
-				continue;
+			state.FramesSinceLastFlush++;
+
+			// Decide whether to flush
+			bool flush = state.ForceImmediateRebuild
+				|| state.FramesSinceLastFlush >= kFlushInterval
+				|| state.PendingRemoval.size() >= kFlushThreshold;
+
+			if (!flush) continue;
+			if (rebuilds >= kMaxRebuildsPerFrame) continue;
 
 			Entity entity = scene->GetEntityByUUID(UUID(uuid));
-			if (!entity) {
-				s_EntityStates.erase(it);
-				continue;
-			}
-
-			if (!entity.HasComponent<DestructibleVoxelComponent>())
-				continue;
-
+			if (!entity) { s_EntityStates.erase(it); continue; }
+			if (!entity.HasComponent<DestructibleVoxelComponent>()) continue;
 			auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
 
-			// Respect per-frame budget
-			int budget = dvComp.MaxDestructionsPerFrame;
-			std::vector<glm::ivec3> batch;
-			if (static_cast<int>(state.PendingRemoval.size()) <= budget) {
-				batch = std::move(state.PendingRemoval);
-				state.PendingRemoval.clear();
-			}
-			else {
-				batch.insert(batch.end(),
-				             state.PendingRemoval.begin(),
-				             state.PendingRemoval.begin() + budget);
-				state.PendingRemoval.erase(
-					state.PendingRemoval.begin(),
-					state.PendingRemoval.begin() + budget);
-			}
-
-			// Remove from working grid using cached filled index map
+			// Flush: remove dead voxels from the working grid
 			const auto& filledMap = GetOrBuildFilledIndexMap(state);
 			uint64_t remaining = VoxelSplitter::RemoveVoxels(
-				state.ModifiedGrid, state.ModifiedPaletteIndices, batch, filledMap);
+				state.ModifiedGrid, state.ModifiedPaletteIndices,
+				state.PendingRemoval, filledMap);
 			++state.GridGeneration;
 
-			// Incrementally update FilledCoords — remove the destroyed coords
+			// Update FilledCoords
 			{
-				std::unordered_set<glm::ivec3, VoxelCoordHash> removedSet(batch.begin(), batch.end());
+				std::unordered_set<glm::ivec3, VoxelCoordHash> removedSet(
+					state.PendingRemoval.begin(), state.PendingRemoval.end());
 				auto& fc = state.FilledCoords;
 				fc.erase(std::remove_if(fc.begin(), fc.end(),
-					[&](const glm::ivec3& c) { return removedSet.count(c) > 0; }),
-					fc.end());
+					[&](const glm::ivec3& c) { return removedSet.count(c) > 0; }), fc.end());
 			}
 
-			// Cleanup tint and burn entries for removed voxels
-			for (const auto& coord : batch) {
+			// Cleanup maps for removed voxels
+			for (const auto& coord : state.PendingRemoval) {
 				state.TintMap.erase(coord);
-				state.ActiveBurns.erase(coord);
+				state.DamageMap.erase(coord);
+				state.PerVoxelHeat.erase(coord);
 			}
+
+			state.PendingRemoval.clear();
+			state.FramesSinceLastFlush = 0;
+			state.ForceImmediateRebuild = false;
 
 			if (remaining == 0) {
-				// Fully destroyed
 				CB_CORE_INFO("VoxelDestructionSystem: Entity {0} fully destroyed", uuid);
 				scene->DestroyEntity(entity);
 				s_EntityStates.erase(it);
 				continue;
 			}
 
-			// Mesh rebuild budget — defer remaining entities to next frame
-			if (meshRebuilds >= kMaxMeshRebuildsPerFrame) {
-				state.MeshDirty = true;
-				VoxelDestructionSystem::MarkTintDirty(uuid);
-				if (dvComp.StructuralIntegrityEnabled)
-					s_StructuralCheckQueue.push_back(uuid);
-				continue;
-			}
-
-			// Rebuild mesh in-place (no fragmentation check yet — structural
-			// integrity below handles splitting unsupported parts)
 			RebuildOrFragment(scene, uuid, state);
-			meshRebuilds++;
+			rebuilds++;
 
-			// Queue for structural integrity check
 			if (dvComp.StructuralIntegrityEnabled)
 				s_StructuralCheckQueue.push_back(uuid);
 		}
@@ -483,8 +510,17 @@ namespace CB
 		auto& vr = entity.GetComponent<VoxelRendererComponent>();
 		auto& transform = entity.GetComponent<TransformComponent>();
 
-		auto fragments = VoxelSplitter::FindConnectedComponents(
-			state.ModifiedGrid, state.ModifiedPaletteIndices, state.FilledCoords);
+		// Only check for splits when instant damage (Impact/Explosion) occurred —
+		// gradual damage (fire/acid) rarely creates disconnected fragments and
+		// skipping FindCC saves ~0.5ms per rebuild.
+		bool checkForSplits = state.HasInstantDamageSinceLastCC;
+		state.HasInstantDamageSinceLastCC = false;
+
+		std::vector<VoxelFragment> fragments;
+		if (checkForSplits) {
+			fragments = VoxelSplitter::FindConnectedComponents(
+				state.ModifiedGrid, state.ModifiedPaletteIndices, state.FilledCoords);
+		}
 
 		if (fragments.size() <= 1) {
 			// Single connected piece — update the entity's mesh in-place
@@ -626,7 +662,9 @@ namespace CB
 			fragCol.Shape = ColliderShape::VoxelCompound;
 			fragCol.ShapeDirty = true;
 
-			auto compoundShape = VoxelCollisionShapeGenerator::GenerateFromGrid(frag.Grid);
+			auto compoundShape = (frag.VoxelCount <= VoxelCollisionShapeGenerator::kSmallFragmentThreshold)
+				? VoxelCollisionShapeGenerator::CreateSimpleShape(frag.Grid)
+				: VoxelCollisionShapeGenerator::GenerateFromGrid(frag.Grid);
 			if (compoundShape) {
 				fragCol.RuntimeShape = compoundShape;
 				fragCol.ShapeDirty = false;
@@ -672,6 +710,10 @@ namespace CB
 				if (frag.Grid.IsValidCoord(localCoord) && frag.Grid.IsFilled(localCoord))
 					fragState.PerVoxelHeat[localCoord] = heat;
 			}
+
+			// Set TTL for small fragments so they despawn automatically
+			if (frag.VoxelCount <= 8 && origDV.FragmentLifetime > 0.0f)
+				fragState.FragmentTTL = origDV.FragmentLifetime;
 
 			++spawned;
 		}
@@ -970,16 +1012,20 @@ namespace CB
 		col.Shape = ColliderShape::VoxelCompound;
 		col.ShapeDirty = true;
 
-		auto compoundShape = VoxelCollisionShapeGenerator::GenerateFromGrid(tempGrid);
+		auto compoundShape = (static_cast<int>(cluster.VoxelCount) <= VoxelCollisionShapeGenerator::kSmallFragmentThreshold)
+			? VoxelCollisionShapeGenerator::CreateSimpleShape(tempGrid)
+			: VoxelCollisionShapeGenerator::GenerateFromGrid(tempGrid);
 		if (compoundShape) {
 			col.RuntimeShape = compoundShape;
 			col.ShapeDirty = false;
 		}
 
 		// Fix 4: Add DestructibleVoxelComponent (chunks are damageable)
+		DestructibleVoxelComponent origDV;
 		if (sourceEntity.HasComponent<DestructibleVoxelComponent>()) {
+			origDV = sourceEntity.GetComponent<DestructibleVoxelComponent>();
 			auto& chunkDV = chunkEntity.AddComponent<DestructibleVoxelComponent>();
-			chunkDV = sourceEntity.GetComponent<DestructibleVoxelComponent>();
+			chunkDV = origDV;
 			chunkDV.StructuralIntegrityEnabled = false; // prevent recursive cascade
 		}
 
@@ -993,6 +1039,10 @@ namespace CB
 		chunkState.ActiveBurns = std::move(chunkBurns);
 		chunkState.DamageMap = std::move(chunkDamageMap);
 		chunkState.PerVoxelHeat = std::move(chunkPerVoxelHeat);
+
+		// Set TTL for small collapsed chunks
+		if (cluster.VoxelCount <= 8 && origDV.FragmentLifetime > 0.0f)
+			chunkState.FragmentTTL = origDV.FragmentLifetime;
 
 		CB_CORE_TRACE("  Spawned collapse chunk: {0} voxels, mass={1:.1f}",
 		              cluster.VoxelCount, rb.Mass);

@@ -20,6 +20,9 @@ namespace CB
 	class VoxelCollisionShapeGenerator
 	{
 	public:
+		/// Threshold: fragments with this many voxels or fewer use CreateSimpleShape
+		static constexpr int kSmallFragmentThreshold = 5;
+
 		/// Greedy merge filled voxels into larger boxes to reduce shape count.
 		/// Returns a list of merged boxes in voxel coordinates.
 		static std::vector<MergedBox> GreedyMerge(const voxelizer::VoxelGrid& grid);
@@ -35,5 +38,10 @@ namespace CB
 
 		/// Convenience: merge + create compound shape.
 		static JPH::RefConst<JPH::Shape> GenerateFromGrid(const voxelizer::VoxelGrid& grid);
+
+		/// AABB-based shape for small fragments — O(filled) instead of full GreedyMerge.
+		/// Computes the axis-aligned bounding box of all filled voxels and creates a
+		/// single BoxShape in a StaticCompoundShape.
+		static JPH::RefConst<JPH::Shape> CreateSimpleShape(const voxelizer::VoxelGrid& grid);
 	};
 }

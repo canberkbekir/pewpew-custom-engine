@@ -66,6 +66,9 @@ namespace CB
 		// Max voxels this object can remove per frame (frame budget).
 		int MaxDestructionsPerFrame = 30;
 
+		// Seconds before small fragments despawn (0 = disabled).
+		float FragmentLifetime = 5.0f;
+
 		// =====================================================================
 		DestructibleVoxelComponent() = default;
 		DestructibleVoxelComponent(const DestructibleVoxelComponent&) = default;
@@ -85,6 +88,7 @@ namespace CB
 			out << YAML::Key << "StructuralCheckDistance" << YAML::Value << StructuralCheckDistance;
 			out << YAML::Key << "MaxFragmentsPerObject" << YAML::Value << MaxFragmentsPerObject;
 			out << YAML::Key << "MaxDestructionsPerFrame" << YAML::Value << MaxDestructionsPerFrame;
+			out << YAML::Key << "FragmentLifetime" << YAML::Value << FragmentLifetime;
 		}
 
 		void Deserialize(const YAML::Node& node)
@@ -103,6 +107,7 @@ namespace CB
 			if (node["StructuralCheckDistance"]) StructuralCheckDistance = node["StructuralCheckDistance"].as<float>();
 			if (node["MaxFragmentsPerObject"]) MaxFragmentsPerObject = node["MaxFragmentsPerObject"].as<int>();
 			if (node["MaxDestructionsPerFrame"]) MaxDestructionsPerFrame = node["MaxDestructionsPerFrame"].as<int>();
+			if (node["FragmentLifetime"]) FragmentLifetime = node["FragmentLifetime"].as<float>();
 		}
 	};
 }

@@ -81,5 +81,15 @@ namespace CB
 		// Rebuilt when CachedMapGeneration != GridGeneration
 		std::unordered_map<uint64_t, size_t> CachedFilledIndexMap;
 		uint32_t CachedMapGeneration = UINT32_MAX;
+
+		// --- Deferred rebuild ---
+		// Set by Impact/Explosion damage — forces immediate flush of PendingRemoval
+		bool ForceImmediateRebuild = false;
+		// Frames since last flush of PendingRemoval (counts up between flushes)
+		uint32_t FramesSinceLastFlush = 0;
+		// True if Impact/Explosion damage occurred since last FindCC — controls split detection
+		bool HasInstantDamageSinceLastCC = false;
+		// Fragment time-to-live: <0 = no TTL (default), >=0 = seconds remaining before despawn
+		float FragmentTTL = -1.0f;
 	};
 }

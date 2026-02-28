@@ -214,4 +214,26 @@ namespace CB
 		             grid.CountFilled(), mergedBoxes.size());
 		return CreateCompoundShape(grid, mergedBoxes);
 	}
+
+	JPH::RefConst<JPH::Shape> VoxelCollisionShapeGenerator::CreateSimpleShape(const voxelizer::VoxelGrid& grid)
+	{
+		// Compute AABB of all filled voxels in one pass
+		glm::ivec3 bmin(INT_MAX), bmax(INT_MIN);
+		bool found = false;
+
+		for (uint64_t i = 0; i < grid.totalVoxels; ++i) {
+			if (!grid.IsFilled(i)) continue;
+			glm::ivec3 c = grid.IndexToCoord(i);
+			bmin = glm::min(bmin, c);
+			bmax = glm::max(bmax, c);
+			found = true;
+		}
+
+		if (!found)
+			return nullptr;
+
+		// Create a single box shape matching the AABB
+		std::vector<MergedBox> singleBox = { {bmin, bmax} };
+		return CreateCompoundShape(grid, singleBox);
+	}
 }
