@@ -5,6 +5,7 @@
 #include "CBEngine/Components/Components.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
 #include "CBEngine/Components/AudioSourceComponent.h"
+#include "CBEngine/Components/WorldGridComponent.h"
 
 // ============================================================================
 // All YAML-serializable components are registered here.
@@ -34,6 +35,7 @@ namespace CB
 	CB_REGISTER_COMPONENT(HingeChainComponent)
 	CB_REGISTER_COMPONENT(DestructibleVoxelComponent)
 	CB_REGISTER_COMPONENT(VoxelAnchorComponent)
+	CB_REGISTER_COMPONENT(WorldGridComponent)
 
 	// Called from Application::Application() to force the linker to include
 	// this object file from the static library (MSVC dead-strips objects that

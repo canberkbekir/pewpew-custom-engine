@@ -1,0 +1,163 @@
+Scene: WorldGeneration
+Entities:
+  - Entity: 15741928755361167770
+    TagComponent:
+      Tag: World
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    WorldGridComponent:
+      VoxelSize: 0.1
+      SizeX: 2
+      SizeY: 1
+      SizeZ: 2
+      SimRadius: 128
+      RenderRadius: 256
+      PhysicsRadius: 160
+      LOD1Distance: 160
+      LOD2Distance: 224
+      StreamRadius: 320
+      UnloadRadius: 384
+      GeneratorType: 2
+      Seed: 18467
+      SeaLevel: 1
+      NoiseScale: 0.003
+      NoiseOctaves: 1
+      NoiseAmplitude: 32
+      SurfaceSubstance: Wood
+      FillSubstance: Stone
+      StoragePath: ""
+  - Entity: 7748040067211794919
+    TagComponent:
+      Tag: Camera
+    TransformComponent:
+      Position: [0, 4.9392247, 0]
+      Rotation: [0.9192467, -0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    CameraComponent:
+      Primary: true
+      FOV: 45
+      NearClip: 0.1
+      FarClip: 100
+  - Entity: 1950391129923764471
+    TagComponent:
+      Tag: GameManager
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: assets/scripts/CustomGameManager.lua
+          ClassName: CollectGameManager
+    GameManagerComponent:
+      {}
+  - Entity: 11575955456976146946
+    TagComponent:
+      Tag: Player
+    TransformComponent:
+      Position: [0, 7.752392, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 5
+      MaterialUUID: 0
+      ShaderUUID: 0
+      Visible: false
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: true
+      FreezeRotationY: true
+      FreezeRotationZ: true
+    ColliderComponent:
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\PlayerMovement.lua
+          ClassName: PlayerMovement
+          Fields:
+            - Name: MouseSensitivity
+              Type: float
+              Value: 0.1
+            - Name: BulletBlueprint
+              Type: blueprintref
+              Value: 544593730339155609
+              Subtype: blueprint_asset
+            - Name: BulletPoint
+              Type: entityref
+              Value: 12160050135553676369
+            - Name: FireRate
+              Type: float
+              Value: 0.06
+            - Name: UseRaycast
+              Type: bool
+              Value: true
+            - Name: RaycastDamage
+              Type: float
+              Value: 10
+            - Name: RaycastRange
+              Type: float
+              Value: 100000
+            - Name: RaycastDamageRadius
+              Type: float
+              Value: 0.1
+            - Name: FlameBlueprint
+              Type: blueprintref
+              Value: 13754101318142491580
+              Subtype: blueprint_asset
+            - Name: Camera
+              Type: entityref
+              Value: 2557997351667417693
+    BlueprintInstanceComponent:
+      BlueprintAssetUUID: 13770180704839674344
+      BlueprintPath: assets\blueprints\BP_Player.blueprint
+      OriginalYAML: "Blueprint: Player\nEntities:\n  - Entity: 11575955456976146946\n    TagComponent:\n      Tag: Player\n    TransformComponent:\n      Position: [0, 7.752392, 0]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: false\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: true\n      FreezeRotationY: true\n      FreezeRotationZ: true\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false\n    ScriptComponent:\n      Scripts:\n        - ScriptPath: scripts\\PlayerMovement.lua\n          ClassName: PlayerMovement\n          Fields:\n            - Name: MouseSensitivity\n              Type: float\n              Value: 0.1\n            - Name: BulletBlueprint\n              Type: blueprintref\n              Value: 544593730339155609\n              Subtype: blueprint_asset\n            - Name: BulletPoint\n              Type: entityref\n              Value: 12160050135553676369\n            - Name: FireRate\n              Type: float\n              Value: 0.06\n            - Name: UseRaycast\n              Type: bool\n              Value: true\n            - Name: RaycastDamage\n              Type: float\n              Value: 10\n            - Name: RaycastRange\n              Type: float\n              Value: 100000\n            - Name: RaycastDamageRadius\n              Type: float\n              Value: 0.1\n            - Name: FlameBlueprint\n              Type: blueprintref\n              Value: 13754101318142491580\n              Subtype: blueprint_asset\n            - Name: Camera\n              Type: entityref\n              Value: 2557997351667417693\n  - Entity: 83337389736898769\n    TagComponent:\n      Tag: CameraPoint\n    TransformComponent:\n      Position: [0, 1.162251, 0]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 11575955456976146946\n  - Entity: 2557997351667417693\n    TagComponent:\n      Tag: Camera\n    TransformComponent:\n      Position: [0, 0, 0]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 83337389736898769\n    CameraComponent:\n      Primary: true\n      FOV: 45\n      NearClip: 0.1\n      FarClip: 1000\n  - Entity: 6754558858734880758\n    TagComponent:\n      Tag: GunPoint\n    TransformComponent:\n      Position: [0, -0.4538412, 0.98682207]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 2557997351667417693"
+  - Entity: 83337389736898769
+    TagComponent:
+      Tag: CameraPoint
+    TransformComponent:
+      Position: [0, 1.162251, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 11575955456976146946
+  - Entity: 2557997351667417693
+    TagComponent:
+      Tag: Camera
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 83337389736898769
+    CameraComponent:
+      Primary: true
+      FOV: 45
+      NearClip: 0.1
+      FarClip: 1000
+  - Entity: 6754558858734880758
+    TagComponent:
+      Tag: GunPoint
+    TransformComponent:
+      Position: [0, -0.4538412, 0.98682207]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 2557997351667417693

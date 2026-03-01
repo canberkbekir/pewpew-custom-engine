@@ -18,6 +18,7 @@ namespace CB
 		static void SubmitLights(Scene* scene);
 		static void SubmitMeshes(Scene* scene,const Ref<Shader>& defaultShader,const Ref<Material>& defaultMaterial);
 		static void SubmitVoxels(Scene* scene,const Ref<Shader>& defaultShader,const Ref<Material>& defaultMaterial);
+		static void SubmitWorldGrid(Scene* scene,const Ref<Shader>& defaultShader,const Ref<Material>& defaultMaterial);
 
 		static Vector3 ExtractForwardFromWorld(const Mat4& world);
 	};

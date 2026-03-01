@@ -16,9 +16,14 @@
 #include "CBEngine/Systems/HingeChainSystem.h"
 #include "CBEngine/Systems/VoxelDestructionSystem.h"
 #include "CBEngine/Systems/VoxelSpreadSystem.h"
+#include "CBEngine/Systems/WorldRenderSystem.h"
+#include "CBEngine/Systems/WorldSimSystem.h"
+#include "CBEngine/Voxel/World/WorldGrid.h"
+#include "CBEngine/Voxel/World/CellularAutomata.h"
 #include "CBEngine/Components/HingeJointComponent.h"
 #include "CBEngine/Components/HingeChainComponent.h"
 #include "CBEngine/Components/DestructibleVoxelComponent.h"
+#include "CBEngine/Components/WorldGridComponent.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "CBEngine/Events/SceneEvent.h"
 #include "CBEngine/Input/Input.h"
@@ -132,13 +137,24 @@ namespace CB
 		          .connect<&OnDestructibleVoxelComponentDestroyed>();
 
 		// Register always-active systems (edit mode + play mode)
-		RegisterSystem(CreateScope<TransformSystemAdapter>()); // priority 100
+		RegisterSystem(CreateScope<TransformSystemAdapter>());    // priority 100
+		RegisterSystem(CreateScope<WorldRenderSystemAdapter>()); // priority 160 — mesh building + streaming
 	}
 
 	Scene::~Scene()
 	{
 		if (m_PhysicsInitialized)
 			ShutdownPhysics();
+
+		// Destroy WorldGrid (end of scene lifetime)
+		{
+			auto** wg = m_Registry.ctx().find<WorldGrid*>();
+			if (wg && *wg)
+			{
+				delete *wg;
+				m_Registry.ctx().erase<WorldGrid*>();
+			}
+		}
 
 		// Shutdown all systems
 		for (auto& system : m_Systems)
@@ -241,6 +257,43 @@ namespace CB
 		scriptSystem->Init(this);
 		RegisterSystem(std::move(scriptSystem));
 
+		// Reuse existing WorldGrid (from editor Build) or create a new one
+		{
+			auto** existingWG = m_Registry.ctx().find<WorldGrid*>();
+			WorldGrid* worldGrid;
+			if (existingWG && *existingWG)
+			{
+				worldGrid = *existingWG;
+			}
+			else
+			{
+				worldGrid = new WorldGrid();
+				WorldGrid* wgPtr = worldGrid;
+				m_Registry.ctx().insert_or_assign<WorldGrid*>(std::move(wgPtr));
+			}
+
+			// Apply component settings if present
+			auto wgcView = m_Registry.view<WorldGridComponent>();
+			if (!wgcView.empty())
+				wgcView.get<WorldGridComponent>(*wgcView.begin()).ApplyToGrid(*worldGrid);
+
+			worldGrid->BuildSubstanceLUT();
+			worldGrid->BuildGlobalPalette();
+			CellularAutomata::Init(*worldGrid);
+
+			// Mark all filled chunks as physics-dirty so bodies are created for
+			// terrain that was built in edit mode (where PhysicsWorld didn't exist)
+			for (auto& [coord, chunk] : worldGrid->Chunks())
+			{
+				if (chunk && chunk->FilledCount > 0 && !chunk->HasPhysicsBody)
+					chunk->PhysicsDirty = true;
+			}
+		}
+
+		// Register play-mode-only world sim system
+		RegisterSystem(CreateScope<WorldSimSystemAdapter>());    // priority 155
+		// WorldRenderSystemAdapter is registered in Scene() constructor (always active)
+
 		// Register physics-phase systems
 		RegisterSystem(CreateScope<VoxelDestructionSystemAdapter>()); // priority 175
 		RegisterSystem(CreateScope<VoxelSpreadSystemAdapter>()); // priority 176
@@ -268,6 +321,8 @@ namespace CB
 		UnregisterSystem("DestructionSystem");
 		UnregisterSystem("VoxelDestructionSystem");
 		UnregisterSystem("VoxelSpreadSystem");
+		// WorldRenderSystem is always-active (registered in constructor), not unregistered here
+		UnregisterSystem("WorldSimSystem");
 		UnregisterSystem("ScriptSystem");
 
 		// Destroy all hinge joint constraints before physics world shutdown
@@ -275,6 +330,25 @@ namespace CB
 			auto view = m_Registry.view<HingeJointComponent>();
 			for (auto e : view)
 				HingeJointSystem::DestroyConstraint(m_PhysicsWorld.get(), e, m_Registry);
+		}
+
+		// Destroy chunk physics bodies (they require PhysicsWorld which is play-mode-only)
+		// but keep the WorldGrid itself alive so terrain persists across play/stop.
+		// Mark chunks as PhysicsDirty so bodies are recreated on next play.
+		{
+			auto** wg = m_Registry.ctx().find<WorldGrid*>();
+			if (wg && *wg) {
+				WorldGrid& grid = **wg;
+				for (auto& [coord, chunk] : grid.Chunks()) {
+					if (chunk && chunk->HasPhysicsBody) {
+						auto& bodyInterface = m_PhysicsWorld->GetBodyInterface();
+						bodyInterface.RemoveBody(chunk->PhysicsBodyID);
+						bodyInterface.DestroyBody(chunk->PhysicsBodyID);
+						chunk->HasPhysicsBody = false;
+						chunk->PhysicsDirty = true;
+					}
+				}
+			}
 		}
 
 		PhysicsSystem::Shutdown(m_PhysicsWorld.get());

@@ -68,6 +68,10 @@ namespace CB
 	// =========================================================================
 	struct VoxelSubstanceProperties
 	{
+		// --- Cell Behavior (World Grid CA) ---
+		uint8_t CellCategory = 0;   // CellFlag_Solid (1), CellFlag_Liquid (2), CellFlag_Gas (4), CellFlag_Powder (8)
+		uint8_t CellDensity = 128;  // 0=lightest (gas), 255=heaviest (metal). For settling order.
+
 		// --- Physical ---
 		float MassPerVoxel = 0.02f; // kg per voxel — fragment mass = VoxelCount * MassPerVoxel
 

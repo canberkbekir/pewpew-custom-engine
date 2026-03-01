@@ -28,5 +28,6 @@ namespace CB
 		static void RegisterHingeJoint(sol::state& lua); // HingeJoint constraint API
 		static void RegisterVoxelDestruction(sol::state& lua); // VoxelQuery + VoxelDamage + DamageType
 		static void RegisterHeat(sol::state& lua); // Heat octree query/inject API
+		static void RegisterWorldGrid(sol::state& lua); // World voxel grid API
 	};
 }

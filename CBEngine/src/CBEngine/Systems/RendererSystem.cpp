@@ -9,6 +9,7 @@
 #include "CBEngine/Renderer/Core/Renderer3D.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Voxel/VoxelizerAPI.h"
+#include "CBEngine/Voxel/World/WorldGrid.h"
 
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/constants.hpp>
@@ -24,11 +25,19 @@ namespace CB
 		if (!scene)
 			return;
 
+		// Update WorldGrid region center from camera so streaming/LOD/render-range track the view
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (wgPtr && *wgPtr)
+				(*wgPtr)->Region.Center = cameraPosition;
+		}
+
 		Renderer3D::BeginScene(camera, cameraPosition);
 
 		SubmitLights(scene);
 		SubmitMeshes(scene, defaultShader, defaultMaterial);
 		SubmitVoxels(scene, defaultShader, defaultMaterial);
+		SubmitWorldGrid(scene, defaultShader, defaultMaterial);
 
 		Renderer3D::EndScene();
 	}
@@ -175,6 +184,38 @@ namespace CB
 			Renderer3D::Submit(voxelShader, defaultMaterial, vr.MeshAsset, tc.GetTransform(),
 			                   static_cast<int>(static_cast<uint32_t>(e)),
 			                   !vr.HasPalette, vr.PaletteColorTexture, vr.PaletteMaterialTexture);
+		}
+	}
+
+	void RendererSystem::SubmitWorldGrid(Scene* scene,const Ref<Shader>& defaultShader,
+	                                     const Ref<Material>& defaultMaterial)
+	{
+		auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+		if (!wgPtr || !*wgPtr)
+			return;
+
+		WorldGrid& grid = **wgPtr;
+		if (!grid.GlobalPaletteColor || !grid.GlobalPaletteMaterial)
+			return;
+
+		Ref<Shader> voxelShader = VoxelizerAPI::GetVoxelShader();
+		if (!voxelShader)
+			voxelShader = defaultShader;
+		if (!voxelShader)
+			return;
+
+		for (auto& [coord, chunk] : grid.Chunks()) {
+			if (!chunk || !chunk->CachedMesh)
+				continue;
+
+			if (!grid.Region.ChunkInRange(coord, grid.VoxelSize, grid.Region.RenderRadius))
+				continue;
+
+			// Chunk transform is identity since mesh vertices are already in world space
+			Mat4 identity(1.0f);
+			Renderer3D::Submit(voxelShader, defaultMaterial, chunk->CachedMesh,
+			                   identity, -1, false,
+			                   grid.GlobalPaletteColor, grid.GlobalPaletteMaterial);
 		}
 	}
 

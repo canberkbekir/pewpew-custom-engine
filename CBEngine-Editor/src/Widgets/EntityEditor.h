@@ -27,6 +27,7 @@
 #include "ComponentViews/HingeChainComponentView.h"
 #include "ComponentViews/DestructibleVoxelComponentView.h"
 #include "ComponentViews/VoxelAnchorComponentView.h"
+#include "ComponentViews/WorldGridComponentView.h"
 #include "ComponentViews/AddComponentMenu.h"
 
 #include <fstream>
@@ -122,6 +123,7 @@ namespace CB
 			HingeChainComponentView::Draw(entity);
 			DestructibleVoxelComponentView::Draw(entity);
 			VoxelAnchorComponentView::Draw(entity);
+			WorldGridComponentView::Draw(entity);
 			BlueprintInstanceComponentView::Draw(entity);
 
 			ImGui::Separator();

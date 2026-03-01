@@ -40,6 +40,9 @@
 #include "CBEngine/Systems/VoxelSpreadSystem.h"
 #include "CBEngine/Voxel/Substance/VoxelSubstance.h"
 #include "CBEngine/Components/DestructibleVoxelComponent.h"
+#include "CBEngine/Voxel/World/WorldGrid.h"
+#include "CBEngine/Voxel/World/WorldGenerator.h"
+#include "CBEngine/Voxel/World/RigidBodyBridge.h"
 
 #include <Jolt/Physics/Body/BodyInterface.h>
 
@@ -64,6 +67,7 @@ namespace CB
 		RegisterHingeJoint(lua); // HingeJoint constraint API
 		RegisterVoxelDestruction(lua); // VoxelQuery + VoxelDamage + DamageType
 		RegisterHeat(lua); // Heat octree query/inject API
+		RegisterWorldGrid(lua); // World voxel grid API
 	}
 
 	void LuaBindings::RegisterMath(sol::state& lua)
@@ -3457,6 +3461,250 @@ end
 			for (const auto& c : cells)
 				maxHeat = glm::max(maxHeat, c.Heat);
 			return maxHeat;
+		};
+	}
+
+	// =========================================================================
+	// RegisterWorldGrid — World voxel grid API
+	//
+	// Lua usage:
+	//   WorldGrid.SetCell(scene, x, y, z, "Stone")
+	//   WorldGrid.ClearCell(scene, x, y, z)
+	//   WorldGrid.FillBox(scene, Vector3(0,0,0), Vector3(10,5,10), "Stone")
+	//   WorldGrid.FillSphere(scene, Vector3(0,10,0), 5, "Stone")
+	//   local cell = WorldGrid.GetCell(scene, x, y, z)
+	//   WorldGrid.ApplyDamage(scene, x, y, z, DamageType.Impact, 50)
+	// =========================================================================
+	void LuaBindings::RegisterWorldGrid(sol::state& lua)
+	{
+		auto wg = lua.create_named_table("WorldGrid");
+
+		// WorldGrid.SetCell(scene, x, y, z, substanceName, [paletteIdx])
+		wg["SetCell"] = [](Scene* scene, int x, int y, int z, const std::string& substanceName,
+		                    sol::optional<int> paletteIdx)
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return;
+			WorldGrid& grid = **wgPtr;
+
+			auto it = grid.SubstanceToIndex.find(substanceName);
+			if (it == grid.SubstanceToIndex.end()) return;
+
+			if (paletteIdx) {
+				WorldCell cell;
+				cell.SubstanceIndex = it->second;
+				cell.Health = 255;
+				cell.Flags = CellFlag_Solid;
+				cell.PaletteIndex = static_cast<uint8_t>(*paletteIdx);
+				cell.Density = 128;
+				grid.SetCell({ x, y, z }, cell);
+			} else {
+				grid.SetSubstance({ x, y, z }, it->second);
+			}
+		};
+
+		// WorldGrid.GetCell(scene, x, y, z) → table or nil
+		wg["GetCell"] = [](Scene* scene, int x, int y, int z, sol::this_state L) -> sol::object
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return sol::nil;
+			WorldGrid& grid = **wgPtr;
+
+			const WorldCell& cell = grid.GetCell({ x, y, z });
+			if (cell.IsAir()) return sol::nil;
+
+			sol::state_view lua(L);
+			sol::table t = lua.create_table();
+			if (cell.SubstanceIndex < grid.SubstanceLUT.size())
+				t["substance"] = grid.SubstanceLUT[cell.SubstanceIndex];
+			t["health"] = static_cast<int>(cell.Health);
+			t["temperature"] = static_cast<int>(cell.Temperature);
+			t["flags"] = static_cast<int>(cell.Flags);
+			t["paletteIndex"] = static_cast<int>(cell.PaletteIndex);
+			t["density"] = static_cast<int>(cell.Density);
+			return t;
+		};
+
+		// WorldGrid.ClearCell(scene, x, y, z)
+		wg["ClearCell"] = [](Scene* scene, int x, int y, int z)
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return;
+			(*wgPtr)->ClearCell({ x, y, z });
+		};
+
+		// WorldGrid.FillBox(scene, minVec, maxVec, substanceName)
+		wg["FillBox"] = [](Scene* scene, const Vector3& minV, const Vector3& maxV,
+		                    const std::string& substanceName)
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return;
+			WorldGrid& grid = **wgPtr;
+
+			auto it = grid.SubstanceToIndex.find(substanceName);
+			if (it == grid.SubstanceToIndex.end()) return;
+
+			glm::ivec3 min(static_cast<int>(minV.x), static_cast<int>(minV.y), static_cast<int>(minV.z));
+			glm::ivec3 max(static_cast<int>(maxV.x), static_cast<int>(maxV.y), static_cast<int>(maxV.z));
+			grid.FillBox(min, max, it->second);
+		};
+
+		// WorldGrid.FillSphere(scene, center, radius, substanceName)
+		wg["FillSphere"] = [](Scene* scene, const Vector3& center, float radius,
+		                       const std::string& substanceName)
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return;
+			WorldGrid& grid = **wgPtr;
+
+			auto it = grid.SubstanceToIndex.find(substanceName);
+			if (it == grid.SubstanceToIndex.end()) return;
+
+			grid.FillSphere(center, radius, it->second);
+		};
+
+		// WorldGrid.IsEmpty(scene, x, y, z) → bool
+		wg["IsEmpty"] = [](Scene* scene, int x, int y, int z) -> bool
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return true;
+			return (*wgPtr)->GetCell({ x, y, z }).IsAir();
+		};
+
+		// WorldGrid.WorldToVoxel(scene, pos) → Vector3 (integer coords)
+		wg["WorldToVoxel"] = [](Scene* scene, const Vector3& pos) -> Vector3
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return Vector3(0);
+			glm::ivec3 v = (*wgPtr)->WorldToVoxel(pos);
+			return Vector3(static_cast<float>(v.x), static_cast<float>(v.y), static_cast<float>(v.z));
+		};
+
+		// WorldGrid.VoxelToWorld(scene, coord) → Vector3 (center)
+		wg["VoxelToWorld"] = [](Scene* scene, const Vector3& coord) -> Vector3
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return Vector3(0);
+			glm::ivec3 c(static_cast<int>(coord.x), static_cast<int>(coord.y), static_cast<int>(coord.z));
+			return (*wgPtr)->VoxelToWorld(c);
+		};
+
+		// WorldGrid.GetVoxelSize(scene) → float
+		wg["GetVoxelSize"] = [](Scene* scene) -> float
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return 0.25f;
+			return (*wgPtr)->VoxelSize;
+		};
+
+		// WorldGrid.ApplyDamage(scene, x, y, z, damageType, amount)
+		wg["ApplyDamage"] = [](Scene* scene, int x, int y, int z, uint32_t /*damageType*/, float amount)
+		{
+			WorldDamageEvent evt;
+			evt.WorldVoxelCoord = { x, y, z };
+			evt.Amount = amount;
+			RigidBodyBridge::QueueWorldDamage(evt);
+		};
+
+		// WorldGrid.GetSubstanceIndex(name) → int or nil
+		wg["GetSubstanceIndex"] = [](Scene* scene, const std::string& name, sol::this_state L) -> sol::object
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return sol::nil;
+			WorldGrid& grid = **wgPtr;
+
+			auto it = grid.SubstanceToIndex.find(name);
+			if (it == grid.SubstanceToIndex.end()) return sol::nil;
+			return sol::make_object(L, static_cast<int>(it->second));
+		};
+
+		// WorldGrid.SetGenConfig(scene, { type="noise"|"flat"|"none", seed=42, seaLevel=0,
+		//     noiseScale=0.02, octaves=4, amplitude=32, surface="grass", fill="stone" })
+		wg["SetGenConfig"] = [](Scene* scene, sol::table cfg)
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return;
+			WorldGrid& grid = **wgPtr;
+
+			std::string typeStr = cfg.get_or<std::string>("type", "none");
+			if (typeStr == "flat") grid.GenConfig.GeneratorType = WorldGenConfig::Type::Flat;
+			else if (typeStr == "noise") grid.GenConfig.GeneratorType = WorldGenConfig::Type::Noise;
+			else grid.GenConfig.GeneratorType = WorldGenConfig::Type::None;
+
+			grid.GenConfig.Seed = cfg.get_or<uint32_t>("seed", grid.GenConfig.Seed);
+			grid.GenConfig.SeaLevel = cfg.get_or<int>("seaLevel", grid.GenConfig.SeaLevel);
+			grid.GenConfig.NoiseScale = cfg.get_or<float>("noiseScale", grid.GenConfig.NoiseScale);
+			grid.GenConfig.NoiseOctaves = cfg.get_or<int>("octaves", grid.GenConfig.NoiseOctaves);
+			grid.GenConfig.NoiseAmplitude = cfg.get_or<float>("amplitude", grid.GenConfig.NoiseAmplitude);
+			grid.GenConfig.SurfaceSubstance = cfg.get_or<std::string>("surface", grid.GenConfig.SurfaceSubstance);
+			grid.GenConfig.FillSubstance = cfg.get_or<std::string>("fill", grid.GenConfig.FillSubstance);
+
+			// Set the generator callback
+			if (grid.GenConfig.GeneratorType != WorldGenConfig::Type::None) {
+				grid.Generator = [](WorldChunk& chunk, glm::ivec3 coord, WorldGrid& g) {
+					WorldGenerator::Generate(chunk, coord, g.GenConfig, g);
+				};
+			} else {
+				grid.Generator = nullptr;
+			}
+		};
+
+		// WorldGrid.GetGenConfig(scene) → table
+		wg["GetGenConfig"] = [](Scene* scene, sol::this_state L) -> sol::object
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return sol::nil;
+			WorldGrid& grid = **wgPtr;
+
+			sol::state_view lua(L);
+			sol::table t = lua.create_table();
+			switch (grid.GenConfig.GeneratorType) {
+				case WorldGenConfig::Type::Flat: t["type"] = "flat"; break;
+				case WorldGenConfig::Type::Noise: t["type"] = "noise"; break;
+				default: t["type"] = "none"; break;
+			}
+			t["seed"] = grid.GenConfig.Seed;
+			t["seaLevel"] = grid.GenConfig.SeaLevel;
+			t["noiseScale"] = grid.GenConfig.NoiseScale;
+			t["octaves"] = grid.GenConfig.NoiseOctaves;
+			t["amplitude"] = grid.GenConfig.NoiseAmplitude;
+			t["surface"] = grid.GenConfig.SurfaceSubstance;
+			t["fill"] = grid.GenConfig.FillSubstance;
+			return t;
+		};
+
+		// WorldGrid.Regenerate(scene) — clears all chunks and storage, forces regeneration
+		wg["Regenerate"] = [](Scene* scene)
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return;
+			WorldGrid& grid = **wgPtr;
+
+			// Clear all loaded chunks (physics bodies should be cleaned up by caller)
+			grid.Chunks().clear();
+
+			// Re-set generator callback
+			if (grid.GenConfig.GeneratorType != WorldGenConfig::Type::None) {
+				grid.Generator = [](WorldChunk& chunk, glm::ivec3 coord, WorldGrid& g) {
+					WorldGenerator::Generate(chunk, coord, g.GenConfig, g);
+				};
+			}
+		};
+
+		// WorldGrid.GetChunkCount(scene) → int
+		wg["GetChunkCount"] = [](Scene* scene) -> int
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return 0;
+			return static_cast<int>((*wgPtr)->GetChunkCount());
+		};
+
+		// WorldGrid.GetMemoryUsageMB(scene) → float
+		wg["GetMemoryUsageMB"] = [](Scene* scene) -> float
+		{
+			auto** wgPtr = scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (!wgPtr || !*wgPtr) return 0.0f;
+			return (*wgPtr)->GetMemoryUsageMB();
 		};
 	}
 }

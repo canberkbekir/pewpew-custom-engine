@@ -188,12 +188,38 @@ namespace CB
 		}
 	}
 
+	static uint8_t CellCategoryFromString(const std::string& s)
+	{
+		if (s == "Solid")  return 1;  // CellFlag_Solid
+		if (s == "Liquid") return 2;  // CellFlag_Liquid
+		if (s == "Gas")    return 4;  // CellFlag_Gas
+		if (s == "Powder") return 8;  // CellFlag_Powder
+		return 1; // default: Solid
+	}
+
+	static const char* CellCategoryToString(uint8_t cat)
+	{
+		if (cat & 2) return "Liquid";
+		if (cat & 4) return "Gas";
+		if (cat & 8) return "Powder";
+		return "Solid";
+	}
+
+	static void DeserializeCellBehavior(const YAML::Node& node, VoxelSubstanceProperties& props)
+	{
+		if (node["cell_category"])
+			props.CellCategory = CellCategoryFromString(node["cell_category"].as<std::string>());
+		if (node["cell_density"])
+			props.CellDensity = static_cast<uint8_t>(node["cell_density"].as<int>());
+	}
+
 	static VoxelSubstanceProperties DeserializeProperties(const YAML::Node& node)
 	{
 		VoxelSubstanceProperties props;
 		DeserializeScalarProperties(node, props);
 		DeserializeDamageTints(node, props);
 		DeserializeBurnStages(node, props);
+		DeserializeCellBehavior(node, props);
 		return props;
 	}
 
@@ -392,6 +418,9 @@ namespace CB
 			SerializeScalarProperties(out, def.Properties);
 			SerializeBurnStages(out, def.Properties);
 			SerializeDamageTints(out, def.Properties);
+			// Cell behavior (world grid CA)
+			out << YAML::Key << "cell_category" << YAML::Value << CellCategoryToString(def.Properties.CellCategory);
+			out << YAML::Key << "cell_density" << YAML::Value << static_cast<int>(def.Properties.CellDensity);
 			out << YAML::EndMap;
 
 			out << YAML::EndMap;

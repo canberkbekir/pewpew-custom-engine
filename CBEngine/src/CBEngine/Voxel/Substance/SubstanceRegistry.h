@@ -22,6 +22,20 @@ namespace CB
 		static std::vector<SubstanceID> GetAllIDs();
 		static bool Exists(const SubstanceID& id);
 
+		// Returns the first registered substance ID, or empty string if none loaded
+		static SubstanceID GetFirstID()
+		{
+			auto ids = GetAllIDs();
+			return ids.empty() ? SubstanceID{} : ids[0];
+		}
+
+		// Returns id if it exists in the registry, otherwise returns the first available ID
+		static SubstanceID ResolveID(const SubstanceID& id)
+		{
+			if (!id.empty() && Exists(id)) return id;
+			return GetFirstID();
+		}
+
 		static void Register(SubstanceDefinition def);
 		static void Remove(const SubstanceID& id);
 		static void Duplicate(const SubstanceID& sourceID, const SubstanceID& newID);

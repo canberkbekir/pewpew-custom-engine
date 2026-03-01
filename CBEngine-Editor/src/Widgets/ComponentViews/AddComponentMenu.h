@@ -16,6 +16,7 @@
 #include "CBEngine/Components/HingeChainComponent.h"
 #include "CBEngine/Components/DestructibleVoxelComponent.h"
 #include "CBEngine/Components/VoxelAnchorComponent.h"
+#include "CBEngine/Components/WorldGridComponent.h"
 #include "CBEngine/Systems/HingeChainSystem.h"
 #include "CBEngine/Asset/AssetManager.h"
 #include "CBEngine/Asset/AssetRegistry.h"
@@ -161,6 +162,19 @@ namespace CB
 						anyComponentShown = true;
 						if (ImGui::MenuItem("Voxel Anchor")) {
 							entity.AddComponent<VoxelAnchorComponent>();
+							ImGui::CloseCurrentPopup();
+						}
+					}
+				}
+
+				// World Grid — singleton per scene
+				if (!hasFilter || MatchesFilter("World Grid")) {
+					Scene* scene = entity.GetScene();
+					bool sceneHasWG = scene && !scene->GetRegistry().view<WorldGridComponent>().empty();
+					if (!entity.HasComponent<WorldGridComponent>() && !sceneHasWG) {
+						anyComponentShown = true;
+						if (ImGui::MenuItem("World Grid")) {
+							entity.AddComponent<WorldGridComponent>();
 							ImGui::CloseCurrentPopup();
 						}
 					}

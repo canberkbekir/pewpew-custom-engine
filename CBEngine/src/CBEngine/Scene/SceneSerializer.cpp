@@ -6,9 +6,11 @@
 #include "CBEngine/Components/BlueprintInstanceComponent.h"
 #include "CBEngine/Components/TransformComponent.h"
 #include "CBEngine/Components/CoreComponents.h"
+#include "CBEngine/Voxel/World/WorldGrid.h"
 
 #include <yaml-cpp/yaml.h>
 #include <fstream>
+#include <filesystem>
 
 namespace CB
 {
@@ -88,6 +90,14 @@ namespace CB
 		}
 
 		CB_CORE_INFO("Serialized scene to: {0}", FilePath);
+
+		// Save world grid alongside scene file
+		auto** wgPtr = m_Scene->GetRegistry().ctx().find<WorldGrid*>();
+		if (wgPtr && *wgPtr) {
+			std::filesystem::path wgPath = path;
+			wgPath.replace_extension(".cbwg");
+			(*wgPtr)->Save(wgPath.string());
+		}
 	}
 
 	void SceneSerializer::DeserializeText(const String& FilePath)
@@ -163,6 +173,17 @@ namespace CB
 		}
 
 		CB_CORE_INFO("Deserialized scene from: {0}", FilePath);
+
+		// Load world grid if .cbwg file exists alongside scene
+		std::filesystem::path wgPath(FilePath);
+		wgPath.replace_extension(".cbwg");
+		if (std::filesystem::exists(wgPath)) {
+			auto** wgPtr = m_Scene->GetRegistry().ctx().find<WorldGrid*>();
+			if (wgPtr && *wgPtr) {
+				(*wgPtr)->Load(wgPath.string());
+				CB_CORE_INFO("Loaded world grid from: {0}", wgPath.string());
+			}
+		}
 	}
 
 	String SceneSerializer::SerializeToString()

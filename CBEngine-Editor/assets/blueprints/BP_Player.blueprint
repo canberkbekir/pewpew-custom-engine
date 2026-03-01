@@ -1,0 +1,103 @@
+Blueprint: Player
+Entities:
+  - Entity: 11575955456976146946
+    TagComponent:
+      Tag: Player
+    TransformComponent:
+      Position: [0, 7.752392, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 5
+      MaterialUUID: 0
+      ShaderUUID: 0
+      Visible: false
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: true
+      FreezeRotationY: true
+      FreezeRotationZ: true
+    ColliderComponent:
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\PlayerMovement.lua
+          ClassName: PlayerMovement
+          Fields:
+            - Name: MouseSensitivity
+              Type: float
+              Value: 0.1
+            - Name: BulletBlueprint
+              Type: blueprintref
+              Value: 544593730339155609
+              Subtype: blueprint_asset
+            - Name: BulletPoint
+              Type: entityref
+              Value: 12160050135553676369
+            - Name: FireRate
+              Type: float
+              Value: 0.06
+            - Name: UseRaycast
+              Type: bool
+              Value: true
+            - Name: RaycastDamage
+              Type: float
+              Value: 10
+            - Name: RaycastRange
+              Type: float
+              Value: 100000
+            - Name: RaycastDamageRadius
+              Type: float
+              Value: 0.1
+            - Name: FlameBlueprint
+              Type: blueprintref
+              Value: 13754101318142491580
+              Subtype: blueprint_asset
+            - Name: Camera
+              Type: entityref
+              Value: 2557997351667417693
+  - Entity: 83337389736898769
+    TagComponent:
+      Tag: CameraPoint
+    TransformComponent:
+      Position: [0, 1.162251, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 11575955456976146946
+  - Entity: 2557997351667417693
+    TagComponent:
+      Tag: Camera
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 83337389736898769
+    CameraComponent:
+      Primary: true
+      FOV: 45
+      NearClip: 0.1
+      FarClip: 1000
+  - Entity: 6754558858734880758
+    TagComponent:
+      Tag: GunPoint
+    TransformComponent:
+      Position: [0, -0.4538412, 0.98682207]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 2557997351667417693
