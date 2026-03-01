@@ -36,11 +36,11 @@ function Collectible:OnUpdate(dt)
 
     -- Floating bob animation
     local newY = self.startPos.y + math.sin(self.time * self.BobSpeed) * self.BobHeight
-    self._entity:SetPosition(Vec3(self.startPos.x, newY, self.startPos.z))
+    self._entity:SetPosition(Vector3(self.startPos.x, newY, self.startPos.z))
 
     -- Spin rotation
     local rot = self._entity:GetRotation()
-    self._entity:SetRotation(Vec3(rot.x, rot.y + self.SpinSpeed * dt, rot.z))
+    self._entity:SetRotation(Vector3(rot.x, rot.y + self.SpinSpeed * dt, rot.z))
 end
 
 -- Shared collect logic — called from both OnTriggerEnter and OnCollisionBegin

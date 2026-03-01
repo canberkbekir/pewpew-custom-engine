@@ -15,6 +15,7 @@
 
 FlameBubble = {
     __fields = {
+        Speed         = Float(18.0,  1.0, 100.0),   -- launch speed along forward
         Lifetime      = Float(1.2,   0.1, 5.0),
         HeatPerSecond = Float(600.0, 0.0, 2000.0),  -- max temperature this flame can produce (~1000C real flamethrower)
         FireDamage    = Float(5.0,   0.0, 100.0),   -- voxel fire damage per second while touching
@@ -23,7 +24,7 @@ FlameBubble = {
         StickLifetime = Float(0.6,   0.0, 3.0),     -- extra lifetime after sticking to surface
     }
 }
-FlameBubble.__index = FlameBubble
+
 
 function FlameBubble:OnCreate()
     self._lifeRemaining = self.Lifetime
@@ -32,6 +33,12 @@ function FlameBubble:OnCreate()
     self._stuck         = false    -- true after first surface hit
     self._stuckTarget   = nil      -- entity we're burning
     self._damageTimer   = 0.0      -- accumulates dt for periodic damage ticks
+    self._launched      = false    -- launch deferred to first OnUpdate
+
+    self._rb = self._entity:GetComponent(RigidBody)
+    if self._rb then
+        self._rb:SetUseGravity(false)
+    end
 
     -- Connect collision events
     local me = self
@@ -46,12 +53,21 @@ end
 function FlameBubble:OnUpdate(dt)
     if self._dead then return end
 
+    -- Launch on first frame (after spawner has called SetPosition + LookAt)
+    if not self._launched then
+        self._launched = true
+        if self._rb then
+            local dir = self._entity:GetForward()
+            self._rb:SetLinearVelocity(dir * self.Speed)
+        end
+    end
+
     self._lifeRemaining = self._lifeRemaining - dt
     self._safeTimer     = Math.Max(0.0, self._safeTimer - dt)
 
     -- Inject heat at current position every frame
     local pos = self._entity:GetWorldPosition()
-    Heat.Inject(self._scene, pos, self.HeatPerSecond)
+    Heat.Inject(self._scene, pos, self.HeatPerSecond * dt)
 
     -- While stuck to a surface, apply continuous fire damage
     if self._stuck then
@@ -113,25 +129,27 @@ function FlameBubble:_OnHit(other, point, normal)
     end
 
     -- Apply initial fire damage burst at impact
-    if other and other:IsValid() and point then
+    if other and other:IsValid() then
+        local hitPos = point or self._entity:GetWorldPosition()
         local entityID = other:GetUUID()
         if entityID then
             if self.SpreadOnHit > 0 then
-                VoxelDamage.ApplySphere(self._scene, point, self.SpreadOnHit, {
+                VoxelDamage.ApplySphere(self._scene, hitPos, self.SpreadOnHit, {
                     type   = DamageType.Fire,
                     amount = self.FireDamage,
                 })
             else
-                VoxelDamage.ApplyAtWorldPos(self._scene, entityID, point, {
+                local hitNormal = normal or (self._entity:GetForward() * -1.0)
+                VoxelDamage.ApplyAtWorldPos(self._scene, entityID, hitPos, {
                     type      = DamageType.Fire,
                     amount    = self.FireDamage,
-                    origin    = point,
-                    direction = normal * -1.0,
+                    origin    = hitPos,
+                    direction = hitNormal,
                 })
             end
         end
 
         -- Heat burst at impact
-        Heat.Inject(self._scene, point, self.HeatPerSecond)
+        Heat.Inject(self._scene, hitPos, self.HeatPerSecond)
     end
 end

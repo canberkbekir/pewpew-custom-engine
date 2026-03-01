@@ -4,6 +4,7 @@
 #include "CBEngine/Core/UUID.h"
 #include "CBEngine/Renderer/Resources/Mesh.h"
 #include "CBEngine/Renderer/Resources/Texture.h"
+#include "CBEngine/Voxel/Substance/SubstanceID.h"
 
 namespace YAML
 {
@@ -31,6 +32,9 @@ namespace CB
 
 		// Voxel Texture (.vtex) - per-voxel material type data + PBR overrides
 		Ref<VoxelTextureAsset> VoxelTexture;
+
+		// Dominant substance from vtex palette (used as fallback by destruction/spread systems)
+		SubstanceID DominantSubstanceID;
 
 		bool Visible = true;
 

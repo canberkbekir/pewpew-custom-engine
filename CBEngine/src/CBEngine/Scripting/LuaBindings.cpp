@@ -1474,6 +1474,18 @@ end
 			                                mp.OwnerEntity.GetComponent<MeshRendererComponent>().MaterialAsset->
 			                                   SetSmoothShading(v);
 		                                },
+		                                "GetOpacity", [](MaterialProxy& mp) -> float
+		                                {
+			                                if (!mp.IsValid()) return 1.0f;
+			                                return mp.OwnerEntity.GetComponent<MeshRendererComponent>().MaterialAsset->
+			                                          GetOpacity();
+		                                },
+		                                "SetOpacity", [](MaterialProxy& mp,float v)
+		                                {
+			                                if (!mp.IsValid()) return;
+			                                mp.OwnerEntity.GetComponent<MeshRendererComponent>().MaterialAsset->
+			                                   SetOpacity(v);
+		                                },
 		                                "IsValid", [](MaterialProxy& mp) -> bool { return mp.IsValid(); }
 		);
 
@@ -1494,6 +1506,10 @@ end
 			                                    if (!mp.IsValid()) return sol::make_object(L, sol::nil);
 			                                    auto& comp = mp.OwnerEntity.GetComponent<MeshRendererComponent>();
 			                                    if (!comp.MaterialAsset) return sol::make_object(L, sol::nil);
+			                                    // Always clone so scripts never mutate the shared asset
+			                                    auto clone = CreateRef<Material>();
+			                                    *clone = *comp.MaterialAsset;
+			                                    comp.MaterialAsset = clone;
 			                                    return sol::make_object(L, MaterialProxy{mp.OwnerEntity});
 		                                    },
 		                                    "GetMesh", [](MeshRendererProxy& mp,sol::this_state L) -> sol::object

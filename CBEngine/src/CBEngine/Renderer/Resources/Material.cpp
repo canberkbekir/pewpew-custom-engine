@@ -68,6 +68,7 @@ namespace CB
 			else if (key == "metallic") { m_Metallic = std::stof(value); }
 			else if (key == "roughness") { m_Roughness = std::stof(value); }
 			else if (key == "smoothShading") { m_SmoothShading = std::stof(value); }
+			else if (key == "opacity") { m_Opacity = std::stof(value); }
 			else if (key == "albedoMap") {
 				if (!value.empty()) {
 					m_AlbedoMapPath = value;
@@ -127,6 +128,7 @@ namespace CB
 		file << "metallic=" << m_Metallic << "\n";
 		file << "roughness=" << m_Roughness << "\n";
 		file << "smoothShading=" << m_SmoothShading << "\n";
+		file << "opacity=" << m_Opacity << "\n";
 
 		if (!m_AlbedoMapPath.empty())
 			file << "albedoMap=" << m_AlbedoMapPath << "\n";
@@ -210,5 +212,6 @@ namespace CB
 		shader->SetFloat(Metallic, m_Metallic);
 		shader->SetFloat(Roughness, m_Roughness);
 		shader->SetFloat(SmoothAmount, m_SmoothShading);
+		shader->SetFloat(Opacity, m_Opacity);
 	}
 }

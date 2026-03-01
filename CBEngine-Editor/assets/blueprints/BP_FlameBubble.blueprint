@@ -1,6 +1,6 @@
 Blueprint: Sphere
 Entities:
-  - Entity: 8609551126063589718
+  - Entity: 3691773699081137903
     TagComponent:
       Tag: Sphere
     TransformComponent:
@@ -10,7 +10,7 @@ Entities:
       Parent: 0
     MeshRendererComponent:
       MeshUUID: 2
-      MaterialUUID: 14908408603900613226
+      MaterialUUID: 14976024544950598018
       ShaderUUID: 0
       Visible: true
     RigidBodyComponent:
@@ -34,7 +34,7 @@ Entities:
       CapsuleRadius: 0.5
       CapsuleHalfHeight: 0.5
       Offset: [0, 0, 0]
-      IsTrigger: false
+      IsTrigger: true
     ScriptComponent:
       Scripts:
         - ScriptPath: scripts\FlameBubble.lua
@@ -42,7 +42,7 @@ Entities:
           Fields:
             - Name: Lifetime
               Type: float
-              Value: 3
+              Value: 0.4
             - Name: HeatPerSecond
               Type: float
               Value: 2000

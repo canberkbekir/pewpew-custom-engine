@@ -13,7 +13,6 @@
 Interactable = {
     __fields = {
         Prompt          = String("Press [E] to interact"),
-        Range           = Float(3.0, 0.1, 50.0),
         OneTime         = Bool(false),
         Enabled         = Bool(true),
     }

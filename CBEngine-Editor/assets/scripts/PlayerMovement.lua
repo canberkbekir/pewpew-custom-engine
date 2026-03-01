@@ -43,14 +43,16 @@ PlayerMovement = {
         RaycastRange     = Float(100.0, 1.0, 500.0),
         RaycastDamageRadius = Float(0.3, 0.0, 5.0), -- 0 = single voxel, >0 = crater
 
-        -- Flamethrower (beam mode)
-        FlameBlueprint     = BlueprintRef(),   -- drag BP_FlameBeam.blueprint here
-        FlameBeamLength    = Float(20.0, 1.0, 200.0),   -- max beam range
-        FlameBeamWidth     = Float(0.15, 0.01, 2.0),    -- visual beam thickness
-        FlameHeatPerSecond = Float(800.0, 0.0, 5000.0), -- heat injected along beam per second
-        FlameDamagePerSec  = Float(15.0, 0.0, 200.0),   -- fire damage per second at hit point
-        FlameDamageRadius  = Float(0.3, 0.0, 3.0),      -- damage area at hit point (0 = single voxel)
-        FlameHeatPoints    = Int(5, 1, 20),              -- heat injection points along beam
+        -- Flamethrower (bubble spray + raycast damage)
+        FlameBlueprint      = BlueprintRef(),   -- drag BP_FlameBubble.blueprint here
+        FlameSpawnRate      = Float(30.0, 1.0, 120.0),   -- bubbles per second
+        FlameConeAngle      = Float(12.0, 0.0, 45.0),    -- spray cone half-angle in degrees
+        FlameBubbleScaleMin = Float(0.3, 0.05, 2.0),     -- min initial bubble scale
+        FlameBubbleScaleMax = Float(0.7, 0.05, 3.0),     -- max initial bubble scale
+        FlameRange          = Float(20.0, 1.0, 200.0),   -- raycast range
+        FlameHeatPerSecond  = Float(800.0, 0.0, 5000.0), -- heat injected per second
+        FlameDamagePerSec   = Float(15.0, 0.0, 200.0),   -- fire damage per second at hit
+        FlameDamageRadius   = Float(0.3, 0.0, 3.0),      -- damage area at hit (0 = single voxel)
 
         -- Drag the Camera entity here (used for aim direction + muzzle position).
         Camera           = EntityRef(),
@@ -58,8 +60,6 @@ PlayerMovement = {
 }
 
 -- ── Helpers ───────────────────────────────────────────────────────────────────
-
-local function FlattenXZ(v) return Vector3(v.x, 0, v.z) end
 
 local function SafeNormalize(v)
     local len = v:Length()
@@ -112,9 +112,8 @@ function PlayerMovement:OnCreate()
     self._useFlamethrower   = false
     self._flameCooldown     = 0.0
 
-    -- Beam entity (lazy-spawned on first fire, reused)
-    self._beamEntity = nil
-    self._beamActive = false
+    -- Flamethrower spawn accumulator
+    self._flameSpawnAccum = 0.0
 
     self.rb = entity:GetComponent(RigidBody)
     if not self.rb then
@@ -288,9 +287,12 @@ function PlayerMovement:OnUpdate(dt)
     end
 
     -- ── Shoot / Flamethrower ─────────────────────────────────────────────────
+    -- Skip shooting while PhysicsGrab is holding (left-click = throw instead)
+    local grabHolding = PhysicsGrabState and PhysicsGrabState[self._entity:GetUUID()]
+
     self._fireCooldown  = Math.Max(0.0, self._fireCooldown - dt)
 
-    if Input.IsKeyPressed(Key.MouseLeft) then
+    if Input.IsKeyPressed(Key.MouseLeft) and not grabHolding then
         if self._useFlamethrower then
             -- Flamethrower beam: continuous while held
             self:UpdateFlameBeam(dt)
@@ -299,35 +301,31 @@ function PlayerMovement:OnUpdate(dt)
             self._fireCooldown = self.FireRate
         end
     else
-        -- Hide beam when not firing
-        if self._beamActive then
-            self._beamActive = false
-            if self._beamEntity and self._beamEntity:IsValid() then
-                self._beamEntity:SetVisible(false)
-            end
-        end
+        -- Reset spray accumulator when not firing
+        self._flameSpawnAccum = 0.0
+    end
+end
+
+-- ── Aim helper ───────────────────────────────────────────────────────────────
+
+function PlayerMovement:GetAimOriginAndDirection()
+    if self.BulletPoint and self.BulletPoint:IsValid() then
+        return self.BulletPoint:GetWorldPosition(), self.BulletPoint:GetForward()
+    elseif self.cam and self.cam:IsValid() then
+        return self.cam:GetWorldPosition(), self.cam:GetForward()
+    else
+        return self._entity:GetWorldPosition(), self._entity:GetForward()
     end
 end
 
 -- ── Shoot ─────────────────────────────────────────────────────────────────────
 
 function PlayerMovement:Shoot()
-    -- Determine origin and direction from BulletPoint, Camera, or player root
-    local spawnPos, fireDir
-    if self.BulletPoint and self.BulletPoint:IsValid() then
-        spawnPos = self.BulletPoint:GetWorldPosition()
-        fireDir  = self.BulletPoint:GetForward()
-    elseif self.cam and self.cam:IsValid() then
-        spawnPos = self.cam:GetWorldPosition()
-        fireDir  = self.cam:GetForward()
-    else
-        spawnPos = self._entity:GetWorldPosition()
-        fireDir  = self._entity:GetForward()
-    end
+    local spawnPos, fireDir = self:GetAimOriginAndDirection()
 
     if self.UseRaycast then
         -- Hitscan mode: instant raycast damage
-        local hit = Physic.Raycast(self._scene, spawnPos, fireDir, self.RaycastRange)
+        local hit = Physic.Raycast(self._scene, spawnPos, fireDir, self.RaycastRange, Layer.All, self._entity)
         if hit then
             local hitEntity = hit:GetEntity(self._scene)
 
@@ -380,83 +378,98 @@ function PlayerMovement:Shoot()
     end
 end
 
--- ── Flamethrower (Beam Mode) ──────────────────────────────────────────────────
+-- ── Flamethrower (Bubble Spray) ──────────────────────────────────────────────
 
 function PlayerMovement:UpdateFlameBeam(dt)
-    -- Determine origin and direction
-    local spawnPos, fireDir
-    if self.BulletPoint and self.BulletPoint:IsValid() then
-        spawnPos = self.BulletPoint:GetWorldPosition()
-        fireDir  = self.BulletPoint:GetForward()
-    elseif self.cam and self.cam:IsValid() then
-        spawnPos = self.cam:GetWorldPosition()
-        fireDir  = self.cam:GetForward()
-    else
-        spawnPos = self._entity:GetWorldPosition()
-        fireDir  = self._entity:GetForward()
-    end
+    local spawnPos, fireDir = self:GetAimOriginAndDirection()
 
-    -- Raycast to find hit point (or use max beam length)
-    local beamLength = self.FlameBeamLength
-    local hitPoint   = nil
-    local hitEntity  = nil
-
-    local hit = Physic.Raycast(self._scene, spawnPos, fireDir, beamLength, Layer.All, self._entity)
+    -- ── Raycast damage (same as old beam) ───────────────────────────────────
+    local hit = Physic.Raycast(self._scene, spawnPos, fireDir, self.FlameRange, Layer.All, self._entity)
     if hit and hit.point then
-        local diff = hit.point - spawnPos
-        beamLength = diff:Length()
-        hitPoint   = hit.point
-        hitEntity  = hit:GetEntity(self._scene)
-    end
+        local hitEntity = hit:GetEntity(self._scene)
 
-    -- Lazy-spawn beam entity on first use
-    if not self._beamEntity or not self._beamEntity:IsValid() then
-        if self.FlameBlueprint and self.FlameBlueprint:IsValid() then
-            local entities = self._scene:Instantiate(self.FlameBlueprint)
-            if entities and #entities > 0 then
-                self._beamEntity = entities[1]
-            end
-        end
-        if not self._beamEntity then
-            Log.Warn("PlayerMovement: no FlameBlueprint assigned (drag BP_FlameBeam)")
-            return
-        end
-    end
+        -- Heat at hit point
+        Heat.Inject(self._scene, hit.point, self.FlameHeatPerSecond * dt)
 
-    -- Position beam: centered between spawn and end, oriented along fireDir
-    local beamEnd    = spawnPos + fireDir * beamLength
-    local beamCenter = spawnPos + fireDir * (beamLength * 0.5)
-    self._beamEntity:SetPosition(beamCenter)
-    self._beamEntity:LookAt(beamEnd)
-    self._beamEntity:SetScale(Vector3(self.FlameBeamWidth, self.FlameBeamWidth, beamLength))
-    self._beamEntity:SetVisible(true)
-    self._beamActive = true
-
-    -- Inject heat at multiple points along the beam
-    local heatPerPoint = self.FlameHeatPerSecond / Math.Max(self.FlameHeatPoints, 1)
-    for i = 0, self.FlameHeatPoints - 1 do
-        local t = (i + 0.5) / self.FlameHeatPoints
-        local p = spawnPos + fireDir * (beamLength * t)
-        Heat.Inject(self._scene, p, heatPerPoint)
-    end
-
-    -- Apply fire damage at hit point
-    if hitPoint then
+        -- Fire damage at hit point
         if self.FlameDamageRadius > 0 then
-            VoxelDamage.ApplySphere(self._scene, hitPoint, self.FlameDamageRadius, {
+            VoxelDamage.ApplySphere(self._scene, hit.point, self.FlameDamageRadius, {
                 type   = DamageType.Fire,
                 amount = self.FlameDamagePerSec * dt,
             })
         elseif hitEntity and hitEntity:IsValid() then
             local entityID = hitEntity:GetUUID()
             if entityID then
-                VoxelDamage.ApplyAtWorldPos(self._scene, entityID, hitPoint, {
+                VoxelDamage.ApplyAtWorldPos(self._scene, entityID, hit.point, {
                     type      = DamageType.Fire,
                     amount    = self.FlameDamagePerSec * dt,
-                    origin    = hitPoint,
+                    origin    = hit.point,
                     direction = fireDir,
                 })
             end
+        end
+    end
+
+    -- ── Spawn visual bubbles ────────────────────────────────────────────────
+    if self.FlameBlueprint and self.FlameBlueprint:IsValid() then
+        self._flameSpawnAccum = self._flameSpawnAccum + dt
+        local spawnInterval = 1.0 / Math.Max(self.FlameSpawnRate, 1.0)
+
+        while self._flameSpawnAccum >= spawnInterval do
+            self._flameSpawnAccum = self._flameSpawnAccum - spawnInterval
+            self:_SpawnFlameBubble(spawnPos, fireDir)
+        end
+    end
+end
+
+-- Flame color palette: bright yellow → orange → red
+local FlameColors = {
+    Vector3(1.0, 0.95, 0.4),   -- bright yellow
+    Vector3(1.0, 0.75, 0.2),   -- golden orange
+    Vector3(1.0, 0.5,  0.1),   -- orange
+    Vector3(0.95, 0.35, 0.05), -- deep orange
+    Vector3(0.85, 0.2,  0.05), -- red-orange
+}
+
+function PlayerMovement:_SpawnFlameBubble(origin, baseDir)
+    local entities = self._scene:Instantiate(self.FlameBlueprint)
+    if not entities or #entities == 0 then return end
+
+    local bubble = entities[1]
+
+    -- Random direction within cone
+    local coneRad = Math.Rad(self.FlameConeAngle)
+    local randAngle = math.random() * 2.0 * math.pi
+    local randRadius = math.random() * coneRad
+
+    -- Build perpendicular axes to baseDir
+    local up = Vector3(0, 1, 0)
+    if math.abs(baseDir.y) > 0.99 then up = Vector3(1, 0, 0) end
+    local right = SafeNormalize(up:Cross(baseDir))
+    local realUp = baseDir:Cross(right)
+
+    -- Offset direction within cone
+    local offX = Math.Sin(randRadius) * Math.Cos(randAngle)
+    local offY = Math.Sin(randRadius) * Math.Sin(randAngle)
+    local dir = SafeNormalize(baseDir * Math.Cos(randRadius) + right * offX + realUp * offY)
+
+    -- Position and orient — FlameBubble:OnCreate reads GetForward() to launch itself
+    bubble:SetPosition(origin)
+    bubble:LookAt(origin + dir * 10.0)
+
+    -- Random scale
+    local s = self.FlameBubbleScaleMin + math.random() * (self.FlameBubbleScaleMax - self.FlameBubbleScaleMin)
+    bubble:SetScale(Vector3(s, s, s))
+
+    -- Random flame color (clone material so we don't mutate the shared asset)
+    local mr = bubble:GetComponent(MeshRenderer)
+    if mr then
+        local mat = mr:GetMaterial()
+        if mat then
+            local color = FlameColors[math.random(1, #FlameColors)]
+            mat:SetAlbedo(color)
+            mat:SetRoughness(1.0)
+            mat:SetMetallic(0.0)
         end
     end
 end

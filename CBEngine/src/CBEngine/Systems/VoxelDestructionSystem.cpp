@@ -41,15 +41,21 @@ namespace CB
 	// =========================================================================
 	void VoxelDestructionSystem::LoadSubstances(const std::string& path) { SubstanceRegistry::Load(path); }
 
-	// Helper: resolve substance from DestructibleVoxelComponent override string
-	static const VoxelSubstanceProperties& ResolveSubstance(const DestructibleVoxelComponent& dv)
+	// Helper: resolve substance — checks override, then vtex dominant substance, then default
+	static SubstanceID ResolveSubstanceID(const DestructibleVoxelComponent& dv,
+	                                       const VoxelRendererComponent* vr = nullptr)
 	{
-		return SubstanceRegistry::Get(dv.SubstanceOverride.empty() ? kDefaultSubstanceID : dv.SubstanceOverride);
+		if (!dv.SubstanceOverride.empty())
+			return dv.SubstanceOverride;
+		if (vr && !vr->DominantSubstanceID.empty())
+			return vr->DominantSubstanceID;
+		return SubstanceID(kDefaultSubstanceID);
 	}
 
-	static SubstanceID ResolveSubstanceID(const DestructibleVoxelComponent& dv)
+	static const VoxelSubstanceProperties& ResolveSubstance(const DestructibleVoxelComponent& dv,
+	                                                          const VoxelRendererComponent* vr = nullptr)
 	{
-		return dv.SubstanceOverride.empty() ? SubstanceID(kDefaultSubstanceID) : dv.SubstanceOverride;
+		return SubstanceRegistry::Get(ResolveSubstanceID(dv, vr));
 	}
 
 	// Helper: get or rebuild the cached filled index map for an entity state
@@ -241,7 +247,9 @@ namespace CB
 				continue;
 
 			// Resolve substance for this entity
-			const VoxelSubstanceProperties& sub = ResolveSubstance(dvComp);
+			const VoxelRendererComponent* vr = entity.HasComponent<VoxelRendererComponent>()
+				? &entity.GetComponent<VoxelRendererComponent>() : nullptr;
+			const VoxelSubstanceProperties& sub = ResolveSubstance(dvComp, vr);
 
 			// Impact threshold check
 			if (event.Type == VoxelDamageType::Impact && event.RawAmount < sub.ImpactThreshold)
@@ -579,11 +587,16 @@ namespace CB
 		auto paletteColorTex = vr.PaletteColorTexture;
 		auto paletteMaterialTex = vr.PaletteMaterialTexture;
 		bool hasPalette = vr.HasPalette;
+		SubstanceID origDominantSubstance = vr.DominantSubstanceID;
 
 		// Fix 4: Save DestructibleVoxelComponent before destroying original
 		DestructibleVoxelComponent origDV;
-		if (entity.HasComponent<DestructibleVoxelComponent>())
+		if (entity.HasComponent<DestructibleVoxelComponent>()) {
 			origDV = entity.GetComponent<DestructibleVoxelComponent>();
+			// If no explicit override, inherit the dominant substance from vtex
+			if (origDV.SubstanceOverride.empty() && !origDominantSubstance.empty())
+				origDV.SubstanceOverride = origDominantSubstance;
+		}
 
 		// Save tint, burn, damage, and heat data before erasing state
 		VoxelTintMap savedTintMap = std::move(state.TintMap);
@@ -1000,8 +1013,11 @@ namespace CB
 		rb.Type = BodyType::Dynamic;
 		{
 			float massPerVoxel = SubstanceRegistry::Get(kDefaultSubstanceID).MassPerVoxel;
-			if (sourceEntity.HasComponent<DestructibleVoxelComponent>())
-				massPerVoxel = ResolveSubstance(sourceEntity.GetComponent<DestructibleVoxelComponent>()).MassPerVoxel;
+			if (sourceEntity.HasComponent<DestructibleVoxelComponent>()) {
+				const VoxelRendererComponent* srcVR = sourceEntity.HasComponent<VoxelRendererComponent>()
+					? &sourceEntity.GetComponent<VoxelRendererComponent>() : nullptr;
+				massPerVoxel = ResolveSubstance(sourceEntity.GetComponent<DestructibleVoxelComponent>(), srcVR).MassPerVoxel;
+			}
 			rb.Mass = static_cast<float>(cluster.VoxelCount) * massPerVoxel;
 		}
 		rb.UseGravity = true;
@@ -1162,14 +1178,18 @@ namespace CB
 			auto& transform = entity.GetComponent<TransformComponent>();
 			glm::mat4 worldMatrix = transform.GetTransform();
 
-			// Fix 14: Entity AABB early rejection
+			// Fix 14: Entity AABB early rejection (world-space)
 			{
 				glm::vec3 gridLocalMin = grid->origin;
 				glm::vec3 gridLocalMax = grid->origin + glm::vec3(grid->size) * grid->voxelSize;
 				glm::vec3 localCenter = (gridLocalMin + gridLocalMax) * 0.5f;
 				glm::vec3 localHalf = (gridLocalMax - gridLocalMin) * 0.5f;
 				auto worldCenter = glm::vec3(worldMatrix * glm::vec4(localCenter, 1.0f));
-				float maxHalf = glm::max(glm::max(localHalf.x, localHalf.y), localHalf.z);
+				// Scale local half-extents to world space for correct distance comparison
+				float avgScale = (glm::length(glm::vec3(worldMatrix[0])) +
+					glm::length(glm::vec3(worldMatrix[1])) +
+					glm::length(glm::vec3(worldMatrix[2]))) / 3.0f;
+				float maxHalf = glm::max(glm::max(localHalf.x, localHalf.y), localHalf.z) * avgScale;
 				float entityDist = glm::distance(origin, worldCenter);
 				if (entityDist > radius + maxHalf * 1.732f) // sqrt(3) conservative bound
 					continue;
@@ -1201,7 +1221,9 @@ namespace CB
 			int yMax = glm::min(h - 1, centerVoxel.y + r);
 			int zMax = glm::min(d - 1, centerVoxel.z + r);
 
-			std::string substanceName = ResolveSubstanceID(dvComp);
+			const VoxelRendererComponent* vrPtr = entity.HasComponent<VoxelRendererComponent>()
+				? &entity.GetComponent<VoxelRendererComponent>() : nullptr;
+			std::string substanceName = ResolveSubstanceID(dvComp, vrPtr);
 
 			for (int x = xMin; x <= xMax; ++x)
 				for (int y = yMin; y <= yMax; ++y)
@@ -1270,14 +1292,18 @@ namespace CB
 			auto& transform = entity.GetComponent<TransformComponent>();
 			glm::mat4 worldMatrix = transform.GetTransform();
 
-			// Fix 14: Entity AABB early rejection
+			// Fix 14: Entity AABB early rejection (world-space)
 			{
 				glm::vec3 gridLocalMin = grid->origin;
 				glm::vec3 gridLocalMax = grid->origin + glm::vec3(grid->size) * grid->voxelSize;
 				glm::vec3 localCenter = (gridLocalMin + gridLocalMax) * 0.5f;
 				glm::vec3 localHalf = (gridLocalMax - gridLocalMin) * 0.5f;
 				auto worldCenter = glm::vec3(worldMatrix * glm::vec4(localCenter, 1.0f));
-				float maxHalf = glm::max(glm::max(localHalf.x, localHalf.y), localHalf.z);
+				// Scale local half-extents to world space for correct distance comparison
+				float avgScale = (glm::length(glm::vec3(worldMatrix[0])) +
+					glm::length(glm::vec3(worldMatrix[1])) +
+					glm::length(glm::vec3(worldMatrix[2]))) / 3.0f;
+				float maxHalf = glm::max(glm::max(localHalf.x, localHalf.y), localHalf.z) * avgScale;
 				float maxQueryHalf = glm::max(glm::max(halfExtents.x, halfExtents.y), halfExtents.z);
 				float entityDist = glm::distance(center, worldCenter);
 				if (entityDist > maxQueryHalf + maxHalf * 1.732f)
@@ -1306,7 +1332,9 @@ namespace CB
 			int yMax = glm::min(h - 1, gridMax.y + 1);
 			int zMax = glm::min(d - 1, gridMax.z + 1);
 
-			std::string substanceName = ResolveSubstanceID(dvComp);
+			const VoxelRendererComponent* vrPtr = entity.HasComponent<VoxelRendererComponent>()
+				? &entity.GetComponent<VoxelRendererComponent>() : nullptr;
+			std::string substanceName = ResolveSubstanceID(dvComp, vrPtr);
 
 			for (int x = xMin; x <= xMax; ++x)
 				for (int y = yMin; y <= yMax; ++y)
@@ -1380,9 +1408,8 @@ namespace CB
 		if (!entity.HasComponent<DestructibleVoxelComponent>()) return "Stone";
 
 		auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
-		if (!dvComp.SubstanceOverride.empty())
-			return dvComp.SubstanceOverride;
-
-		return VoxelMaterialTypeToString(VoxelMaterialType::Stone);
+		const VoxelRendererComponent* vr = entity.HasComponent<VoxelRendererComponent>()
+			? &entity.GetComponent<VoxelRendererComponent>() : nullptr;
+		return ResolveSubstanceID(dvComp, vr);
 	}
 }

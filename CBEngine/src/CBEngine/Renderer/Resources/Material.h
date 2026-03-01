@@ -61,6 +61,7 @@ namespace CB
 		void SetMetallic(float value) { m_Metallic = value; }
 		void SetRoughness(float value) { m_Roughness = value; }
 		void SetSmoothShading(float value) { m_SmoothShading = value; }
+		void SetOpacity(float value) { m_Opacity = value; }
 
 		// Getters
 		const Ref<Texture2D>& GetAlbedoMap() const { return m_AlbedoMap; }
@@ -72,6 +73,7 @@ namespace CB
 		float GetMetallic() const { return m_Metallic; }
 		float GetRoughness() const { return m_Roughness; }
 		float GetSmoothShading() const { return m_SmoothShading; }
+		float GetOpacity() const { return m_Opacity; }
 
 		bool HasAlbedoMap() const { return m_AlbedoMap != nullptr; }
 		bool HasNormalMap() const { return m_NormalMap != nullptr; }
@@ -100,6 +102,7 @@ namespace CB
 		float m_Metallic = 0.0f;
 		float m_Roughness = 0.5f;
 		float m_SmoothShading = 1.0f;
+		float m_Opacity = 1.0f;
 
 		// For reload
 		String m_FilePath;

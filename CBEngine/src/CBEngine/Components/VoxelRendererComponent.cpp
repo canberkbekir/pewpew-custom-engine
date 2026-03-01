@@ -35,37 +35,48 @@ namespace CB
 		if (VoxelMeshUUID.IsValid()) {
 			auto vmAsset = AssetManager::GetAsset<VoxelMeshAsset>(VoxelMeshUUID);
 			if (vmAsset && vmAsset->VoxelCount > 0) {
-				if (vmAsset->HasPalette && !vmAsset->PaletteIndices.empty()) {
-					// Start with vmesh palette as base
-					VoxelPalette palette = vmAsset->Palette;
-
-					// Apply VTex PBR overrides if available
-					if (VoxelTexture) {
-						bool hasAnyOverride = VoxelTexture->HasMetallicOverrides
-						|| VoxelTexture->HasRoughnessOverrides
-						|| VoxelTexture->HasEmissionOverrides
-						|| VoxelTexture->HasAlbedoOverrides;
-
-						if (hasAnyOverride)
-							palette = VoxelTexture->ApplyOverrides(palette);
-					}
-
-					MeshAsset = VoxelizerAPI::CreatePaletteMeshFromGrid(vmAsset->GridData, vmAsset->PaletteIndices);
-
-					std::vector<uint8_t> colorData, materialData;
-					palette.GenerateColorTextureData(colorData);
-					palette.GenerateMaterialTextureData(materialData);
-
-					PaletteColorTexture = Texture2D::CreateFromData(256, 1, colorData.data(), true);
-					PaletteMaterialTexture = Texture2D::CreateFromData(256, 1, materialData.data(), true);
-					HasPalette = true;
+				// If vmesh has no palette, generate a default one so vtex overrides work
+				if (!vmAsset->HasPalette || vmAsset->PaletteIndices.empty()) {
+					VoxelPaletteEntry defaultEntry;
+					defaultEntry.Color = Vector3(0.7f, 0.7f, 0.7f);
+					defaultEntry.Metallic = 0.0f;
+					defaultEntry.Roughness = 0.5f;
+					defaultEntry.Emission = 0.0f;
+					vmAsset->Palette.SetEntry(0, defaultEntry);
+					vmAsset->PaletteIndices.resize(vmAsset->VoxelCount, 0);
+					vmAsset->HasPalette = true;
 				}
-				else {
-					// No palette data - create white mesh
-					MeshAsset = VoxelizerAPI::CreateMeshFromGrid(vmAsset->GridData);
-					HasPalette = false;
+
+				// Start with vmesh palette as base
+				VoxelPalette palette = vmAsset->Palette;
+
+				// Apply VTex PBR overrides if available
+				if (VoxelTexture) {
+					bool hasAnyOverride = VoxelTexture->HasMetallicOverrides
+					|| VoxelTexture->HasRoughnessOverrides
+					|| VoxelTexture->HasEmissionOverrides
+					|| VoxelTexture->HasAlbedoOverrides;
+
+					if (hasAnyOverride)
+						palette = VoxelTexture->ApplyOverrides(palette);
 				}
+
+				MeshAsset = VoxelizerAPI::CreatePaletteMeshFromGrid(vmAsset->GridData, vmAsset->PaletteIndices);
+
+				std::vector<uint8_t> colorData, materialData;
+				palette.GenerateColorTextureData(colorData);
+				palette.GenerateMaterialTextureData(materialData);
+
+				PaletteColorTexture = Texture2D::CreateFromData(256, 1, colorData.data(), true);
+				PaletteMaterialTexture = Texture2D::CreateFromData(256, 1, materialData.data(), true);
+				HasPalette = true;
 			}
+		}
+
+		// Resolve dominant substance from vtex palette mapping
+		if (VoxelTexture && !VoxelTexture->PaletteMapping.empty()) {
+			// Use the first palette entry's substance (covers "Set All" and single-substance cases)
+			DominantSubstanceID = VoxelTexture->PaletteMapping.begin()->second;
 		}
 	}
 }

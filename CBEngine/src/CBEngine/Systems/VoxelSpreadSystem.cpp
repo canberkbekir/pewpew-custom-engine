@@ -22,6 +22,19 @@
 
 namespace CB
 {
+	// Helper: resolve substance from DVC override, then VRC vtex dominant substance, then default
+	static SubstanceID ResolveEntitySubstanceID(const DestructibleVoxelComponent& dv, Entity entity)
+	{
+		if (!dv.SubstanceOverride.empty())
+			return dv.SubstanceOverride;
+		if (entity && entity.HasComponent<VoxelRendererComponent>()) {
+			const auto& vr = entity.GetComponent<VoxelRendererComponent>();
+			if (!vr.DominantSubstanceID.empty())
+				return vr.DominantSubstanceID;
+		}
+		return SubstanceID(kDefaultSubstanceID);
+	}
+
 	// Static storage
 	std::future<std::vector<SpreadResult>> VoxelSpreadSystem::s_WorkerFuture;
 	bool VoxelSpreadSystem::s_WorkerRunning = false;
@@ -112,8 +125,7 @@ namespace CB
 			if (!entity || !entity.HasComponent<DestructibleVoxelComponent>()) continue;
 
 			auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
-			const SubstanceID& subID = dvComp.SubstanceOverride.empty()
-				? std::string(kDefaultSubstanceID) : dvComp.SubstanceOverride;
+			const SubstanceID subID = ResolveEntitySubstanceID(dvComp, entity);
 			const auto& sub = SubstanceRegistry::Get(subID);
 
 			if (sub.InternalConductionRate <= 0.0f) continue;
@@ -331,8 +343,7 @@ namespace CB
 			VoxelSubstanceProperties sub{};
 			if (entity && entity.HasComponent<DestructibleVoxelComponent>()) {
 				auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
-				const SubstanceID& subID = dvComp.SubstanceOverride.empty()
-					? std::string(kDefaultSubstanceID) : dvComp.SubstanceOverride;
+				const SubstanceID subID = ResolveEntitySubstanceID(dvComp, entity);
 				sub = SubstanceRegistry::Get(subID);
 			}
 
@@ -427,8 +438,7 @@ namespace CB
 				continue;
 
 			auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
-			const SubstanceID& subID = dvComp.SubstanceOverride.empty()
-				? std::string(kDefaultSubstanceID) : dvComp.SubstanceOverride;
+			const SubstanceID subID = ResolveEntitySubstanceID(dvComp, entity);
 
 			SpreadSnapshot snap;
 			snap.EntityUUID = uuid;
@@ -492,8 +502,7 @@ namespace CB
 			uint64_t uuid = static_cast<uint64_t>(entity.GetUUID());
 
 			auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
-			const SubstanceID& subID = dvComp.SubstanceOverride.empty()
-				? std::string(kDefaultSubstanceID) : dvComp.SubstanceOverride;
+			const SubstanceID subID = ResolveEntitySubstanceID(dvComp, entity);
 			const auto& sub = SubstanceRegistry::Get(subID);
 
 			CrossEntityInfo info;
@@ -707,8 +716,7 @@ namespace CB
 				if (!entity || !entity.HasComponent<DestructibleVoxelComponent>()) continue;
 
 				auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
-				const auto& sub = SubstanceRegistry::Get(
-					dvComp.SubstanceOverride.empty() ? kDefaultSubstanceID : dvComp.SubstanceOverride);
+				const auto& sub = SubstanceRegistry::Get(ResolveEntitySubstanceID(dvComp, entity));
 
 				IgniteVoxel(state, coord, sub);
 			}
@@ -739,8 +747,7 @@ namespace CB
 				if (!targetEntity.HasComponent<TransformComponent>()) continue;
 
 				auto& targetDV = targetEntity.GetComponent<DestructibleVoxelComponent>();
-				const auto& targetSub = SubstanceRegistry::Get(
-					targetDV.SubstanceOverride.empty() ? kDefaultSubstanceID : targetDV.SubstanceOverride);
+				const auto& targetSub = SubstanceRegistry::Get(ResolveEntitySubstanceID(targetDV, targetEntity));
 
 				auto targetIt = entityStates.find(ignition.TargetEntityUUID);
 				if (targetIt == entityStates.end() || !targetIt->second.GridInitialized) {
@@ -854,8 +861,7 @@ namespace CB
 			if (!entity.HasComponent<TransformComponent>()) continue;
 
 			auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
-			const SubstanceID& subID = dvComp.SubstanceOverride.empty()
-				? std::string(kDefaultSubstanceID) : dvComp.SubstanceOverride;
+			const SubstanceID subID = ResolveEntitySubstanceID(dvComp, entity);
 			const auto& sub = SubstanceRegistry::Get(subID);
 
 			glm::mat4 worldMat = entity.GetComponent<TransformComponent>().GetTransform();
@@ -930,8 +936,7 @@ namespace CB
 			if (!entity.HasComponent<TransformComponent>()) continue;
 
 			auto& dvComp = entity.GetComponent<DestructibleVoxelComponent>();
-			const SubstanceID& subID = dvComp.SubstanceOverride.empty()
-				? std::string(kDefaultSubstanceID) : dvComp.SubstanceOverride;
+			const SubstanceID subID = ResolveEntitySubstanceID(dvComp, entity);
 			const auto& sub = SubstanceRegistry::Get(subID);
 
 			if (!sub.Flammable || sub.BurnDuration <= 0.0f) continue;

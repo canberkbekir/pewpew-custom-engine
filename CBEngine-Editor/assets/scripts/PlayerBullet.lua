@@ -20,7 +20,6 @@ PlayerBullet = {
         SpawnSafeTime = Float(0.05,  0.0, 0.5),   -- ignore collisions for this long after spawn
     }
 }
-PlayerBullet.__index = PlayerBullet
 
 -- ── Lifecycle ──────────────────────────────────────────────────────────────────
 

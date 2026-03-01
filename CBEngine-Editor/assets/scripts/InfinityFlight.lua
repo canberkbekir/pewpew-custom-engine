@@ -17,7 +17,6 @@ InfinityFlight = {
         MaxBank  = Float(40.0, 0.0, 89.0),    -- max roll angle in degrees
     }
 }
-InfinityFlight.__index = InfinityFlight
 
 function InfinityFlight:OnCreate()
     self._t               = 0.0

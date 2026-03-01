@@ -136,6 +136,27 @@ namespace CB
 		m_ColorGroups.clear();
 
 		if (m_Vmesh && m_Vmesh->VoxelCount > 0) {
+			// If the vmesh has no palette, generate a default one so the user can paint
+			if (!m_Vmesh->HasPalette) {
+				VoxelPaletteEntry defaultEntry;
+				defaultEntry.Color = Vector3(0.7f, 0.7f, 0.7f); // Light grey
+				defaultEntry.Metallic = 0.0f;
+				defaultEntry.Roughness = 0.5f;
+				defaultEntry.Emission = 0.0f;
+				m_Vmesh->Palette.SetEntry(0, defaultEntry);
+				m_Vmesh->HasPalette = true;
+
+				// Assign all filled voxels to palette index 0
+				m_Vmesh->PaletteIndices.resize(m_Vmesh->VoxelCount, 0);
+
+				// Ensure the vtex has a mapping for this default entry
+				if (m_Vtex->PaletteMapping.empty())
+					m_Vtex->SetPaletteSubstance(0, "Stone");
+
+				CB_CORE_INFO("VoxelTextureEditorPanel: Generated default palette for non-palette vmesh ({0} voxels)",
+				             m_Vmesh->VoxelCount);
+			}
+
 			// Apply saved custom brushes to the vmesh palette
 			if (m_Vmesh->HasPalette && !m_Vtex->CustomBrushes.empty()) {
 				for (const auto& brush : m_Vtex->CustomBrushes) {
@@ -234,7 +255,7 @@ namespace CB
 		m_SliceLookup.clear();
 		m_SliceLookupDirty = false;
 
-		if (!m_Vmesh || !m_Vmesh->HasPalette)
+		if (!m_Vmesh)
 			return;
 
 		const auto& grid = m_Vmesh->GridData;
@@ -364,7 +385,7 @@ namespace CB
 					                                             static_cast<int>(col.z * 255), 255));
 
 					// Small palette color indicator in top-left corner when zoomed in
-					if (cellSize >= 12.0f) {
+					if (cellSize >= 12.0f && m_Vmesh->HasPalette) {
 						const auto& entry = m_Vmesh->Palette.GetEntry(palIdx);
 						float indicatorSize = glm::min(cellSize * 0.3f, 8.0f);
 						ImVec2 iMax(pMin.x + indicatorSize, pMin.y + indicatorSize);
@@ -787,7 +808,15 @@ namespace CB
 						// Just toggled on — reset 2D view state
 						m_GridPanOffset = {0.0f, 0.0f};
 						m_GridZoom = 1.0f;
-						m_SliceLookupDirty = true;
+
+						// Start at the middle Y layer (more likely to have voxels than the top)
+						int maxY = m_Vtex->GridSize.y - 1;
+						if (maxY > 0)
+							m_SliceY = maxY / 2;
+
+						// Build slice lookup immediately so the grid shows this frame
+						m_PrevSliceY = -1;
+						RebuildSliceLookup();
 					}
 					if (m_ShowSliceView) {
 						ImGui::SameLine();
@@ -916,9 +945,18 @@ namespace CB
 					uint32_t usedCount = m_Vmesh->Palette.GetUsedCount();
 					for (uint8_t i = 0; i < usedCount; i++)
 						m_Vtex->SetPaletteSubstance(i, newSub);
+
+					// Also set albedo overrides to the substance display color
+					// so the saved vtex renders with the substance appearance
+					Vector3 displayColor = SubstanceRegistry::GetDisplayColor(newSub);
+					m_Vtex->HasAlbedoOverrides = true;
+					m_Vtex->AlbedoOverrides.clear();
+					for (uint8_t i = 0; i < usedCount; i++)
+						m_Vtex->AlbedoOverrides[i] = displayColor;
 				}
 				m_MaterialMapDirty = true;
 				m_ColorGroupsDirty = true;
+				m_PaletteTextureDirty = true;
 				CB_CORE_INFO("Set all palette entries to substance: {0}", newSub);
 			}
 		}
@@ -1061,9 +1099,14 @@ namespace CB
 				if (!substanceNames.empty() && ImGui::Combo("##grptype", &currentIdx,
 					substanceNames.data(), static_cast<int>(substanceNames.size()))) {
 					group.MaterialSubstance = substanceIDs[currentIdx];
-					for (uint8_t idx : group.EntryIndices)
+					Vector3 dispCol = SubstanceRegistry::GetDisplayColor(group.MaterialSubstance);
+					for (uint8_t idx : group.EntryIndices) {
 						m_Vtex->SetPaletteSubstance(idx, group.MaterialSubstance);
+						m_Vtex->AlbedoOverrides[idx] = dispCol;
+					}
+					m_Vtex->HasAlbedoOverrides = true;
 					m_MaterialMapDirty = true;
+					m_PaletteTextureDirty = true;
 				}
 				ImGui::SameLine();
 
@@ -1160,7 +1203,10 @@ namespace CB
 				if (!substanceNames.empty() && ImGui::Combo("##type", &currentIdx,
 					substanceNames.data(), static_cast<int>(substanceNames.size()))) {
 					m_Vtex->SetPaletteSubstance(i, substanceIDs[currentIdx]);
+					m_Vtex->AlbedoOverrides[i] = SubstanceRegistry::GetDisplayColor(substanceIDs[currentIdx]);
+					m_Vtex->HasAlbedoOverrides = true;
 					m_MaterialMapDirty = true;
+					m_PaletteTextureDirty = true;
 				}
 
 				// Show substance color indicator

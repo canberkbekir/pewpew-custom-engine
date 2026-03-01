@@ -104,6 +104,7 @@ uniform vec3  u_AmbientColor;
 
 // Shading controls
 uniform float u_SmoothAmount;
+uniform float u_Opacity;
 
 layout(location = 0) out vec4 FragColor;
 layout(location = 1) out int o_EntityID;

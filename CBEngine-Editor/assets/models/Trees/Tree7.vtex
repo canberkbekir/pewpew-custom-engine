@@ -1,0 +1,10 @@
+# CBEngine Voxel Texture
+version: 4
+sourceVmesh: 6966435591442646162
+gridSize: [28, 32, 28]
+voxelCount: 5573
+paletteMapping:
+  0: Wood
+hasAlbedoOverrides: true
+albedoOverrides:
+  0: [0.55, 0.36, 0.18]

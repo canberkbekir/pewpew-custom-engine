@@ -6,6 +6,7 @@
 #include "CBEngine/Scene/SceneManager.h"
 #include "CBEngine/Components/HingeJointComponent.h"
 #include "CBEngine/Components/CoreComponents.h"
+#include "CBEngine/Components/RigidBodyComponent.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
 #include "../ComponentCard.h"
 
@@ -60,31 +61,9 @@ namespace CB
 				ImGui::TextUnformatted("Connected Body");
 				ImGui::Separator();
 
-				// Show current connected body name (or "World" if UUID(0))
+				// Entity picker combo
 				{
-					Ref<Scene> scene = SceneManager::GetActiveScene();
-					if (hj.ConnectedBodyUUID == UUID(0)) { ImGui::TextDisabled("World (fixed)"); }
-					else if (scene) {
-						Entity connected = scene->GetEntityByUUID(hj.ConnectedBodyUUID);
-						if (connected && connected.HasComponent<TagComponent>())
-							ImGui::Text("  %s", connected.GetComponent<TagComponent>().Tag.c_str());
-						else
-							ImGui::TextDisabled("  (entity not found)");
-					}
-				}
-
-				// UUID input field (drag entity from hierarchy via payload)
-				{
-					char buf[32];
-					std::snprintf(buf, sizeof(buf), "%llu",
-					              static_cast<unsigned long long>(static_cast<uint64_t>(hj.ConnectedBodyUUID)));
-
-					ImGui::SetNextItemWidth(-1.0f);
-					if (ImGui::InputText("##ConnectedUUID", buf, sizeof(buf),
-					                     ImGuiInputTextFlags_CharsDecimal)) {
-						try { hj.ConnectedBodyUUID = UUID(std::stoull(buf)); }
-						catch (...) { hj.ConnectedBodyUUID = UUID(0); }
-						hj.ConstraintCreated = false;
+					auto DestroyRuntimeConstraint = [&]() {
 						if (hj.RuntimeConstraint) {
 							Scene* s = entity.GetScene();
 							if (s && s->GetPhysicsWorld()) {
@@ -94,33 +73,69 @@ namespace CB
 								hj.RuntimeConstraint = nullptr;
 							}
 						}
+						hj.ConstraintCreated = false;
+					};
+
+					Ref<Scene> scene = SceneManager::GetActiveScene();
+
+					// Determine current label
+					std::string currentLabel = "World (fixed)";
+					if (hj.ConnectedBodyUUID != UUID(0) && scene) {
+						Entity connected = scene->GetEntityByUUID(hj.ConnectedBodyUUID);
+						if (connected && connected.HasComponent<TagComponent>())
+							currentLabel = connected.GetComponent<TagComponent>().Tag;
+						else
+							currentLabel = "(entity not found)";
 					}
-					if (ImGui::IsItemHovered())
-						ImGui::SetTooltip("UUID of connected body (0 = world)");
+
+					ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::GetFrameHeight() - 4.0f);
+					if (ImGui::BeginCombo("##ConnectedBody", currentLabel.c_str())) {
+						// Option: World (fixed)
+						bool isWorld = (hj.ConnectedBodyUUID == UUID(0));
+						if (ImGui::Selectable("World (fixed)", isWorld)) {
+							hj.ConnectedBodyUUID = UUID(0);
+							DestroyRuntimeConstraint();
+						}
+
+						ImGui::Separator();
+
+						// List all entities with RigidBody (excluding self)
+						if (scene) {
+							auto view = scene->GetRegistry().view<TagComponent>();
+							for (auto e : view) {
+								Entity candidate{ e, scene.get() };
+								if (candidate == entity) continue;
+								if (!candidate.HasComponent<RigidBodyComponent>()) continue;
+
+								const auto& tag = view.get<TagComponent>(e).Tag;
+								UUID candidateUUID = candidate.GetUUID();
+								bool selected = (hj.ConnectedBodyUUID == candidateUUID);
+
+								ImGui::PushID(static_cast<int>(static_cast<uint32_t>((uint64_t)candidateUUID)));
+								if (ImGui::Selectable(tag.c_str(), selected)) {
+									hj.ConnectedBodyUUID = candidateUUID;
+									DestroyRuntimeConstraint();
+								}
+								ImGui::PopID();
+							}
+						}
+						ImGui::EndCombo();
+					}
 
 					// Accept entity drag-drop from hierarchy
 					if (ImGui::BeginDragDropTarget()) {
-						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_UUID")) {
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("SCENE_ENTITY")) {
 							UUID droppedUUID = *static_cast<const UUID*>(payload->Data);
 							hj.ConnectedBodyUUID = droppedUUID;
-							hj.ConstraintCreated = false;
-							if (hj.RuntimeConstraint) {
-								Scene* s = entity.GetScene();
-								if (s && s->GetPhysicsWorld()) {
-									s->GetPhysicsWorld()->GetPhysicsSystem()
-									 .RemoveConstraint(hj.RuntimeConstraint);
-									hj.RuntimeConstraint->Release();
-									hj.RuntimeConstraint = nullptr;
-								}
-							}
+							DestroyRuntimeConstraint();
 						}
 						ImGui::EndDragDropTarget();
 					}
 
 					ImGui::SameLine();
-					if (ImGui::SmallButton("Clear##CB")) {
+					if (ImGui::SmallButton("X##CB")) {
 						hj.ConnectedBodyUUID = UUID(0);
-						hj.ConstraintCreated = false;
+						DestroyRuntimeConstraint();
 					}
 				}
 
