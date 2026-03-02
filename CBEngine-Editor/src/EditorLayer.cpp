@@ -75,6 +75,12 @@ namespace CB
 		// Pre-generate built-in primitive meshes and register them in the AssetManager.
 		// Must be done here (on the GL thread, after AssetManager is ready).
 		PrimitiveMesh::InitAll();
+
+		// Wire shader selector callback
+		m_ShaderSelectorPanel.OnShaderSelected = [this](UUID uuid) {
+			m_ViewportPanel.SetDefaultShader(uuid);
+			m_ShaderSelectorPanel.SetActiveShader(uuid);
+		};
 	}
 
 	void EditorLayer::OnDetach()
@@ -221,6 +227,7 @@ namespace CB
 		m_MeshImportPanel.OnImGuiRender();
 		m_VoxelTextureEditorPanel.OnImGuiRender();
 		m_SubstanceEditorPanel.OnImGuiRender();
+		m_ShaderSelectorPanel.OnImGuiRender();
 
 		EndDockspace();
 	}
@@ -326,6 +333,8 @@ namespace CB
 				ImGui::MenuItem("Mesh Import", nullptr, m_MeshImportPanel.GetVisiblePtr());
 				ImGui::MenuItem("Voxel Texture Editor", nullptr, m_VoxelTextureEditorPanel.GetVisiblePtr());
 				ImGui::MenuItem("Substance Editor", nullptr, m_SubstanceEditorPanel.GetVisiblePtr());
+				if (ImGui::MenuItem("Change Shader"))
+					m_ShaderSelectorPanel.ToggleVisibility();
 				ImGui::EndMenu();
 			}
 

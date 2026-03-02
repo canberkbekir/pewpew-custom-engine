@@ -12,6 +12,8 @@
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/PointLightComponent.h"
+#include "CBEngine/Components/SpotLightComponent.h"
 #include "CBEngine/Components/RigidBodyComponent.h"
 #include "CBEngine/Components/ColliderComponent.h"
 #include "CBEngine/Components/ScriptComponent.h"
@@ -778,6 +780,16 @@ end
 				                        for (auto e : view) return Entity{e, &scene};
 				                        return Entity{};
 			                        }
+			                        if (componentName == "PointLight" || componentName == "PointLightComponent") {
+				                        auto view = reg.view<PointLightComponent>();
+				                        for (auto e : view) return Entity{e, &scene};
+				                        return Entity{};
+			                        }
+			                        if (componentName == "SpotLight" || componentName == "SpotLightComponent") {
+				                        auto view = reg.view<SpotLightComponent>();
+				                        for (auto e : view) return Entity{e, &scene};
+				                        return Entity{};
+			                        }
 			                        if (componentName == "AudioSource" || componentName == "AudioSourceComponent") {
 				                        auto view = reg.view<AudioSourceComponent>();
 				                        for (auto e : view) return Entity{e, &scene};
@@ -836,6 +848,12 @@ end
 			                        else if (componentName == "DirectionalLight" || componentName ==
 				                        "DirectionalLightComponent")
 				                        pushEntities(reg.view<DirectionalLightComponent>());
+			                        else if (componentName == "PointLight" || componentName ==
+				                        "PointLightComponent")
+				                        pushEntities(reg.view<PointLightComponent>());
+			                        else if (componentName == "SpotLight" || componentName ==
+				                        "SpotLightComponent")
+				                        pushEntities(reg.view<SpotLightComponent>());
 			                        else if (componentName == "AudioSource" || componentName == "AudioSourceComponent")
 				                        pushEntities(reg.view<AudioSourceComponent>());
 			                        else if (componentName == "Script" || componentName == "ScriptComponent")
@@ -1676,6 +1694,122 @@ end
 		                                        }
 		);
 
+		// --- PointLightProxy usertype ---
+		lua.new_usertype<PointLightProxy>("__PointLightProxy",
+		                                  "GetColor", [](PointLightProxy& p) -> Vector3
+		                                  {
+			                                  if (!p.IsValid()) return Vector3(1.0f);
+			                                  return p.OwnerEntity.GetComponent<PointLightComponent>().Color;
+		                                  },
+		                                  "SetColor", [](PointLightProxy& p,const Vector3& color)
+		                                  {
+			                                  if (!p.IsValid()) return;
+			                                  p.OwnerEntity.GetComponent<PointLightComponent>().Color = color;
+		                                  },
+		                                  "GetIntensity", [](PointLightProxy& p) -> float
+		                                  {
+			                                  if (!p.IsValid()) return 0.0f;
+			                                  return p.OwnerEntity.GetComponent<PointLightComponent>().Intensity;
+		                                  },
+		                                  "SetIntensity", [](PointLightProxy& p,float intensity)
+		                                  {
+			                                  if (!p.IsValid()) return;
+			                                  p.OwnerEntity.GetComponent<PointLightComponent>().Intensity = intensity;
+		                                  },
+		                                  "GetRange", [](PointLightProxy& p) -> float
+		                                  {
+			                                  if (!p.IsValid()) return 0.0f;
+			                                  return p.OwnerEntity.GetComponent<PointLightComponent>().Range;
+		                                  },
+		                                  "SetRange", [](PointLightProxy& p,float range)
+		                                  {
+			                                  if (!p.IsValid()) return;
+			                                  p.OwnerEntity.GetComponent<PointLightComponent>().Range = range;
+		                                  },
+		                                  "IsVisible", [](PointLightProxy& p) -> bool
+		                                  {
+			                                  if (!p.IsValid()) return false;
+			                                  return p.OwnerEntity.GetComponent<PointLightComponent>().Visible;
+		                                  },
+		                                  "SetVisible", [](PointLightProxy& p,bool visible)
+		                                  {
+			                                  if (!p.IsValid()) return;
+			                                  p.OwnerEntity.GetComponent<PointLightComponent>().Visible = visible;
+		                                  },
+		                                  "IsValid", [](PointLightProxy& p) -> bool
+		                                  {
+			                                  return p.IsValid();
+		                                  }
+		);
+
+		// --- SpotLightProxy usertype ---
+		lua.new_usertype<SpotLightProxy>("__SpotLightProxy",
+		                                 "GetColor", [](SpotLightProxy& p) -> Vector3
+		                                 {
+			                                 if (!p.IsValid()) return Vector3(1.0f);
+			                                 return p.OwnerEntity.GetComponent<SpotLightComponent>().Color;
+		                                 },
+		                                 "SetColor", [](SpotLightProxy& p,const Vector3& color)
+		                                 {
+			                                 if (!p.IsValid()) return;
+			                                 p.OwnerEntity.GetComponent<SpotLightComponent>().Color = color;
+		                                 },
+		                                 "GetIntensity", [](SpotLightProxy& p) -> float
+		                                 {
+			                                 if (!p.IsValid()) return 0.0f;
+			                                 return p.OwnerEntity.GetComponent<SpotLightComponent>().Intensity;
+		                                 },
+		                                 "SetIntensity", [](SpotLightProxy& p,float intensity)
+		                                 {
+			                                 if (!p.IsValid()) return;
+			                                 p.OwnerEntity.GetComponent<SpotLightComponent>().Intensity = intensity;
+		                                 },
+		                                 "GetRange", [](SpotLightProxy& p) -> float
+		                                 {
+			                                 if (!p.IsValid()) return 0.0f;
+			                                 return p.OwnerEntity.GetComponent<SpotLightComponent>().Range;
+		                                 },
+		                                 "SetRange", [](SpotLightProxy& p,float range)
+		                                 {
+			                                 if (!p.IsValid()) return;
+			                                 p.OwnerEntity.GetComponent<SpotLightComponent>().Range = range;
+		                                 },
+		                                 "GetInnerAngle", [](SpotLightProxy& p) -> float
+		                                 {
+			                                 if (!p.IsValid()) return 0.0f;
+			                                 return p.OwnerEntity.GetComponent<SpotLightComponent>().InnerAngleDegrees;
+		                                 },
+		                                 "SetInnerAngle", [](SpotLightProxy& p,float angle)
+		                                 {
+			                                 if (!p.IsValid()) return;
+			                                 p.OwnerEntity.GetComponent<SpotLightComponent>().InnerAngleDegrees = angle;
+		                                 },
+		                                 "GetOuterAngle", [](SpotLightProxy& p) -> float
+		                                 {
+			                                 if (!p.IsValid()) return 0.0f;
+			                                 return p.OwnerEntity.GetComponent<SpotLightComponent>().OuterAngleDegrees;
+		                                 },
+		                                 "SetOuterAngle", [](SpotLightProxy& p,float angle)
+		                                 {
+			                                 if (!p.IsValid()) return;
+			                                 p.OwnerEntity.GetComponent<SpotLightComponent>().OuterAngleDegrees = angle;
+		                                 },
+		                                 "IsVisible", [](SpotLightProxy& p) -> bool
+		                                 {
+			                                 if (!p.IsValid()) return false;
+			                                 return p.OwnerEntity.GetComponent<SpotLightComponent>().Visible;
+		                                 },
+		                                 "SetVisible", [](SpotLightProxy& p,bool visible)
+		                                 {
+			                                 if (!p.IsValid()) return;
+			                                 p.OwnerEntity.GetComponent<SpotLightComponent>().Visible = visible;
+		                                 },
+		                                 "IsValid", [](SpotLightProxy& p) -> bool
+		                                 {
+			                                 return p.IsValid();
+		                                 }
+		);
+
 		// --- Component token globals ---
 		// Each is a plain table with __component = "TypeName" used by GetComponent dispatch
 		auto makeToken = [&](const char* name)
@@ -1691,6 +1825,8 @@ end
 		makeToken("MeshRenderer");
 		makeToken("VoxelRenderer");
 		makeToken("DirectionalLight");
+		makeToken("PointLight");
+		makeToken("SpotLight");
 		makeToken("AudioSource");
 		makeToken("HingeJoint");
 

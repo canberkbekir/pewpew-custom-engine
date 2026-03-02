@@ -25,6 +25,8 @@ namespace CB
 			return m_ColorAttachments[index];
 		}
 
+		uint32_t GetDepthAttachmentRendererID() const override { return m_DepthAttachment; }
+
 		int ReadPixel(uint32_t attachmentIndex,int x,int y) override;
 		void ClearAttachment(uint32_t index,int value) override;
 

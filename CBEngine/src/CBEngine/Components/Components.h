@@ -5,6 +5,8 @@
 #include "MeshRendererComponent.h"
 #include "VoxelRendererComponent.h"
 #include "DirectionalLightComponent.h"
+#include "PointLightComponent.h"
+#include "SpotLightComponent.h"
 #include "RigidBodyComponent.h"
 #include "ColliderComponent.h"
 #include "ScriptComponent.h"

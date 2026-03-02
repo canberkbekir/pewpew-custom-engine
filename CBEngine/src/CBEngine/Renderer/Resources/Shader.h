@@ -23,6 +23,8 @@ namespace CB
 		virtual void SetFloat4(const String& name,const Vector4& value) = 0;
 		virtual void SetMat3(const String& name,const Mat3& matrix) = 0;
 		virtual void SetMat4(const String& name,const Mat4& matrix) = 0;
+		virtual void SetFloatArray(const String& name,const float* data,int count) = 0;
+		virtual void SetFloat3Array(const String& name,const Vector3* data,int count) = 0;
 
 		static Ref<Shader> Create(const String& filePath);
 		static Ref<Shader> Create(const String& name,const String& vertexSrc,const String& fragmentSrc);

@@ -15,6 +15,8 @@
 #include "ComponentViews/TagComponentView.h"
 #include "ComponentViews/TransformComponentView.h"
 #include "ComponentViews/DirectionalLightComponentView.h"
+#include "ComponentViews/PointLightComponentView.h"
+#include "ComponentViews/SpotLightComponentView.h"
 #include "ComponentViews/MeshRendererComponentView.h"
 #include "ComponentViews/VoxelRendererComponentView.h"
 #include "ComponentViews/RigidBodyComponentView.h"
@@ -111,6 +113,8 @@ namespace CB
 
 			TransformComponentView::Draw(entity);
 			DirectionalLightComponentView::Draw(entity);
+			PointLightComponentView::Draw(entity);
+			SpotLightComponentView::Draw(entity);
 			MeshRendererComponentView::Draw(entity);
 			VoxelRendererComponentView::Draw(entity);
 			CameraComponentView::Draw(entity);

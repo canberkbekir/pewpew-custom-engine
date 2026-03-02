@@ -7,6 +7,8 @@
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/PointLightComponent.h"
+#include "CBEngine/Components/SpotLightComponent.h"
 #include "CBEngine/Components/RigidBodyComponent.h"
 #include "CBEngine/Components/ColliderComponent.h"
 #include "CBEngine/Components/ScriptComponent.h"
@@ -86,6 +88,26 @@ namespace CB
 						anyComponentShown = true;
 						if (ImGui::MenuItem("Directional Light")) {
 							entity.AddComponent<DirectionalLightComponent>();
+							ImGui::CloseCurrentPopup();
+						}
+					}
+				}
+
+				if (!hasFilter || MatchesFilter("Point Light")) {
+					if (!entity.HasComponent<PointLightComponent>()) {
+						anyComponentShown = true;
+						if (ImGui::MenuItem("Point Light")) {
+							entity.AddComponent<PointLightComponent>();
+							ImGui::CloseCurrentPopup();
+						}
+					}
+				}
+
+				if (!hasFilter || MatchesFilter("Spot Light")) {
+					if (!entity.HasComponent<SpotLightComponent>()) {
+						anyComponentShown = true;
+						if (ImGui::MenuItem("Spot Light")) {
+							entity.AddComponent<SpotLightComponent>();
 							ImGui::CloseCurrentPopup();
 						}
 					}

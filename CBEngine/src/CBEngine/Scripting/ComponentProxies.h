@@ -9,6 +9,8 @@
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/PointLightComponent.h"
+#include "CBEngine/Components/SpotLightComponent.h"
 #include "CBEngine/Components/AudioSourceComponent.h"
 #include "CBEngine/Components/HingeJointComponent.h"
 #include "CBEngine/Physics/PhysicsWorld.h"
@@ -97,6 +99,26 @@ namespace CB
 		Entity OwnerEntity;
 
 		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<DirectionalLightComponent>(); }
+	};
+
+	// =========================================================================
+	// PointLightProxy
+	// =========================================================================
+	struct PointLightProxy
+	{
+		Entity OwnerEntity;
+
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<PointLightComponent>(); }
+	};
+
+	// =========================================================================
+	// SpotLightProxy
+	// =========================================================================
+	struct SpotLightProxy
+	{
+		Entity OwnerEntity;
+
+		bool IsValid() const { return OwnerEntity && OwnerEntity.HasComponent<SpotLightComponent>(); }
 	};
 
 	// =========================================================================

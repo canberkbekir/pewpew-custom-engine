@@ -548,6 +548,7 @@ namespace CB
 		if (ImGui::BeginMenu("Light")) {
 			if (ImGui::MenuItem("Point Light")) {
 				Entity entity = m_Context->CreateEntity("Point Light");
+				entity.AddComponent<PointLightComponent>();
 				m_SelectionContext = entity;
 				Selection::Select(Selectable::Entity(entity.GetUUID()));
 			}
@@ -559,6 +560,7 @@ namespace CB
 			}
 			if (ImGui::MenuItem("Spot Light")) {
 				Entity entity = m_Context->CreateEntity("Spot Light");
+				entity.AddComponent<SpotLightComponent>();
 				m_SelectionContext = entity;
 				Selection::Select(Selectable::Entity(entity.GetUUID()));
 			}

@@ -244,6 +244,18 @@ namespace CB
 
 	void OpenGLShader::SetMat4(const String& name,const Mat4& matrix) { UploadUniformMat4(name, matrix); }
 
+	void OpenGLShader::SetFloatArray(const String& name,const float* data,int count)
+	{
+		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+		glUniform1fv(location, count, data);
+	}
+
+	void OpenGLShader::SetFloat3Array(const String& name,const Vector3* data,int count)
+	{
+		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+		glUniform3fv(location, count, reinterpret_cast<const float*>(data));
+	}
+
 	bool OpenGLShader::Reload()
 	{
 		if (!m_IsFromFile || m_FilePath.empty()) {

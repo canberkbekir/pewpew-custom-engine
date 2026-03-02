@@ -56,6 +56,9 @@ namespace CB
 		// Load default shader
 		m_DefaultShader = Shader::Create("assets/shaders/PBR.glsl");
 
+		// Load flat shader
+		m_FlatShader = Shader::Create("assets/shaders/Flat.glsl");
+
 		// Create default material
 		m_DefaultMaterial = CreateRef<Material>();
 		m_DefaultMaterial->SetAlbedo({0.8f, 0.8f, 0.8f});
@@ -125,11 +128,12 @@ namespace CB
 
 		// Render via RendererSystem
 		Ref<Scene> scene = SceneManager::GetActiveScene();
+		Ref<Shader> activeShader = m_FlatShading ? m_FlatShader : m_DefaultShader;
 		RendererSystem::OnUpdate(
 			scene.get(),
 			activeCamera,
 			activeCamera.GetPosition(),
-			m_DefaultShader,
+			activeShader,
 			m_DefaultMaterial
 		);
 
@@ -319,6 +323,8 @@ namespace CB
 				m_GizmoOperation = ImGuizmo::ROTATE;
 			if (ImGui::IsKeyPressed(ImGuiKey_R))
 				m_GizmoOperation = ImGuizmo::SCALE;
+			if (ImGui::IsKeyPressed(ImGuiKey_F4))
+				ReloadDefaultShader();
 		}
 
 		// Heat view text overlay (screen-space temperature labels)
@@ -529,6 +535,11 @@ namespace CB
 		ImGui::SameLine();
 		if (ImGui::Selectable("Stats", m_ShowStats, 0, ImVec2(40, 0)))
 			m_ShowStats = !m_ShowStats;
+
+		ImGui::SameLine();
+		if (ImGui::Selectable("Flat", m_FlatShading, 0, ImVec2(30, 0)))
+			m_FlatShading = !m_FlatShading;
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle flat shading");
 
 		ImGui::SameLine();
 		if (ImGui::Selectable("Heat View", m_ShowHeatView, 0, ImVec2(65, 0)))
@@ -876,6 +887,28 @@ namespace CB
 	//--------------------------------------------------------------------------
 	// Events
 	//--------------------------------------------------------------------------
+
+	void ViewportPanel::SetDefaultShader(UUID uuid)
+	{
+		auto shader = AssetManager::GetAsset<Shader>(uuid);
+		if (shader)
+		{
+			m_DefaultShader = shader;
+			m_CurrentShaderUUID = uuid;
+			CB_CORE_INFO("Shader changed to: {0}", shader->GetName());
+		}
+	}
+
+	void ViewportPanel::ReloadDefaultShader()
+	{
+		if (m_DefaultShader)
+		{
+			if (m_DefaultShader->Reload())
+				CB_CORE_INFO("Shader reloaded: {0}", m_DefaultShader->GetName());
+			else
+				CB_CORE_WARN("Shader reload failed: {0}", m_DefaultShader->GetName());
+		}
+	}
 
 	void ViewportPanel::OnEvent(Event& e)
 	{

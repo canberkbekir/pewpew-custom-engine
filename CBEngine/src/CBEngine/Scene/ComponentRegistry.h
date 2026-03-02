@@ -22,6 +22,8 @@ namespace CB
 		MeshRendererComponent,
 		VoxelRendererComponent,
 		DirectionalLightComponent,
+		PointLightComponent,
+		SpotLightComponent,
 		CameraComponent,
 		RigidBodyComponent,
 		ColliderComponent,

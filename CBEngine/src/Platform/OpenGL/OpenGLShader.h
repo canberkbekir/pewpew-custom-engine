@@ -30,6 +30,8 @@ namespace CB
 		void SetFloat4(const String& name,const Vector4& value) override;
 		void SetMat3(const String& name,const Mat3& matrix) override;
 		void SetMat4(const String& name,const Mat4& matrix) override;
+		void SetFloatArray(const String& name,const float* data,int count) override;
+		void SetFloat3Array(const String& name,const Vector3* data,int count) override;
 
 		// OpenGL-specific upload methods (kept for backwards compatibility)
 		void UploadUniformInt(const String& name,int value);

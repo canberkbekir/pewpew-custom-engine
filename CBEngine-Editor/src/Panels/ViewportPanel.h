@@ -25,6 +25,10 @@ namespace CB
 		void OnEvent(Event& e) override;
 		PerspectiveCameraController& GetCameraController() { return m_CameraController; }
 
+		void SetDefaultShader(UUID uuid);
+		void ReloadDefaultShader();
+		const UUID& GetCurrentShaderUUID() const { return m_CurrentShaderUUID; }
+
 	private:
 		void RenderToolbar();
 		void RenderStatsOverlay();
@@ -39,7 +43,10 @@ namespace CB
 		// Rendering
 		Ref<Framebuffer> m_Framebuffer;
 		Ref<Shader> m_DefaultShader;
+		Ref<Shader> m_FlatShader;
 		Ref<Material> m_DefaultMaterial;
+		UUID m_CurrentShaderUUID;
+		bool m_FlatShading = false;
 
 		// Camera
 		PerspectiveCameraController m_CameraController;

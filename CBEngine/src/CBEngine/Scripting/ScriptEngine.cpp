@@ -16,6 +16,8 @@
 #include "CBEngine/Components/MeshRendererComponent.h"
 #include "CBEngine/Components/VoxelRendererComponent.h"
 #include "CBEngine/Components/DirectionalLightComponent.h"
+#include "CBEngine/Components/PointLightComponent.h"
+#include "CBEngine/Components/SpotLightComponent.h"
 #include "CBEngine/Components/AudioSourceComponent.h"
 #include "CBEngine/Components/HingeJointComponent.h"
 #include "CBEngine/Asset/AssetManager.h"
@@ -438,6 +440,16 @@ namespace CB
 					return sol::make_object(L, sol::nil);
 				return sol::make_object(L, DirectionalLightProxy{e});
 			}
+			if (componentName == "PointLight" || componentName == "PointLightComponent") {
+				if (!e.HasComponent<PointLightComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, PointLightProxy{e});
+			}
+			if (componentName == "SpotLight" || componentName == "SpotLightComponent") {
+				if (!e.HasComponent<SpotLightComponent>())
+					return sol::make_object(L, sol::nil);
+				return sol::make_object(L, SpotLightProxy{e});
+			}
 			if (componentName == "AudioSource" || componentName == "AudioSourceComponent") {
 				if (!e.HasComponent<AudioSourceComponent>())
 					return sol::make_object(L, sol::nil);
@@ -519,7 +531,7 @@ namespace CB
 				key == "Entity" || key == "Scene" || key == "Mouse" ||
 				key == "RigidBody" || key == "Transform" || key == "Camera" ||
 				key == "Collider" || key == "MeshRenderer" || key == "VoxelRenderer" ||
-				key == "DirectionalLight" || key == "RaycastHit" ||
+				key == "DirectionalLight" || key == "PointLight" || key == "SpotLight" || key == "RaycastHit" ||
 				key == "EntityRef" || key == "ComponentRef" || key == "ScriptRef" || key == "BlueprintRef" ||
 				key == "AudioRef" || key == "Audio" || key == "Signal" || key == "Coroutine" ||
 				key == "Tween" || key == "Easing" || key == "Pool" ||
@@ -1393,6 +1405,16 @@ function Bullet:GetDamage() return self.Damage end
 							else if ((compName == "DirectionalLight" || compName == "DirectionalLightComponent") && ref.
 								HasComponent<DirectionalLightComponent>()) {
 								self[field.Name] = sol::make_object(lua, DirectionalLightProxy{ref});
+								injected = true;
+							}
+							else if ((compName == "PointLight" || compName == "PointLightComponent") && ref.
+								HasComponent<PointLightComponent>()) {
+								self[field.Name] = sol::make_object(lua, PointLightProxy{ref});
+								injected = true;
+							}
+							else if ((compName == "SpotLight" || compName == "SpotLightComponent") && ref.
+								HasComponent<SpotLightComponent>()) {
+								self[field.Name] = sol::make_object(lua, SpotLightProxy{ref});
 								injected = true;
 							}
 						}

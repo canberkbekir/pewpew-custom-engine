@@ -24,6 +24,8 @@ namespace CB
 	CB_REGISTER_COMPONENT(MeshRendererComponent)
 	CB_REGISTER_COMPONENT(VoxelRendererComponent)
 	CB_REGISTER_COMPONENT(DirectionalLightComponent)
+	CB_REGISTER_COMPONENT(PointLightComponent)
+	CB_REGISTER_COMPONENT(SpotLightComponent)
 	CB_REGISTER_COMPONENT(CameraComponent)
 	CB_REGISTER_COMPONENT(RigidBodyComponent)
 	CB_REGISTER_COMPONENT(ColliderComponent)

@@ -19,6 +19,7 @@ layout(location = 11) in int  a_InstanceEntityID;
 uniform mat4 u_ViewProjection;
 uniform mat4 u_Transform;
 uniform int u_UseInstancing;
+uniform mat4 u_LightSpaceMatrix;
 
 out vec3 v_WorldPos;
 out vec2 v_TexCoord;
@@ -26,6 +27,7 @@ out vec3 v_Color;
 flat out float v_PaletteIndex;
 out mat3 v_TBN;
 flat out int v_EntityID;
+out vec4 v_LightSpacePos;
 
 void main()
 {
@@ -56,6 +58,7 @@ void main()
     vec3 B = normalize(cross(N, T));
     v_TBN = mat3(T, B, N);
 
+    v_LightSpacePos = u_LightSpaceMatrix * worldPos;
     gl_Position = u_ViewProjection * worldPos;
 }
 
@@ -70,6 +73,7 @@ in vec3 v_Color;
 flat in float v_PaletteIndex;
 in mat3 v_TBN;
 flat in int v_EntityID;
+in vec4 v_LightSpacePos;
 
 // Textures
 uniform sampler2D u_AlbedoMap;
@@ -101,6 +105,25 @@ uniform vec3  u_LightColor;
 uniform float u_LightIntensity;
 uniform vec3  u_CameraPosition;
 uniform vec3  u_AmbientColor;
+
+// Point lights
+uniform int u_NumPointLights;
+uniform vec3 u_PointLightPositions[32];
+uniform vec3 u_PointLightColors[32];
+uniform float u_PointLightRanges[32];
+
+// Spot lights
+uniform int u_NumSpotLights;
+uniform vec3 u_SpotLightPositions[32];
+uniform vec3 u_SpotLightDirections[32];
+uniform vec3 u_SpotLightColors[32];
+uniform float u_SpotLightRanges[32];
+uniform float u_SpotLightInnerCos[32];
+uniform float u_SpotLightOuterCos[32];
+
+// Shadow mapping
+uniform sampler2DShadow u_ShadowMap;
+uniform int u_ShadowsEnabled;
 
 // Shading controls
 uniform float u_SmoothAmount;
@@ -165,6 +188,88 @@ float SpecularAA(vec3 N, float roughness)
     float r2 = roughness * roughness;
     r2 = clamp(r2 + 0.5 * variance, 0.0, 1.0);
     return sqrt(r2);
+}
+
+float DistanceAttenuation(float dist, float range)
+{
+    float ratio = dist / max(range, 0.001);
+    float f = clamp(1.0 - ratio * ratio, 0.0, 1.0);
+    return f * f;
+}
+
+vec3 CalcPointLight(int i, vec3 N, vec3 V, vec3 worldPos, vec3 F0, vec3 albedo, float metallic, float roughAA)
+{
+    vec3 lightVec = u_PointLightPositions[i] - worldPos;
+    float dist = length(lightVec);
+    vec3 L = lightVec / max(dist, 0.001);
+    vec3 H = normalize(V + L);
+
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float atten = DistanceAttenuation(dist, u_PointLightRanges[i]);
+
+    vec3 radiance = u_PointLightColors[i] * atten;
+
+    float NDF = DistributionGGX(N, H, roughAA);
+    float G = GeometrySmith(N, V, L, roughAA);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    vec3 specular = (NDF * G * F) / max(4.0 * NdotV * NdotL, 1e-6);
+    vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
+
+    return (kD * albedo / PI + specular) * radiance * NdotL;
+}
+
+vec3 CalcSpotLight(int i, vec3 N, vec3 V, vec3 worldPos, vec3 F0, vec3 albedo, float metallic, float roughAA)
+{
+    vec3 lightVec = u_SpotLightPositions[i] - worldPos;
+    float dist = length(lightVec);
+    vec3 L = lightVec / max(dist, 0.001);
+    vec3 H = normalize(V + L);
+
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float atten = DistanceAttenuation(dist, u_SpotLightRanges[i]);
+
+    // Angular falloff
+    float theta = dot(-L, normalize(u_SpotLightDirections[i]));
+    float spotFalloff = smoothstep(u_SpotLightOuterCos[i], u_SpotLightInnerCos[i], theta);
+
+    vec3 radiance = u_SpotLightColors[i] * atten * spotFalloff;
+
+    float NDF = DistributionGGX(N, H, roughAA);
+    float G = GeometrySmith(N, V, L, roughAA);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    vec3 specular = (NDF * G * F) / max(4.0 * NdotV * NdotL, 1e-6);
+    vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
+
+    return (kD * albedo / PI + specular) * radiance * NdotL;
+}
+
+float CalcShadow(vec4 lsPos, vec3 N, vec3 L)
+{
+    vec3 proj = lsPos.xyz / lsPos.w;
+    proj = proj * 0.5 + 0.5;
+
+    // Outside shadow map bounds
+    if (proj.x < 0.0 || proj.x > 1.0 || proj.y < 0.0 || proj.y > 1.0 || proj.z > 1.0)
+        return 0.0;
+
+    float bias = max(0.005 * (1.0 - dot(N, L)), 0.001);
+    float depthRef = proj.z - bias;
+
+    // 3x3 PCF
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / vec2(textureSize(u_ShadowMap, 0));
+    for (int x = -1; x <= 1; x++)
+    {
+        for (int y = -1; y <= 1; y++)
+        {
+            shadow += texture(u_ShadowMap, vec3(proj.xy + vec2(x, y) * texelSize, depthRef));
+        }
+    }
+    return 1.0 - (shadow / 9.0);
 }
 
 void main()
@@ -245,6 +350,21 @@ void main()
     vec3 specular = (NDF * G * F) / max(4.0 * NdotV * NdotL, 1e-6);
     vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
     vec3 direct = (kD * albedo / PI + specular) * radiance * NdotL_wrap;
+
+    // Apply shadow to directional light
+    if (u_ShadowsEnabled == 1)
+    {
+        float shadow = CalcShadow(v_LightSpacePos, N, L);
+        direct *= (1.0 - shadow);
+    }
+
+    // Point lights
+    for (int i = 0; i < u_NumPointLights; i++)
+        direct += CalcPointLight(i, N, V, v_WorldPos, F0, albedo, metallic, roughAA);
+
+    // Spot lights
+    for (int i = 0; i < u_NumSpotLights; i++)
+        direct += CalcSpotLight(i, N, V, v_WorldPos, F0, albedo, metallic, roughAA);
 
     vec3 sky = max(u_AmbientColor, vec3(0.02));
     vec3 ground = sky * 0.35;

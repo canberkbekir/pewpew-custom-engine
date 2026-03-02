@@ -3,6 +3,7 @@
 #include "CBEngine/Renderer/Core/RenderCommand.h"
 #include "CBEngine/Renderer/Core/ShaderUniforms.h"
 #include "CBEngine/Debug/Instrumentor.h"
+#include <glad/glad.h>
 
 namespace CB
 {
@@ -29,6 +30,83 @@ namespace CB
 	}
 
 	void Renderer3D::SetAmbientLight(const Vector3& color) { s_SceneData->AmbientColor = color; }
+
+	void Renderer3D::SetShadowData(const Mat4& lightSpaceMatrix,uint32_t shadowMapTexID)
+	{
+		s_SceneData->LightSpaceMatrix = lightSpaceMatrix;
+		s_SceneData->ShadowMapTextureID = shadowMapTexID;
+	}
+
+	void Renderer3D::SetShadowsEnabled(bool enabled)
+	{
+		s_SceneData->ShadowsEnabled = enabled;
+	}
+
+	void Renderer3D::SetPointLights(const Vector3* positions,const Vector3* colors,const float* intensities,
+	                                const float* ranges,int count)
+	{
+		s_SceneData->NumPointLights = std::min(count, MAX_POINT_LIGHTS);
+		for (int i = 0; i < s_SceneData->NumPointLights; i++) {
+			s_SceneData->PointLightPositions[i] = positions[i];
+			s_SceneData->PointLightColors[i] = colors[i] * intensities[i];
+			s_SceneData->PointLightRanges[i] = ranges[i];
+		}
+	}
+
+	void Renderer3D::SetSpotLights(const Vector3* positions,const Vector3* directions,
+	                               const Vector3* colors,const float* intensities,
+	                               const float* ranges,const float* innerCos,const float* outerCos,int count)
+	{
+		s_SceneData->NumSpotLights = std::min(count, MAX_SPOT_LIGHTS);
+		for (int i = 0; i < s_SceneData->NumSpotLights; i++) {
+			s_SceneData->SpotLightPositions[i] = positions[i];
+			s_SceneData->SpotLightDirections[i] = directions[i];
+			s_SceneData->SpotLightColors[i] = colors[i] * intensities[i];
+			s_SceneData->SpotLightRanges[i] = ranges[i];
+			s_SceneData->SpotLightInnerCos[i] = innerCos[i];
+			s_SceneData->SpotLightOuterCos[i] = outerCos[i];
+		}
+	}
+
+	void Renderer3D::UploadLightUniforms(const Ref<Shader>& shader)
+	{
+		using namespace ShaderUniforms;
+
+		// Directional light
+		shader->SetFloat3(LightDirection, s_SceneData->LightDirection);
+		shader->SetFloat3(LightColor, s_SceneData->LightColor);
+		shader->SetFloat(LightIntensity, s_SceneData->LightIntensity);
+		shader->SetFloat3(AmbientColor, s_SceneData->AmbientColor);
+
+		// Point lights
+		shader->SetInt(NumPointLights, s_SceneData->NumPointLights);
+		if (s_SceneData->NumPointLights > 0) {
+			shader->SetFloat3Array(PointLightPositions, s_SceneData->PointLightPositions, s_SceneData->NumPointLights);
+			shader->SetFloat3Array(PointLightColors, s_SceneData->PointLightColors, s_SceneData->NumPointLights);
+			shader->SetFloatArray(PointLightRanges, s_SceneData->PointLightRanges, s_SceneData->NumPointLights);
+		}
+
+		// Spot lights
+		shader->SetInt(NumSpotLights, s_SceneData->NumSpotLights);
+		if (s_SceneData->NumSpotLights > 0) {
+			shader->SetFloat3Array(SpotLightPositions, s_SceneData->SpotLightPositions, s_SceneData->NumSpotLights);
+			shader->SetFloat3Array(SpotLightDirections, s_SceneData->SpotLightDirections, s_SceneData->NumSpotLights);
+			shader->SetFloat3Array(SpotLightColors, s_SceneData->SpotLightColors, s_SceneData->NumSpotLights);
+			shader->SetFloatArray(SpotLightRanges, s_SceneData->SpotLightRanges, s_SceneData->NumSpotLights);
+			shader->SetFloatArray(SpotLightInnerCos, s_SceneData->SpotLightInnerCos, s_SceneData->NumSpotLights);
+			shader->SetFloatArray(SpotLightOuterCos, s_SceneData->SpotLightOuterCos, s_SceneData->NumSpotLights);
+		}
+
+		// Shadow mapping
+		shader->SetMat4(LightSpaceMatrix, s_SceneData->LightSpaceMatrix);
+		shader->SetInt(ShadowsEnabled, s_SceneData->ShadowsEnabled ? 1 : 0);
+		shader->SetInt(ShadowMap, 8);
+		if (s_SceneData->ShadowsEnabled && s_SceneData->ShadowMapTextureID > 0)
+		{
+			glActiveTexture(GL_TEXTURE8);
+			glBindTexture(GL_TEXTURE_2D, s_SceneData->ShadowMapTextureID);
+		}
+	}
 
 	void Renderer3D::Submit(const Ref<Shader>& shader,const Ref<Material>& material,const Ref<Mesh>& mesh,
 	                        const Mat4& transform,int entityID,bool useVertexColor,
@@ -68,10 +146,7 @@ namespace CB
 		}
 
 		// Upload light uniforms
-		shader->SetFloat3(LightDirection, s_SceneData->LightDirection);
-		shader->SetFloat3(LightColor, s_SceneData->LightColor);
-		shader->SetFloat(LightIntensity, s_SceneData->LightIntensity);
-		shader->SetFloat3(AmbientColor, s_SceneData->AmbientColor);
+		UploadLightUniforms(shader);
 
 		// Bind material (textures and properties)
 		material->Bind(shader);
@@ -112,10 +187,7 @@ namespace CB
 		shader->SetInt(PaletteMaterialMap, 5);
 
 		// Light uniforms
-		shader->SetFloat3(LightDirection, s_SceneData->LightDirection);
-		shader->SetFloat3(LightColor, s_SceneData->LightColor);
-		shader->SetFloat(LightIntensity, s_SceneData->LightIntensity);
-		shader->SetFloat3(AmbientColor, s_SceneData->AmbientColor);
+		UploadLightUniforms(shader);
 
 		material->Bind(shader);
 
@@ -186,10 +258,7 @@ namespace CB
 		shader->SetInt(UsePalette, 0);
 		shader->SetInt(UseVertexColor, 0);
 
-		shader->SetFloat3(LightDirection, s_SceneData->LightDirection);
-		shader->SetFloat3(LightColor, s_SceneData->LightColor);
-		shader->SetFloat(LightIntensity, s_SceneData->LightIntensity);
-		shader->SetFloat3(AmbientColor, s_SceneData->AmbientColor);
+		UploadLightUniforms(shader);
 
 		material->Bind(shader);
 

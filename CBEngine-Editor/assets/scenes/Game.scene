@@ -1,5 +1,18 @@
 Scene: Game
 Entities:
+  - Entity: 8982181190718836947
+    TagComponent:
+      Tag: Point Light
+    TransformComponent:
+      Position: [3.7890892, 2.1371999, 1.8448409]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 829200245983299509
+    PointLightComponent:
+      Visible: true
+      Color: [0.32352948, 1, 0]
+      Intensity: 1
+      Range: 10
   - Entity: 7569986666603767742
     TagComponent:
       Tag: GrabPoint
@@ -159,7 +172,7 @@ Entities:
     TagComponent:
       Tag: voxel test
     TransformComponent:
-      Position: [-22.264868, -2.3411262, -1.6530976]
+      Position: [-22.264868, -2.3411262, -1.6530977]
       Rotation: [-3.1415925, 1.0976, -3.1415925]
       Scale: [0.01, 0.01, 0.01]
       Parent: 829200245983299509
@@ -616,11 +629,11 @@ Entities:
     TransformComponent:
       Position: [0, -8.444, 0]
       Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [1, 1, 1]
+      Scale: [0.01, 0.01, 0.01]
       Parent: 17880755116591688848
     MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 0
+      MeshUUID: 14354534839807604147
+      MaterialUUID: 10679708688162182362
       ShaderUUID: 0
       Visible: true
     RigidBodyComponent:
@@ -639,11 +652,11 @@ Entities:
       FreezeRotationZ: false
     ColliderComponent:
       Shape: 0
-      HalfExtents: [1, 1, 1]
+      HalfExtents: [107.93994, 100.58357, 101.87407]
       Radius: 0.5
       CapsuleRadius: 0.5
       CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
+      Offset: [6.2387085, 100.58354, 1.8740311]
       IsTrigger: false
     HingeJointComponent:
       ConstraintType: 0
@@ -753,19 +766,19 @@ Entities:
       CapsuleHalfHeight: 0.5
       Offset: [0, 0, 0]
       IsTrigger: false
-  - Entity: 1812297280797331399
+  - Entity: 630729861583581548
     TagComponent:
       Tag: Directional Light
     TransformComponent:
       Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
+      Rotation: [2.9960563, -0, 0]
       Scale: [1, 1, 1]
       Parent: 0
     DirectionalLightComponent:
       Visible: true
       Color: [1, 1, 1]
       Intensity: 1
-      CastShadows: false
+      CastShadows: true
       SourceAngleDegrees: 0.53
   - Entity: 11853082069863937074
     TagComponent:
@@ -1397,3 +1410,18 @@ Entities:
       BlueprintAssetUUID: 7446544307240529023
       BlueprintPath: ""
       OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
+  - Entity: 13971956764022098685
+    TagComponent:
+      Tag: Spot Light
+    TransformComponent:
+      Position: [-4.3297253, 4.6612716, 2.8813689]
+      Rotation: [-0.6665836, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 829200245983299509
+    SpotLightComponent:
+      Visible: true
+      Color: [1, 0, 0]
+      Intensity: 1
+      Range: 10
+      InnerAngleDegrees: 25.5
+      OuterAngleDegrees: 25.5

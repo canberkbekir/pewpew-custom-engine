@@ -45,4 +45,24 @@ namespace CB::ShaderUniforms
 
 	// Instancing
 	inline constexpr auto UseInstancing = "u_UseInstancing";
+
+	// Point lights
+	inline constexpr auto NumPointLights = "u_NumPointLights";
+	inline constexpr auto PointLightPositions = "u_PointLightPositions";
+	inline constexpr auto PointLightColors = "u_PointLightColors";
+	inline constexpr auto PointLightRanges = "u_PointLightRanges";
+
+	// Spot lights
+	inline constexpr auto NumSpotLights = "u_NumSpotLights";
+	inline constexpr auto SpotLightPositions = "u_SpotLightPositions";
+	inline constexpr auto SpotLightDirections = "u_SpotLightDirections";
+	inline constexpr auto SpotLightColors = "u_SpotLightColors";
+	inline constexpr auto SpotLightRanges = "u_SpotLightRanges";
+	inline constexpr auto SpotLightInnerCos = "u_SpotLightInnerCos";
+	inline constexpr auto SpotLightOuterCos = "u_SpotLightOuterCos";
+
+	// Shadow mapping
+	inline constexpr auto LightSpaceMatrix = "u_LightSpaceMatrix";
+	inline constexpr auto ShadowMap = "u_ShadowMap";
+	inline constexpr auto ShadowsEnabled = "u_ShadowsEnabled";
 }
