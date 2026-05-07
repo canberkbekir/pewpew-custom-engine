@@ -1,0 +1,59 @@
+Blueprint: Turret
+Entities:
+  - Entity: 9292764228792493310
+    TagComponent:
+      Tag: Turret
+    TransformComponent:
+      Position: [7.952376, 9.598793, 28.984272]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 5
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\WallTurret.lua
+          ClassName: WallTurret
+          Fields:
+            - Name: BulletBlueprint
+              Type: blueprintref
+              Value: 5912364285609910766
+              Subtype: blueprint_asset
+            - Name: MuzzlePoint
+              Type: entityref
+              Value: 16658254095736455051
+            - Name: PlayerRef
+              Type: entityref
+              Value: 10467415672658071835
+  - Entity: 11311126353622144788
+    TagComponent:
+      Tag: Cube
+    TransformComponent:
+      Position: [0, 0.4584713, -0.8073368]
+      Rotation: [0, 0, 0]
+      Scale: [0.2595508, 0.19616003, 1]
+      Parent: 9292764228792493310
+    MeshRendererComponent:
+      MeshUUID: 1
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 16658254095736455051
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [0, 1.1444092e-05, -0.65467644]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 11311126353622144788

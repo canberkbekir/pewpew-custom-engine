@@ -198,7 +198,8 @@ function PlayerMovement:OnUpdate(dt)
     local hit      = Physic.Raycast(scene, rayStart, Vector3(0, -1, 0),
         self.GroundCheckDist, Layer.All, entity)
 
-    self.isGrounded = (hit ~= nil and hit.normal ~= nil and hit.normal.y >= self.GroundNormalMinY)
+    self.isGrounded    = (hit ~= nil and hit.normal ~= nil and hit.normal.y >= self.GroundNormalMinY)
+    self._groundNormal = (self.isGrounded and hit ~= nil and hit.normal ~= nil) and hit.normal or Vector3(0, 1, 0)
 
     if self.isGrounded then
         self._coyoteT = self.CoyoteTime
@@ -232,15 +233,31 @@ function PlayerMovement:OnUpdate(dt)
     local vel      = rb:GetLinearVelocity()
     local horizVel = Vector3(vel.x, 0, vel.z)
 
+    -- When grounded on a slope, compute Y to follow the surface.
+    -- +9.81*dt pre-compensates for gravity Jolt will apply this step;
+    -- without it vel.y ends up slightly into the slope, and Jolt's contact
+    -- projection bleeds XZ speed each frame (causing the speed-loss on ramps).
+    local function SlopeY(vx, vz)
+        local n = self._groundNormal
+        if n.y < 0.99 then
+            return -(vx * n.x + vz * n.z) / n.y + 9.81 * dt
+        end
+        return vel.y
+    end
+
     if hasMove then
         local desiredVel  = wishDir * targetSpeed
         local accel       = self.isGrounded and self.Accel or self.AirAccel
         local dv          = ClampMagnitude(desiredVel - horizVel, accel * dt)
-        rb:SetLinearVelocity(Vector3(vel.x + dv.x, vel.y, vel.z + dv.z))
+        local nx, nz      = vel.x + dv.x, vel.z + dv.z
+        local ny          = self.isGrounded and SlopeY(nx, nz) or vel.y
+        rb:SetLinearVelocity(Vector3(nx, ny, nz))
     else
         local drag = self.isGrounded and self.GroundDrag or self.AirDrag
         local k    = Math.Exp(-drag * dt)
-        rb:SetLinearVelocity(Vector3(horizVel.x * k, vel.y, horizVel.z * k))
+        local nx, nz = horizVel.x * k, horizVel.z * k
+        local ny     = self.isGrounded and SlopeY(nx, nz) or vel.y
+        rb:SetLinearVelocity(Vector3(nx, ny, nz))
     end
 
     -- ── Jump ──────────────────────────────────────────────────────────────────

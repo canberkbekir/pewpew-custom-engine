@@ -280,6 +280,67 @@ Chrome DevTools compatible profiling with per-function and per-scope macros. Inc
 
 ---
 
+## Playing the Example Game
+
+CBEngine ships with a playable first-person puzzle level — **Flamethrower Puzzle** (`Game.scene`).  
+Open the scene in the editor, then press **F5** (or the Play button in the toolbar) to start.
+
+---
+
+### Objective
+
+You are on a chain of sky-island platforms connected by narrow bridges.  
+**Fight through four floors of wall turrets** to reach the goal platform and win.  
+One floor has a wooden wall blocking the path — burn it down to proceed.  
+Run out of health and play mode stops immediately.
+
+---
+
+### Controls
+
+| Key / Button | Action |
+|---|---|
+| **W A S D** | Move |
+| **Mouse** | Look around |
+| **Left Shift** | Sprint |
+| **Space** | Jump |
+| **Left Click** | Fire current weapon |
+| **1** | Switch to **Impact** bullet |
+| **2** | Switch to **Fire** bullet |
+| **3** | Switch to **Explosion** bullet |
+| **4** | Switch to **Flamethrower** bullet |
+| **Esc** | Release mouse cursor |
+| **Left Click** *(cursor free)* | Re-lock cursor and resume play |
+
+---
+
+### Level Walkthrough
+
+**Floor 1**
+Eliminate all wall turrets to clear the floor and advance.
+
+**Floor 2**
+Burn through the wooden wall blocking the path, then take out the turrets guarding the area.
+
+**Floor 3**
+Eliminate the remaining turrets to open the way forward.
+
+**Floor 4 — Goal**
+Step onto the **win plate**.
+Play mode stops and `=== YOU WIN! ===` is printed to the console.
+
+---
+
+### Tips
+
+- Use **key 4** (Flamethrower bullet) to burn the wooden wall on Floor 2.
+- Turrets have limited range and require **line of sight** — move behind cover to break their aim.
+- Turrets can be destroyed with any bullet type (keys **1 / 2 / 3 / 4**).
+- The wooden wall on Floor 2 is immovable until burned enough — keep firing until it topples.
+- Falling off the edge respawns you at the last checkpoint — turret damage is what ends the run.
+
+---
+
 ## Building
 
 **Requirements:** Visual Studio 2022, Windows 10/11

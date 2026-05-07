@@ -145,6 +145,13 @@ namespace CB
 			else { SceneManager::LoadScene(pendingPath); }
 		}
 
+		// Consume deferred stop-play requested by scripts (e.g. player death, win plate)
+		if (ScriptEngine::HasPendingStopPlay()) {
+			ScriptEngine::ClearPendingStopPlay();
+			if (m_PlayManager.IsSimulating())
+				m_PlayManager.Stop(m_ViewportPanel.GetCameraController());
+		}
+
 		// Update audio engine listener using active scene camera (if any)
 		AudioEngine::Update(Vector3(0.0f), Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f));
 

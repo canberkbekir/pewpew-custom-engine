@@ -1,411 +1,338 @@
 Scene: Game
 Entities:
-  - Entity: 8982181190718836947
+  - Entity: 11081116943840571932
     TagComponent:
-      Tag: Point Light
+      Tag: Empty Entity
     TransformComponent:
-      Position: [3.7890892, 2.1371999, 1.8448409]
+      Position: [0, 1.1444092e-05, -1]
+      Rotation: [0, -0, 0]
+      Scale: [1, 1, 1]
+      Parent: 100535653984258126
+  - Entity: 100535653984258126
+    TagComponent:
+      Tag: Cube
+    TransformComponent:
+      Position: [0, 0.4584713, -0.8073368]
+      Rotation: [0, 0, 0]
+      Scale: [0.2595508, 0.19616003, 1]
+      Parent: 7792197948183690619
+    MeshRendererComponent:
+      MeshUUID: 1
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 7792197948183690619
+    TagComponent:
+      Tag: Turret
+    TransformComponent:
+      Position: [8.194601, 6.411276, -8.716888]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-      Parent: 829200245983299509
-    PointLightComponent:
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 5
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
       Visible: true
-      Color: [0.32352948, 1, 0]
-      Intensity: 1
-      Range: 10
-  - Entity: 7569986666603767742
+    ColliderComponent:
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\WallTurret.lua
+          ClassName: WallTurret
+          Fields:
+            - Name: Range
+              Type: float
+              Value: 25
+            - Name: FireRate
+              Type: float
+              Value: 4
+            - Name: BulletBlueprint
+              Type: blueprintref
+              Value: 5912364285609910766
+              Subtype: blueprint_asset
+            - Name: MuzzlePoint
+              Type: entityref
+              Value: 11081116943840571932
+            - Name: PlayerRef
+              Type: entityref
+              Value: 10467415672658071835
+        - ScriptPath: scripts\TurretHealth.lua
+          ClassName: TurretHealth
+    BlueprintInstanceComponent:
+      BlueprintAssetUUID: 8252986035970355975
+      BlueprintPath: assets\blueprints\BP_Turret.blueprint
+      OriginalYAML: "Blueprint: Turret\nEntities:\n  - Entity: 9292764228792493310\n    TagComponent:\n      Tag: Turret\n    TransformComponent:\n      Position: [7.952376, 9.598793, 28.984272]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 1344730489972898971\n      ShaderUUID: 0\n      Visible: true\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false\n    ScriptComponent:\n      Scripts:\n        - ScriptPath: scripts\\WallTurret.lua\n          ClassName: WallTurret\n          Fields:\n            - Name: BulletBlueprint\n              Type: blueprintref\n              Value: 5912364285609910766\n              Subtype: blueprint_asset\n            - Name: MuzzlePoint\n              Type: entityref\n              Value: 16658254095736455051\n            - Name: PlayerRef\n              Type: entityref\n              Value: 10467415672658071835\n  - Entity: 11311126353622144788\n    TagComponent:\n      Tag: Cube\n    TransformComponent:\n      Position: [0, 0.4584713, -0.8073368]\n      Rotation: [0, 0, 0]\n      Scale: [0.2595508, 0.19616003, 1]\n      Parent: 9292764228792493310\n    MeshRendererComponent:\n      MeshUUID: 1\n      MaterialUUID: 1344730489972898971\n      ShaderUUID: 0\n      Visible: true\n  - Entity: 16658254095736455051\n    TagComponent:\n      Tag: Empty Entity\n    TransformComponent:\n      Position: [0, 1.1444092e-05, -0.65467644]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 11311126353622144788"
+  - Entity: 281945078838109300
     TagComponent:
-      Tag: GrabPoint
+      Tag: Empty Entity
     TransformComponent:
-      Position: [9.250641e-05, -0.45385265, 2.1423311]
+      Position: [0, 1.1444092e-05, -1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 15180358753121479327
+  - Entity: 15180358753121479327
+    TagComponent:
+      Tag: Cube
+    TransformComponent:
+      Position: [0, 0.4584713, 0.8827648]
+      Rotation: [-3.1415927, 0, 3.1415927]
+      Scale: [0.2595508, 0.19616003, 1]
+      Parent: 16598377604445604502
+    MeshRendererComponent:
+      MeshUUID: 1
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 16598377604445604502
+    TagComponent:
+      Tag: Turret
+    TransformComponent:
+      Position: [-3.9346461, 1.896435, 29.399817]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 5
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\WallTurret.lua
+          ClassName: WallTurret
+          Fields:
+            - Name: Range
+              Type: float
+              Value: 25
+            - Name: FireRate
+              Type: float
+              Value: 4
+            - Name: BulletBlueprint
+              Type: blueprintref
+              Value: 5912364285609910766
+              Subtype: blueprint_asset
+            - Name: MuzzlePoint
+              Type: entityref
+              Value: 281945078838109300
+            - Name: PlayerRef
+              Type: entityref
+              Value: 10467415672658071835
+        - ScriptPath: scripts\TurretHealth.lua
+          ClassName: TurretHealth
+    BlueprintInstanceComponent:
+      BlueprintAssetUUID: 8252986035970355975
+      BlueprintPath: assets\blueprints\BP_Turret.blueprint
+      OriginalYAML: "Blueprint: Turret\nEntities:\n  - Entity: 9292764228792493310\n    TagComponent:\n      Tag: Turret\n    TransformComponent:\n      Position: [7.952376, 9.598793, 28.984272]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 1344730489972898971\n      ShaderUUID: 0\n      Visible: true\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false\n    ScriptComponent:\n      Scripts:\n        - ScriptPath: scripts\\WallTurret.lua\n          ClassName: WallTurret\n          Fields:\n            - Name: BulletBlueprint\n              Type: blueprintref\n              Value: 5912364285609910766\n              Subtype: blueprint_asset\n            - Name: MuzzlePoint\n              Type: entityref\n              Value: 16658254095736455051\n            - Name: PlayerRef\n              Type: entityref\n              Value: 10467415672658071835\n  - Entity: 11311126353622144788\n    TagComponent:\n      Tag: Cube\n    TransformComponent:\n      Position: [0, 0.4584713, -0.8073368]\n      Rotation: [0, 0, 0]\n      Scale: [0.2595508, 0.19616003, 1]\n      Parent: 9292764228792493310\n    MeshRendererComponent:\n      MeshUUID: 1\n      MaterialUUID: 1344730489972898971\n      ShaderUUID: 0\n      Visible: true\n  - Entity: 16658254095736455051\n    TagComponent:\n      Tag: Empty Entity\n    TransformComponent:\n      Position: [0, 1.1444092e-05, -0.65467644]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 11311126353622144788"
+  - Entity: 2988095329863140970
+    TagComponent:
+      Tag: Cube
+    TransformComponent:
+      Position: [0, 0.4584713, 0.91833496]
+      Rotation: [-3.1415927, 0, -3.1415927]
+      Scale: [0.2595508, 0.19616003, 1]
+      Parent: 4072910301245392562
+    MeshRendererComponent:
+      MeshUUID: 1
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 4072910301245392562
+    TagComponent:
+      Tag: Turret
+    TransformComponent:
+      Position: [4.4523478, 2.084583, 29.746405]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 5
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\WallTurret.lua
+          ClassName: WallTurret
+          Fields:
+            - Name: Range
+              Type: float
+              Value: 25
+            - Name: FireRate
+              Type: float
+              Value: 4
+            - Name: BulletBlueprint
+              Type: blueprintref
+              Value: 5912364285609910766
+              Subtype: blueprint_asset
+            - Name: MuzzlePoint
+              Type: entityref
+              Value: 7707465665076782426
+            - Name: PlayerRef
+              Type: entityref
+              Value: 10467415672658071835
+        - ScriptPath: scripts\TurretHealth.lua
+          ClassName: TurretHealth
+    BlueprintInstanceComponent:
+      BlueprintAssetUUID: 8252986035970355975
+      BlueprintPath: assets\blueprints\BP_Turret.blueprint
+      OriginalYAML: "Blueprint: Turret\nEntities:\n  - Entity: 9292764228792493310\n    TagComponent:\n      Tag: Turret\n    TransformComponent:\n      Position: [7.952376, 9.598793, 28.984272]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 1344730489972898971\n      ShaderUUID: 0\n      Visible: true\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false\n    ScriptComponent:\n      Scripts:\n        - ScriptPath: scripts\\WallTurret.lua\n          ClassName: WallTurret\n          Fields:\n            - Name: BulletBlueprint\n              Type: blueprintref\n              Value: 5912364285609910766\n              Subtype: blueprint_asset\n            - Name: MuzzlePoint\n              Type: entityref\n              Value: 16658254095736455051\n            - Name: PlayerRef\n              Type: entityref\n              Value: 10467415672658071835\n  - Entity: 11311126353622144788\n    TagComponent:\n      Tag: Cube\n    TransformComponent:\n      Position: [0, 0.4584713, -0.8073368]\n      Rotation: [0, 0, 0]\n      Scale: [0.2595508, 0.19616003, 1]\n      Parent: 9292764228792493310\n    MeshRendererComponent:\n      MeshUUID: 1\n      MaterialUUID: 1344730489972898971\n      ShaderUUID: 0\n      Visible: true\n  - Entity: 16658254095736455051\n    TagComponent:\n      Tag: Empty Entity\n    TransformComponent:\n      Position: [0, 1.1444092e-05, -0.65467644]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 11311126353622144788"
+  - Entity: 7707465665076782426
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [0, 1.9073486e-05, -1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 2988095329863140970
+  - Entity: 240953271394303874
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [2.9325485e-05, 1.1444092e-05, -1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 271116465572865213
+  - Entity: 271116465572865213
+    TagComponent:
+      Tag: Cube
+    TransformComponent:
+      Position: [0, 0.4584713, 0.76961327]
+      Rotation: [-3.1415927, 0, 3.1415927]
+      Scale: [0.2595508, 0.19616003, 1]
+      Parent: 11959109138225709996
+    MeshRendererComponent:
+      MeshUUID: 1
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 11959109138225709996
+    TagComponent:
+      Tag: Turret
+    TransformComponent:
+      Position: [0.3868811, 9.598793, 29.66178]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 5
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\WallTurret.lua
+          ClassName: WallTurret
+          Fields:
+            - Name: Range
+              Type: float
+              Value: 25
+            - Name: FireRate
+              Type: float
+              Value: 4
+            - Name: BulletBlueprint
+              Type: blueprintref
+              Value: 5912364285609910766
+              Subtype: blueprint_asset
+            - Name: MuzzlePoint
+              Type: entityref
+              Value: 240953271394303874
+            - Name: PlayerRef
+              Type: entityref
+              Value: 10467415672658071835
+        - ScriptPath: scripts\TurretHealth.lua
+          ClassName: TurretHealth
+    BlueprintInstanceComponent:
+      BlueprintAssetUUID: 8252986035970355975
+      BlueprintPath: assets\blueprints\BP_Turret.blueprint
+      OriginalYAML: "Blueprint: Turret\nEntities:\n  - Entity: 9292764228792493310\n    TagComponent:\n      Tag: Turret\n    TransformComponent:\n      Position: [7.952376, 9.598793, 28.984272]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 1344730489972898971\n      ShaderUUID: 0\n      Visible: true\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false\n    ScriptComponent:\n      Scripts:\n        - ScriptPath: scripts\\WallTurret.lua\n          ClassName: WallTurret\n          Fields:\n            - Name: BulletBlueprint\n              Type: blueprintref\n              Value: 5912364285609910766\n              Subtype: blueprint_asset\n            - Name: MuzzlePoint\n              Type: entityref\n              Value: 16658254095736455051\n            - Name: PlayerRef\n              Type: entityref\n              Value: 10467415672658071835\n  - Entity: 11311126353622144788\n    TagComponent:\n      Tag: Cube\n    TransformComponent:\n      Position: [0, 0.4584713, -0.8073368]\n      Rotation: [0, 0, 0]\n      Scale: [0.2595508, 0.19616003, 1]\n      Parent: 9292764228792493310\n    MeshRendererComponent:\n      MeshUUID: 1\n      MaterialUUID: 1344730489972898971\n      ShaderUUID: 0\n      Visible: true\n  - Entity: 16658254095736455051\n    TagComponent:\n      Tag: Empty Entity\n    TransformComponent:\n      Position: [0, 1.1444092e-05, -0.65467644]\n      Rotation: [0, 0, 0]\n      Scale: [1, 1, 1]\n      Parent: 11311126353622144788"
+  - Entity: 16658254095736455051
+    TagComponent:
+      Tag: Empty Entity
+    TransformComponent:
+      Position: [0, 1.1444092e-05, -1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 11311126353622144788
+  - Entity: 11311126353622144788
+    TagComponent:
+      Tag: Cube
+    TransformComponent:
+      Position: [0, 0.4584713, 0.7129917]
+      Rotation: [-3.1415927, 0, 3.1415927]
+      Scale: [0.2595508, 0.19616003, 1]
+      Parent: 9292764228792493310
+    MeshRendererComponent:
+      MeshUUID: 1
+      MaterialUUID: 1344730489972898971
+      ShaderUUID: 0
+      Visible: true
+  - Entity: 12160050135553676369
+    TagComponent:
+      Tag: GunPoint
+    TransformComponent:
+      Position: [0, -0.4538412, 0.98682207]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
       Parent: 4288399533179096203
-  - Entity: 1539687035209230805
+  - Entity: 4288399533179096203
     TagComponent:
-      Tag: voxel test
-    TransformComponent:
-      Position: [-5.776882, 0.5234245, -5.1310577]
-      Rotation: [-3.1415925, 1.0976, -3.1415925]
-      Scale: [60, 60, 60]
-      Parent: 829200245983299509
-    VoxelRendererComponent:
-      VoxelMeshUUID: 6966435591442646162
-      VoxelTextureUUID: 6918473807446761078
-      Visible: true
-    RigidBodyComponent:
-      Type: 2
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 3
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    DestructibleVoxelComponent:
-      Enabled: true
-      ReceivePhysicsImpact: true
-      PhysicsImpactThreshold: 10
-      PhysicsImpactMultiplier: 1
-      StructuralIntegrityEnabled: true
-      Anchor: 0
-      SubstanceOverride: Wood
-      HealthMultiplier: 1
-      ResistanceMultiplier: 1
-      FragmentSpawnDistance: 30
-      StructuralCheckDistance: 50
-      MaxFragmentsPerObject: 20
-      MaxDestructionsPerFrame: 30
-      FragmentLifetime: 5
-  - Entity: 11044917361371040571
-    TagComponent:
-      Tag: voxel test
-    TransformComponent:
-      Position: [-17.19905, -2.3411262, 2.4733458]
-      Rotation: [-3.1415925, 1.0976, -3.1415925]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 829200245983299509
-    VoxelRendererComponent:
-      VoxelMeshUUID: 16725038486124727391
-      VoxelTextureUUID: 5428517137321186404
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 3
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    DestructibleVoxelComponent:
-      Enabled: true
-      ReceivePhysicsImpact: true
-      PhysicsImpactThreshold: 10
-      PhysicsImpactMultiplier: 1
-      StructuralIntegrityEnabled: true
-      Anchor: 0
-      SubstanceOverride: Wood
-      HealthMultiplier: 1
-      ResistanceMultiplier: 1
-      FragmentSpawnDistance: 30
-      StructuralCheckDistance: 50
-      MaxFragmentsPerObject: 20
-      MaxDestructionsPerFrame: 30
-      FragmentLifetime: 5
-  - Entity: 16711518766113526192
-    TagComponent:
-      Tag: voxel test
-    TransformComponent:
-      Position: [0.16408569, 1.2106359, -4.221581]
-      Rotation: [-3.1415925, 1.0976, -3.1415927]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 829200245983299509
-    VoxelRendererComponent:
-      VoxelMeshUUID: 16725038486124727391
-      VoxelTextureUUID: 5428517137321186404
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 3
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    DestructibleVoxelComponent:
-      Enabled: true
-      ReceivePhysicsImpact: true
-      PhysicsImpactThreshold: 10
-      PhysicsImpactMultiplier: 1
-      StructuralIntegrityEnabled: true
-      Anchor: 0
-      SubstanceOverride: Wood
-      HealthMultiplier: 1
-      ResistanceMultiplier: 1
-      FragmentSpawnDistance: 30
-      StructuralCheckDistance: 50
-      MaxFragmentsPerObject: 20
-      MaxDestructionsPerFrame: 30
-      FragmentLifetime: 5
-  - Entity: 18130206231666088106
-    TagComponent:
-      Tag: voxel test
-    TransformComponent:
-      Position: [-22.264868, -2.3411262, -1.6530977]
-      Rotation: [-3.1415925, 1.0976, -3.1415925]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 829200245983299509
-    VoxelRendererComponent:
-      VoxelMeshUUID: 16725038486124727391
-      VoxelTextureUUID: 5428517137321186404
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 3
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    DestructibleVoxelComponent:
-      Enabled: true
-      ReceivePhysicsImpact: true
-      PhysicsImpactThreshold: 10
-      PhysicsImpactMultiplier: 1
-      StructuralIntegrityEnabled: true
-      Anchor: 0
-      SubstanceOverride: Wood
-      HealthMultiplier: 1
-      ResistanceMultiplier: 1
-      FragmentSpawnDistance: 30
-      StructuralCheckDistance: 50
-      MaxFragmentsPerObject: 20
-      MaxDestructionsPerFrame: 30
-      FragmentLifetime: 5
-  - Entity: 3784075422341540465
-    TagComponent:
-      Tag: voxel test
-    TransformComponent:
-      Position: [-24.52563, -2.3411262, -5.498907]
-      Rotation: [-3.1415923, 1.0976, -3.1415923]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 829200245983299509
-    VoxelRendererComponent:
-      VoxelMeshUUID: 16725038486124727391
-      VoxelTextureUUID: 5428517137321186404
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 3
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    DestructibleVoxelComponent:
-      Enabled: true
-      ReceivePhysicsImpact: true
-      PhysicsImpactThreshold: 10
-      PhysicsImpactMultiplier: 1
-      StructuralIntegrityEnabled: true
-      Anchor: 0
-      SubstanceOverride: Wood
-      HealthMultiplier: 1
-      ResistanceMultiplier: 1
-      FragmentSpawnDistance: 30
-      StructuralCheckDistance: 50
-      MaxFragmentsPerObject: 20
-      MaxDestructionsPerFrame: 30
-      FragmentLifetime: 5
-  - Entity: 829200245983299509
-    TagComponent:
-      Tag: Level
+      Tag: Camera
     TransformComponent:
       Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-      Parent: 0
-  - Entity: 1541552290480289154
+      Parent: 12145903664756383971
+    CameraComponent:
+      Primary: true
+      FOV: 45
+      NearClip: 0.1
+      FarClip: 1000
+  - Entity: 12145903664756383971
     TagComponent:
-      Tag: Floor
+      Tag: CameraPoint
     TransformComponent:
-      Position: [-20.193623, 9.563025, 0]
-      Rotation: [0, 0, 0]
-      Scale: [10, 0.1, 10]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 14908408603900613226
-      ShaderUUID: 0
-      Visible: true
-    ColliderComponent:
-      Shape: 0
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-  - Entity: 16386137795130594256
-    TagComponent:
-      Tag: Floor
-    TransformComponent:
-      Position: [-20.193623, -10.254806, -10.053282]
-      Rotation: [1.5707964, -0, 0]
-      Scale: [10, 0.1, 10]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 14908408603900613226
-      ShaderUUID: 0
-      Visible: true
-    ColliderComponent:
-      Shape: 0
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-  - Entity: 2227294649032338747
-    TagComponent:
-      Tag: Floor
-    TransformComponent:
-      Position: [-20.193623, -10.254806, 9.7913685]
-      Rotation: [1.5707964, -0, 0]
-      Scale: [10, 0.1, 10]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 14908408603900613226
-      ShaderUUID: 0
-      Visible: true
-    ColliderComponent:
-      Shape: 0
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-  - Entity: 10266550128129624826
-    TagComponent:
-      Tag: Floor
-    TransformComponent:
-      Position: [-30.09752, -10.22887, 0]
-      Rotation: [0, 0, -1.5707964]
-      Scale: [10, 0.1, 10]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 14908408603900613226
-      ShaderUUID: 0
-      Visible: true
-    ColliderComponent:
-      Shape: 0
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-  - Entity: 8481020281793183263
-    TagComponent:
-      Tag: Floor
-    TransformComponent:
-      Position: [-9.954405, -10.22887, 0]
-      Rotation: [0, 0, -1.5707964]
-      Scale: [10, 0.1, 10]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 14908408603900613226
-      ShaderUUID: 0
-      Visible: true
-    ColliderComponent:
-      Shape: 0
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-  - Entity: 462853992641381167
-    TagComponent:
-      Tag: Floor
-    TransformComponent:
-      Position: [-20.193623, -2.4412265, 0]
-      Rotation: [0, 0, 0]
-      Scale: [10, 0.1, 10]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 14908408603900613226
-      ShaderUUID: 0
-      Visible: true
-    ColliderComponent:
-      Shape: 0
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
+      Position: [0, 1.162251, 0]
+      Rotation: [0.19024134, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 10467415672658071835
   - Entity: 10467415672658071835
+    Layer: 1
     TagComponent:
       Tag: Player
     TransformComponent:
-      Position: [-2.7796881, 1.0999981, 3.9890332]
-      Rotation: [0, -2.7070057, 0]
+      Position: [5, -1.3479077, -5.630542]
+      Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
       Parent: 0
     MeshRendererComponent:
@@ -440,6 +367,9 @@ Entities:
         - ScriptPath: scripts\PlayerMovement.lua
           ClassName: PlayerMovement
           Fields:
+            - Name: GroundCheckDist
+              Type: float
+              Value: 2.05
             - Name: MouseSensitivity
               Type: float
               Value: 0.1
@@ -486,216 +416,982 @@ Entities:
             - Name: GrabPoint
               Type: entityref
               Value: 7569986666603767742
-  - Entity: 17285956863464234118
+        - ScriptPath: C:\Codes\GitKraken\pewpew-custom-engine\CBEngine-Editor\assets\scripts\PlayerHealth.lua
+          ClassName: PlayerHealth
+          Fields:
+            - Name: MaxHealth
+              Type: float
+              Value: 50
+  - Entity: 3000000000000000024
     TagComponent:
-      Tag: Plane
+      Tag: Light_Summit
     TransformComponent:
-      Position: [-1.2504042, 3.4259644, -1.2405907]
-      Rotation: [0, 0.7973421, -0.029159347]
-      Scale: [10, 10, 10]
-      Parent: 829200245983299509
+      Position: [5, 25, 5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 3100000000000000005
+    PointLightComponent:
+      Visible: true
+      Color: [1, 0.95, 0.7]
+      Intensity: 2.5
+      Range: 18
+  - Entity: 3000000000000000064
+    TagComponent:
+      Tag: GR_S_N
+    TransformComponent:
+      Position: [5, 20.75, -4.7696314]
+      Rotation: [0, 0, 0]
+      Scale: [10, 1.5, 0.3]
+      Parent: 3100000000000000005
     MeshRendererComponent:
-      MeshUUID: 9034001285339972295
-      MaterialUUID: 14976024544950598018
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
       ShaderUUID: 0
       Visible: true
-    ScriptComponent:
-      Scripts:
-        - ScriptPath: scripts\InfinityFlight.lua
-          ClassName: InfinityFlight
-  - Entity: 4288399533179096203
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000063
     TagComponent:
-      Tag: Camera
+      Tag: GR_S_E
+    TransformComponent:
+      Position: [15.499034, 20.5, 5]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000005
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000062
+    TagComponent:
+      Tag: GR_S_W
+    TransformComponent:
+      Position: [-4.929966, 20.5, 5]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000005
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000041
+    TagComponent:
+      Tag: Pillar_S_SE
+    TransformComponent:
+      Position: [9, 22, 9]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000005
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000040
+    TagComponent:
+      Tag: Pillar_S_SW
+    TransformComponent:
+      Position: [1, 22, 9]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000005
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000039
+    TagComponent:
+      Tag: Pillar_S_NE
+    TransformComponent:
+      Position: [9, 22, 1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000005
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000038
+    TagComponent:
+      Tag: Pillar_S_NW
+    TransformComponent:
+      Position: [1, 22, 1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000005
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000005
+    TagComponent:
+      Tag: Platform_Summit
+    TransformComponent:
+      Position: [5, 19.75, 5]
+      Rotation: [0, 0, 0]
+      Scale: [10, 0.5, 10]
+      Parent: 3100000000000000005
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000023
+    TagComponent:
+      Tag: Light_F3
+    TransformComponent:
+      Position: [5, 20, 27]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 3100000000000000004
+    PointLightComponent:
+      Visible: true
+      Color: [0.7, 0.4, 1]
+      Intensity: 2.2
+      Range: 22
+  - Entity: 3000000000000000013
+    TagComponent:
+      Tag: Ramp_34
+    TransformComponent:
+      Position: [-0.6391475, 15.437192, 15.590049]
+      Rotation: [0.19617617, -0, 0]
+      Scale: [4, 0.5, 13]
+      Parent: 3100000000000000004
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000061
+    TagComponent:
+      Tag: GR_F3_N
+    TransformComponent:
+      Position: [5, 15.75, 36.72831]
+      Rotation: [0, 0, 0]
+      Scale: [10, 1.5, 0.3]
+      Parent: 3100000000000000004
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000060
+    TagComponent:
+      Tag: GR_F3_E
+    TransformComponent:
+      Position: [14.736996, 15.5, 27]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000004
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000059
+    TagComponent:
+      Tag: GR_F3_W
+    TransformComponent:
+      Position: [-5.501947, 15.5, 27]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000004
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000037
+    TagComponent:
+      Tag: Pillar_F3_R
+    TransformComponent:
+      Position: [9, 17, 31]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000004
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000036
+    TagComponent:
+      Tag: Pillar_F3_L
+    TransformComponent:
+      Position: [1, 17, 31]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000004
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000004
+    TagComponent:
+      Tag: Platform_F3
+    TransformComponent:
+      Position: [5, 14.75, 27]
+      Rotation: [0, 0, 0]
+      Scale: [10, 0.5, 10]
+      Parent: 3100000000000000004
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000022
+    TagComponent:
+      Tag: Light_F2
+    TransformComponent:
+      Position: [5, 15, 5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 3100000000000000003
+    PointLightComponent:
+      Visible: true
+      Color: [1, 0.6, 0.2]
+      Intensity: 2
+      Range: 22
+  - Entity: 3000000000000000012
+    TagComponent:
+      Tag: Ramp_23
+    TransformComponent:
+      Position: [10.955333, 10.770494, 16.483547]
+      Rotation: [-0.19447166, -0.04276931, -0.03728578]
+      Scale: [4, 0.5, 13]
+      Parent: 3100000000000000003
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000058
+    TagComponent:
+      Tag: GR_F2_S
+    TransformComponent:
+      Position: [5, 10.75, -4.8474903]
+      Rotation: [0, 0, 0]
+      Scale: [10, 1.5, 0.3]
+      Parent: 3100000000000000003
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000057
+    TagComponent:
+      Tag: GR_F2_E
+    TransformComponent:
+      Position: [14.6477585, 10.5, 5]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000003
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000056
+    TagComponent:
+      Tag: GR_F2_W
+    TransformComponent:
+      Position: [-4.559701, 10.5, 5]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000003
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000035
+    TagComponent:
+      Tag: Pillar_F2_R
+    TransformComponent:
+      Position: [9, 12, 1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000003
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000034
+    TagComponent:
+      Tag: Pillar_F2_L
+    TransformComponent:
+      Position: [1, 12, 1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000003
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000003
+    TagComponent:
+      Tag: Platform_F2
+    TransformComponent:
+      Position: [5, 9.75, 5]
+      Rotation: [0, 0, 0]
+      Scale: [10, 0.5, 10]
+      Parent: 3100000000000000003
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000021
+    TagComponent:
+      Tag: Light_F1
+    TransformComponent:
+      Position: [5, 10, 27]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 3100000000000000002
+    PointLightComponent:
+      Visible: true
+      Color: [0.4, 0.7, 1]
+      Intensity: 2
+      Range: 20
+  - Entity: 3000000000000000011
+    TagComponent:
+      Tag: Ramp_12
+    TransformComponent:
+      Position: [2.8701625, 5.3515534, 15.514491]
+      Rotation: [0.22185968, 0.006713435, -0.058846187]
+      Scale: [4, 0.5, 13]
+      Parent: 3100000000000000002
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000055
+    TagComponent:
+      Tag: GR_F1_N
+    TransformComponent:
+      Position: [5, 5.75, 36.63099]
+      Rotation: [0, 0, 0]
+      Scale: [10, 1.5, 0.3]
+      Parent: 3100000000000000002
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000054
+    TagComponent:
+      Tag: GR_F1_E
+    TransformComponent:
+      Position: [15.037977, 5.5, 27]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000002
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000053
+    TagComponent:
+      Tag: GR_F1_W
+    TransformComponent:
+      Position: [-4.991917, 5.5, 27]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000002
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000033
+    TagComponent:
+      Tag: Pillar_F1_R
+    TransformComponent:
+      Position: [9, 7, 31]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000002
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000032
+    TagComponent:
+      Tag: Pillar_F1_L
+    TransformComponent:
+      Position: [1, 7, 31]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000002
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000002
+    TagComponent:
+      Tag: Platform_F1
+    TransformComponent:
+      Position: [5, 4.75, 27]
+      Rotation: [0, 0, 0]
+      Scale: [10, 0.5, 10]
+      Parent: 3100000000000000002
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000020
+    TagComponent:
+      Tag: Light_F0
+    TransformComponent:
+      Position: [5, 5, 5]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 3100000000000000001
+    PointLightComponent:
+      Visible: true
+      Color: [1, 0.9, 0.5]
+      Intensity: 2
+      Range: 20
+  - Entity: 3000000000000000010
+    TagComponent:
+      Tag: Ramp_01
+    TransformComponent:
+      Position: [7, 0.80525446, 16.232668]
+      Rotation: [-0.16855885, 0, 0]
+      Scale: [4, 0.5, 13]
+      Parent: 3100000000000000001
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000052
+    TagComponent:
+      Tag: GR_F0_S
+    TransformComponent:
+      Position: [5, 0.75, -4.771839]
+      Rotation: [0, 0, 0]
+      Scale: [10, 1.5, 0.3]
+      Parent: 3100000000000000001
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000051
+    TagComponent:
+      Tag: GR_F0_E
+    TransformComponent:
+      Position: [14.6126995, 0.5, 5]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000001
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000050
+    TagComponent:
+      Tag: GR_F0_W
+    TransformComponent:
+      Position: [-5.2424407, 0.5, 5]
+      Rotation: [0, 0, 0]
+      Scale: [0.3, 1, 10]
+      Parent: 3100000000000000001
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000031
+    TagComponent:
+      Tag: Pillar_F0_R
+    TransformComponent:
+      Position: [9, 2, 1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000001
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000030
+    TagComponent:
+      Tag: Pillar_F0_L
+    TransformComponent:
+      Position: [1, 2, 1]
+      Rotation: [0, 0, 0]
+      Scale: [1, 4, 1]
+      Parent: 3100000000000000001
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3000000000000000001
+    TagComponent:
+      Tag: Platform_F0
+    TransformComponent:
+      Position: [5, -0.25, 5]
+      Rotation: [0, 0, 0]
+      Scale: [10, 0.5, 10]
+      Parent: 3100000000000000001
+    MeshRendererComponent:
+      MeshUUID: 13506778620865434867
+      MaterialUUID: 14908408603900613226
+      ShaderUUID: 0
+      Visible: true
+    ColliderComponent:
+      Shape: 0
+      HalfExtents: [1, 1, 1]
+      Radius: 0.5
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+  - Entity: 3100000000000000005
+    TagComponent:
+      Tag: Summit_Group
+    TransformComponent:
+      Position: [-0.7493651, -9.98208, -10.607829]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 829200245983299509
+  - Entity: 3100000000000000004
+    TagComponent:
+      Tag: Floor3_Group
+    TransformComponent:
+      Position: [0, -8.196467, -0.05055499]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 829200245983299509
+  - Entity: 3100000000000000003
+    TagComponent:
+      Tag: Floor2_Group
+    TransformComponent:
+      Position: [-0.63304305, -6.573905, -10.959837]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 829200245983299509
+  - Entity: 3100000000000000002
+    TagComponent:
+      Tag: Floor1_Group
+    TransformComponent:
+      Position: [-4.5774837, -4.6365333, -0.14004827]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 829200245983299509
+  - Entity: 3100000000000000001
+    TagComponent:
+      Tag: Floor0_Group
+    TransformComponent:
+      Position: [-0.79316187, -2.8234177, -10.815873]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+      Parent: 829200245983299509
+  - Entity: 829200245983299509
+    TagComponent:
+      Tag: Level
     TransformComponent:
       Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-      Parent: 12145903664756383971
-    CameraComponent:
-      Primary: true
-      FOV: 45
-      NearClip: 0.1
-      FarClip: 1000
-  - Entity: 12160050135553676369
+      Parent: 0
+  - Entity: 630729861583581548
     TagComponent:
-      Tag: GunPoint
+      Tag: Directional Light
     TransformComponent:
-      Position: [0, -0.4538412, 0.98682207]
+      Position: [0, 0, 0]
+      Rotation: [2.9960563, -0, 0]
+      Scale: [1, 1, 1]
+      Parent: 0
+    DirectionalLightComponent:
+      Visible: true
+      Color: [1, 1, 1]
+      Intensity: 0.8
+      CastShadows: true
+      SourceAngleDegrees: 0.53
+  - Entity: 7569986666603767742
+    TagComponent:
+      Tag: GrabPoint
+    TransformComponent:
+      Position: [9.250641e-05, -0.45385265, 2.1423311]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
       Parent: 4288399533179096203
-  - Entity: 17880755116591688848
+  - Entity: 10370022810352722993
     TagComponent:
-      Tag: Robe
+      Tag: GameManager
     TransformComponent:
-      Position: [3.5628421, 10.932361, 0]
+      Position: [0, 0, 0]
       Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-      Parent: 829200245983299509
-    HingeChainComponent:
-      LinkType: 1
-      LinkCount: 10
-      LinkSpacing: 0.7
-      ChainDirection: [0, -1, 0]
-      MeshUUID: 9034001285339972295
-      MaterialUUID: 14976024544950598018
-      LinkScale: [1, 1, 1]
-      BlueprintUUID: 7446544307240529023
-      ColliderHalfExtents: [0.055089053, 0.015359204, 0.042023387]
-      LinkMass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      AnchorFirstToWorld: true
-      UseBallJoint: true
-      HingeAxis: [1, 0, 0]
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollisionBetweenLinks: false
-      MaxFrictionTorque: 0
-      LinkEntityUUIDs:
-        - 11853082069863937074
-        - 6563444053036777588
-        - 5615004177760427322
-        - 3485366235236390024
-        - 14269089650178556323
-        - 6646630908272658310
-        - 3574311292631925428
-        - 6685589001507026355
-        - 12286282545820039393
-        - 16322492063194726827
-  - Entity: 12145903664756383971
+      Parent: 0
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: C:\Codes\GitKraken\pewpew-custom-engine\CBEngine-Editor\assets\scripts\CustomGameManager.lua
+          ClassName: LevelManager
+          Fields:
+            - Name: KillY
+              Type: float
+              Value: -5
+            - Name: PlayerRef
+              Type: entityref
+              Value: 10467415672658071835
+    GameManagerComponent:
+      {}
+  - Entity: 9292764228792493310
     TagComponent:
-      Tag: CameraPoint
+      Tag: Turret
     TransformComponent:
-      Position: [0, 1.162251, 0]
-      Rotation: [0.19024134, 0, 0]
+      Position: [8.619193, 9.598793, 29.705399]
+      Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-      Parent: 10467415672658071835
-  - Entity: 16020047007249049872
-    TagComponent:
-      Tag: Cube
-    TransformComponent:
-      Position: [13.428616, 0.2824064, -12.537761]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [1, 1, 1]
-      Parent: 829200245983299509
+      Parent: 0
     MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 0
+      MeshUUID: 5
+      MaterialUUID: 1344730489972898971
       ShaderUUID: 0
       Visible: true
     ColliderComponent:
-      Shape: 0
-      HalfExtents: [1, 1, 1]
+      Shape: 2
+      HalfExtents: [0.5, 1, 0.5]
       Radius: 0.5
       CapsuleRadius: 0.5
       CapsuleHalfHeight: 0.5
       Offset: [0, 0, 0]
       IsTrigger: false
-  - Entity: 8923458721691645312
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\WallTurret.lua
+          ClassName: WallTurret
+          Fields:
+            - Name: Range
+              Type: float
+              Value: 25
+            - Name: FireRate
+              Type: float
+              Value: 4
+            - Name: BulletBlueprint
+              Type: blueprintref
+              Value: 5912364285609910766
+              Subtype: blueprint_asset
+            - Name: MuzzlePoint
+              Type: entityref
+              Value: 16658254095736455051
+            - Name: PlayerRef
+              Type: entityref
+              Value: 10467415672658071835
+        - ScriptPath: scripts\TurretHealth.lua
+          ClassName: TurretHealth
+  - Entity: 1400618385625103780
     TagComponent:
-      Tag: Cube
+      Tag: WoodenWall
     TransformComponent:
-      Position: [5.274784, 0.8506768, -16.083769]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [1, 1, 1]
-      Parent: 829200245983299509
-    MeshRendererComponent:
-      MeshUUID: 13506778620865434867
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    ColliderComponent:
-      Shape: 0
-      HalfExtents: [1, 1, 1]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-  - Entity: 7911143129962106815
-    TagComponent:
-      Tag: Cube
-    TransformComponent:
-      Position: [0, -8.444, 0]
-      Rotation: [-3.1415925, 1.0975952, -3.1415925]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 14354534839807604147
-      MaterialUUID: 10679708688162182362
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 0
-      HalfExtents: [107.93994, 100.58357, 101.87407]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [6.2387085, 100.58354, 1.8740311]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 16322492063194726827
-      Anchor: [0, 0, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [0, 1, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -180
-      LimitsMax: 180
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-  - Entity: 6182194607524461280
-    TagComponent:
-      Tag: voxel test
-    TransformComponent:
-      Position: [-20.312166, -2.3411262, 3.5794184]
-      Rotation: [-3.1415925, 1.0976, -3.1415925]
-      Scale: [0.01, 0.01, 0.01]
-      Parent: 829200245983299509
+      Position: [0.32811797, 3.1394622, 2.9924269]
+      Rotation: [1.5707964, 0, 3.1415927]
+      Scale: [400.7392, 400.73932, 400.73932]
+      Parent: 0
     VoxelRendererComponent:
-      VoxelMeshUUID: 16725038486124727391
-      VoxelTextureUUID: 5428517137321186404
+      VoxelMeshUUID: 13866013559748668767
+      VoxelTextureUUID: 7639827830764971964
       Visible: true
     RigidBodyComponent:
-      Type: 1
+      Type: 2
       Mass: 1
       LinearDamping: 0.05
       AngularDamping: 0.05
@@ -710,12 +1406,20 @@ Entities:
       FreezeRotationZ: false
     ColliderComponent:
       Shape: 3
-      HalfExtents: [1, 1, 1]
+      HalfExtents: [0.014118336, 0.00074307004, 0.008916844]
       Radius: 0.5
       CapsuleRadius: 0.5
       CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
+      Offset: [0, 0.0003312747, 0]
       IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\BurnActivate.lua
+          ClassName: BurnActivate
+          Fields:
+            - Name: HeatThreshold
+              Type: float
+              Value: 50
     DestructibleVoxelComponent:
       Enabled: true
       ReceivePhysicsImpact: true
@@ -724,38 +1428,24 @@ Entities:
       StructuralIntegrityEnabled: true
       Anchor: 0
       SubstanceOverride: Wood
-      HealthMultiplier: 1
-      ResistanceMultiplier: 1
+      HealthMultiplier: 500
+      ResistanceMultiplier: 0.1
       FragmentSpawnDistance: 30
       StructuralCheckDistance: 50
       MaxFragmentsPerObject: 20
       MaxDestructionsPerFrame: 30
       FragmentLifetime: 5
-  - Entity: 10370022810352722993
+  - Entity: 9927564348793638966
     TagComponent:
-      Tag: GameManager
+      Tag: Platform_Summit
     TransformComponent:
-      Position: [0, 0, 0]
+      Position: [5, 20.266338, 5]
       Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-      Parent: 0
-    ScriptComponent:
-      Scripts:
-        - ScriptPath: C:\Codes\GitKraken\pewpew-custom-engine\CBEngine-Editor\assets\scripts\CustomGameManager.lua
-          ClassName: Collectible
-    GameManagerComponent:
-      {}
-  - Entity: 6705410063973906264
-    TagComponent:
-      Tag: Floor
-    TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [0, 0, 0]
-      Scale: [10, 0.1, 10]
-      Parent: 829200245983299509
+      Scale: [1.5000004, 0.07500002, 1.5000004]
+      Parent: 3100000000000000005
     MeshRendererComponent:
       MeshUUID: 13506778620865434867
-      MaterialUUID: 14976024544950598018
+      MaterialUUID: 1344730489972898971
       ShaderUUID: 0
       Visible: true
     ColliderComponent:
@@ -766,662 +1456,23 @@ Entities:
       CapsuleHalfHeight: 0.5
       Offset: [0, 0, 0]
       IsTrigger: false
-  - Entity: 630729861583581548
+  - Entity: 5753715678024026679
     TagComponent:
-      Tag: Directional Light
+      Tag: Child
     TransformComponent:
       Position: [0, 0, 0]
-      Rotation: [2.9960563, -0, 0]
+      Rotation: [0, 0, 0]
       Scale: [1, 1, 1]
-      Parent: 0
-    DirectionalLightComponent:
-      Visible: true
-      Color: [1, 1, 1]
-      Intensity: 1
-      CastShadows: true
-      SourceAngleDegrees: 0.53
-  - Entity: 11853082069863937074
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -0.35911942, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
+      Parent: 9927564348793638966
     ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
+      Shape: 0
+      HalfExtents: [1.1, 12.3, 1]
       Radius: 0.5
       CapsuleRadius: 0.5
       CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 0
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 6563444053036777588
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -1.060771, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 11853082069863937074
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 5615004177760427322
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -1.7623239, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 6563444053036777588
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 3485366235236390024
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -2.463736, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 5615004177760427322
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 14269089650178556323
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -3.1649666, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 3485366235236390024
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 6646630908272658310
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -3.8659954, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 14269089650178556323
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 3574311292631925428
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -4.566812, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 6646630908272658310
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 6685589001507026355
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -5.267415, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 3574311292631925428
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 12286282545820039393
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -5.967806, 0]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 6685589001507026355
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 16322492063194726827
-    TagComponent:
-      Tag: Chain
-    TransformComponent:
-      Position: [0, -6.667987, -9.313226e-10]
-      Rotation: [0, -0, 0]
-      Scale: [0.3, 0.3, 0.3]
-      Parent: 17880755116591688848
-    MeshRendererComponent:
-      MeshUUID: 5
-      MaterialUUID: 0
-      ShaderUUID: 0
-      Visible: true
-    RigidBodyComponent:
-      Type: 1
-      Mass: 1
-      LinearDamping: 0.05
-      AngularDamping: 0.05
-      Friction: 0.5
-      Restitution: 0.3
-      UseGravity: true
-      FreezePositionX: false
-      FreezePositionY: false
-      FreezePositionZ: false
-      FreezeRotationX: false
-      FreezeRotationY: false
-      FreezeRotationZ: false
-    ColliderComponent:
-      Shape: 2
-      HalfExtents: [0.5, 1, 0.5]
-      Radius: 0.5
-      CapsuleRadius: 0.5
-      CapsuleHalfHeight: 0.5
-      Offset: [0, 0, 0]
-      IsTrigger: false
-    HingeJointComponent:
-      ConstraintType: 0
-      ConnectedBodyUUID: 12286282545820039393
-      Anchor: [0, 0.35, 0]
-      ConnectedAnchor: [0, 0, 0]
-      Axis: [1, 0, 0]
-      AutoConfigureConnectedAnchor: true
-      UseLimits: false
-      LimitsMin: -45
-      LimitsMax: 45
-      Bounciness: 0
-      ContactDistance: 5
-      UseSpring: false
-      SpringFrequency: 2
-      SpringDamping: 1
-      TargetPosition: 0
-      UseMotor: false
-      TargetVelocity: 0
-      MotorForce: 1000
-      FreeSpin: false
-      BreakForce: 0
-      BreakTorque: 0
-      EnableCollision: false
-      MaxFrictionTorque: 0
-    BlueprintInstanceComponent:
-      BlueprintAssetUUID: 7446544307240529023
-      BlueprintPath: ""
-      OriginalYAML: "Blueprint: Chain\nEntities:\n  - Entity: 9173040000732748729\n    TagComponent:\n      Tag: Chain\n    TransformComponent:\n      Position: [4.3774004, 1.8293089, 0]\n      Rotation: [0, 0, 0]\n      Scale: [0.3, 0.3, 0.3]\n      Parent: 0\n    MeshRendererComponent:\n      MeshUUID: 5\n      MaterialUUID: 0\n      ShaderUUID: 0\n      Visible: true\n    RigidBodyComponent:\n      Type: 1\n      Mass: 1\n      LinearDamping: 0.05\n      AngularDamping: 0.05\n      Friction: 0.5\n      Restitution: 0.3\n      UseGravity: true\n      FreezePositionX: false\n      FreezePositionY: false\n      FreezePositionZ: false\n      FreezeRotationX: false\n      FreezeRotationY: false\n      FreezeRotationZ: false\n    ColliderComponent:\n      Shape: 2\n      HalfExtents: [0.5, 1, 0.5]\n      Radius: 0.5\n      CapsuleRadius: 0.5\n      CapsuleHalfHeight: 0.5\n      Offset: [0, 0, 0]\n      IsTrigger: false"
-  - Entity: 13971956764022098685
-    TagComponent:
-      Tag: Spot Light
-    TransformComponent:
-      Position: [-4.3297253, 4.6612716, 2.8813689]
-      Rotation: [-0.6665836, 0, 0]
-      Scale: [1, 1, 1]
-      Parent: 829200245983299509
-    SpotLightComponent:
-      Visible: true
-      Color: [1, 0, 0]
-      Intensity: 1
-      Range: 10
-      InnerAngleDegrees: 25.5
-      OuterAngleDegrees: 25.5
+      Offset: [0, 11.8, 0]
+      IsTrigger: true
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\WinPlate.lua
+          ClassName: WinPlate

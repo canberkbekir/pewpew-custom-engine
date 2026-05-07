@@ -1,62 +1,66 @@
--- CollectGameManager.lua
--- GameManager that tracks collected items and triggers a win condition.
--- Attach to a GameManager entity in the scene.
+LevelManager = GameManager:Extend()
 
-CollectGameManager = GameManager:Extend()
-
-CollectGameManager.__fields = {
-    WinScore    = Int(5, 1, 100),
-    TimeLimit   = Float(0, 0, 600),   -- 0 = no time limit
+LevelManager.__fields = {
+    KillY     = Float(-10, -1000, 100),
+    PlayerRef = EntityRef(),
 }
 
-function CollectGameManager:OnCreate()
-    self.score       = 0
-    self.gameOver    = false
-    self.won         = false
-    self.elapsed     = 0.0
+local CHECKPOINTS = {
+    [1] = Vector3(6,  1.5, 14.5),
+    [2] = Vector3(5,  1.5, 27),
+    [3] = Vector3(8,  1.5, 48),
+    [4] = Vector3(7,  1.5, 61),
+}
 
-    Log.Info("=== Collect Game Started! ===")
-    Log.Info("Collect " .. self.WinScore .. " items to win!")
-    if self.TimeLimit > 0 then
-        Log.Info("Time limit: " .. self.TimeLimit .. " seconds")
+function LevelManager:OnCreate()
+    self.currentSection = 0
+    self.won = false
+    self._player = self.PlayerRef
+    if self._player and self._player:IsValid() then
+        self.currentSpawn = self._player:GetWorldPosition()
+    else
+        self.currentSpawn = Vector3(5, 1.5, 2)
+    end
+    Log.Info("=== Flamethrower Puzzle — Press 4 to equip flame, hold LMB to burn! ===")
+end
+
+function LevelManager:OnUpdate(dt)
+    if not self._player or not self._player:IsValid() then return end
+    local pos = self._player:GetWorldPosition()
+    if pos.y < self.KillY then
+        self:RespawnPlayer()
     end
 end
 
-function CollectGameManager:OnUpdate(dt)
-    if self.gameOver then return end
-
-    -- Timer
-    if self.TimeLimit > 0 then
-        self.elapsed = self.elapsed + dt
-        local remaining = self.TimeLimit - self.elapsed
-
-        if remaining <= 0 then
-            self.gameOver = true
-            self.won = false
-            Log.Warn("=== TIME'S UP! You collected " .. self.score .. "/" .. self.WinScore .. " ===")
-            return
-        end
+function LevelManager:RespawnPlayer()
+    self._player:SetPosition(self.currentSpawn)
+    local rb = self._player:GetComponent(RigidBody)
+    if rb then
+        rb:SetLinearVelocity(Vector3(0, 0, 0))
     end
 end
 
--- Called by Collectible scripts when player picks up an item
-function CollectGameManager:OnItemCollected(points, collectibleEntity)
-    if self.gameOver then return end
+function LevelManager:SetCheckpoint(pos)
+    self.currentSpawn = pos
+end
 
-    self.score = self.score + points
-    Log.Info("Score: " .. self.score .. " / " .. self.WinScore)
-
-    if self.score >= self.WinScore then
-        self.gameOver = true
-        self.won = true
-        Log.Info("=== YOU WIN! All items collected! ===")
-        if self.TimeLimit > 0 then
-            Log.Info(string.format("Time: %.1f seconds", self.elapsed))
-        end
+function LevelManager:OnSectionEntered(id)
+    if self.won then return end
+    self.currentSection = id
+    local cp = CHECKPOINTS[id]
+    if cp then
+        self:SetCheckpoint(cp)
+        Log.Info("--- Section " .. id .. " entered — checkpoint set ---")
+    else
+        Log.Info("--- Section " .. id .. " entered ---")
     end
 end
 
-function CollectGameManager:OnDestroy()
-    Log.Info("=== Collect Game Ended ===")
-    Log.Info("Final Score: " .. self.score .. " / " .. self.WinScore)
+function LevelManager:OnLevelComplete()
+    if self.won then return end
+    self.won = true
+    Log.Info("=== YOU WIN! You burned your way through! ===")
+end
+
+function LevelManager:OnDestroy()
 end

@@ -1,0 +1,18 @@
+# CBEngine Voxel Texture
+version: 4
+sourceVmesh: 13866013559748668767
+gridSize: [64, 29, 50]
+voxelCount: 1089
+paletteMapping:
+  0: Wood
+  1: Wood
+customBrushes:
+  - color: [0.45588237, 0.22163138, 0.16089965]
+    metallic: 0
+    roughness: 0.5
+    emission: 0
+    substance: Wood
+hasAlbedoOverrides: true
+albedoOverrides:
+  0: [0.55, 0.36, 0.18]
+  1: [0.55, 0.36, 0.18]

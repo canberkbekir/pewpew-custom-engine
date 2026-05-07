@@ -3208,6 +3208,9 @@ end
 
 		sceneMgr["GetScenePath"] = []() -> std::string { return SceneManager::GetActiveScenePath(); };
 
+		// Application control — stops play mode (returns to editor without closing)
+		lua.set_function("Application_Quit", []() { ScriptEngine::RequestStopPlay(); });
+
 		// Also inject on the global "Scene" table so scripts can call Scene.LoadScene(...)
 		sol::object existingScene = lua["Scene"];
 		if (existingScene.get_type() == sol::type::userdata) {

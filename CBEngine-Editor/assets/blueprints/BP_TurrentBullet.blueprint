@@ -1,0 +1,42 @@
+Blueprint: Sphere
+Entities:
+  - Entity: 5970168210690286534
+    Layer: 4
+    TagComponent:
+      Tag: Sphere
+    TransformComponent:
+      Position: [-0.3209656, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [0.17000002, 0.17000002, 0.17000002]
+      Parent: 0
+    MeshRendererComponent:
+      MeshUUID: 2
+      MaterialUUID: 0
+      ShaderUUID: 0
+      Visible: true
+    RigidBodyComponent:
+      Type: 1
+      Mass: 1
+      LinearDamping: 0.05
+      AngularDamping: 0.05
+      Friction: 0.5
+      Restitution: 0.3
+      UseGravity: true
+      FreezePositionX: false
+      FreezePositionY: false
+      FreezePositionZ: false
+      FreezeRotationX: false
+      FreezeRotationY: false
+      FreezeRotationZ: false
+    ColliderComponent:
+      Shape: 1
+      HalfExtents: [0.5, 0.5, 0.5]
+      Radius: 0.8660254
+      CapsuleRadius: 0.5
+      CapsuleHalfHeight: 0.5
+      Offset: [0, 0, 0]
+      IsTrigger: false
+    ScriptComponent:
+      Scripts:
+        - ScriptPath: scripts\TurretBullet.lua
+          ClassName: TurretBullet

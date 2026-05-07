@@ -74,12 +74,18 @@ end
 function PlayerBullet:_OnHit(other, point, normal)
     if other and other:IsValid() then
 
-        -- Generic health damage
+        -- Generic health damage (C++ Health component)
         if Health then
             local health = other:GetComponent(Health)
             if health and health.TakeDamage then
                 health:TakeDamage(self.Damage)
             end
+        end
+
+        -- Lua script health (e.g. TurretHealth on enemy entities)
+        local scriptHealth = other:GetScript(TurretHealth)
+        if scriptHealth then
+            scriptHealth:TakeDamage(self.Damage)
         end
 
         -- Voxel damage: apply impact at the collision point

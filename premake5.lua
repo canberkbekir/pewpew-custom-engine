@@ -511,26 +511,17 @@ project "CBEngine-Editor"
         "%{prj.name}/src/**.h",
         "%{prj.name}/src/**.cpp",
         "%{prj.name}/resources/icon.rc",
-        -- Asset files (visible in solution but not compiled)
-        "%{prj.name}/assets/shaders/**.glsl",
-        "%{prj.name}/assets/shaders/**.hlsl",
-        "%{prj.name}/assets/shaders/**.vert",
-        "%{prj.name}/assets/shaders/**.frag",
-        "%{prj.name}/assets/textures/**.png",
-        "%{prj.name}/assets/textures/**.jpg",
-        "%{prj.name}/assets/textures/**.tga",
-        "%{prj.name}/assets/models/**.fbx",
-        "%{prj.name}/assets/models/**.obj",
-        "%{prj.name}/assets/models/**.gltf"
+        -- All asset files visible in Solution Explorer (not compiled)
+        "%{prj.name}/assets/**",
     }
+
+    removefiles { "%{prj.name}/assets/**.meta" }
 
     -- Organize assets in virtual folders in Solution Explorer
     vpaths
     {
         ["Source/*"] = { "%{prj.name}/src/**.h", "%{prj.name}/src/**.cpp" },
-        ["Assets/Shaders/*"] = { "%{prj.name}/assets/shaders/**" },
-        ["Assets/Textures/*"] = { "%{prj.name}/assets/textures/**" },
-        ["Assets/Models/*"] = { "%{prj.name}/assets/models/**" }
+        ["Assets/*"] = { "%{prj.name}/assets/**" },
     }
 
     includedirs

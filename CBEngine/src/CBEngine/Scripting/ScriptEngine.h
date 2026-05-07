@@ -73,6 +73,11 @@ namespace CB
 		static std::string GetPendingScenePath();
 		static void ClearPendingSceneChange();
 
+		// Deferred play-mode stop (safe to call from Lua scripts mid-frame)
+		static void RequestStopPlay();
+		static bool HasPendingStopPlay();
+		static void ClearPendingStopPlay();
+
 		// GameManager discovery
 		static void PreloadBaseScripts();
 		static bool IsGameManagerScript(const std::string& scriptPath);

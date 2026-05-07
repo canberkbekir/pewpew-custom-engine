@@ -42,6 +42,9 @@ namespace CB
 	static bool s_PendingReload = false;
 	static bool s_HasPendingSceneChange = false;
 
+	// Deferred play-mode stop (set by Lua, consumed by EditorLayer after scripts run)
+	static bool s_PendingStopPlay = false;
+
 	// Per-entity: vector of script instances (indexed same as ScriptComponent::Scripts)
 	static std::unordered_map<uint64_t, std::vector<sol::table>> s_ScriptInstances;
 
@@ -358,6 +361,10 @@ namespace CB
 		s_PendingReload = false;
 		s_PendingScenePath = "";
 	}
+
+	void ScriptEngine::RequestStopPlay()   { s_PendingStopPlay = true; }
+	bool ScriptEngine::HasPendingStopPlay() { return s_PendingStopPlay; }
+	void ScriptEngine::ClearPendingStopPlay() { s_PendingStopPlay = false; }
 
 	void ScriptEngine::RegisterBindings()
 	{
